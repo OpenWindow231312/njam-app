@@ -14,7 +14,7 @@
  * style's own font size, and CSS box-shadows are expressed as RN shadow props.
  */
 
-export type ThemeName = "light" | "dark";
+export type ThemeName = 'light' | 'dark';
 
 /* ------------------------------------------------------------------ */
 /* Colour                                                              */
@@ -27,129 +27,129 @@ export type ThemeName = "light" | "dark";
 export const colors = {
   light: {
     /** Page background on every screen. Never pure white. */
-    surface: "#f5f4ee",
+    surface: '#f5f4ee',
     /** Cards, list rows, bottom sheets: anything sitting on surface. */
-    surfaceRaised: "#eae9e0",
+    surfaceRaised: '#eae9e0',
     /** Inset wells: viewfinder ground, search bars, meter tracks. */
-    surfaceSunken: "#e1e0d5",
+    surfaceSunken: '#e1e0d5',
     /** Deliberately flipped panels: splash, onboarding hero, verdict header strip. */
-    surfaceInverse: "#04291c",
+    surfaceInverse: '#04291c',
     /** Dimmer behind sheets and modals. Never a decorative wash. */
-    surfaceScrim: "rgba(4, 41, 28, 0.55)",
+    surfaceScrim: 'rgba(4, 41, 28, 0.55)',
 
     /** Body and heading copy. */
-    ink: "#14201a",
+    ink: '#14201a',
     /** Supporting copy, helper text, inactive tab labels. */
-    inkMuted: "#4a574f",
+    inkMuted: '#4a574f',
     /** Captions, timestamps, unit suffixes. The quietest text allowed. */
-    inkSubtle: "#5f6c63",
+    inkSubtle: '#5f6c63',
     /** Copy on surfaceInverse and on any solid brandForest fill. */
-    inkInverse: "#f5f4ee",
+    inkInverse: '#f5f4ee',
 
     /** Fixed identity green. Logo tile, splash ground, dark app bars. */
-    brandForest: "#04291c",
+    brandForest: '#04291c',
     /** Fixed mid green. Secondary pills and supporting brand fills. */
-    brandForestMid: "#0a5b33",
+    brandForestMid: '#0a5b33',
     /** The single accent, fixed in both themes. */
-    brandLime: "#bef842",
+    brandLime: '#bef842',
     /** Decorative only. Below 4.5:1 on surface, so never set copy in it. */
-    brandLimeDeep: "#8cc63e",
+    brandLimeDeep: '#8cc63e',
     /** Fixed identity paper, theme-locked unlike surface. */
-    brandPaper: "#f5f4ee",
+    brandPaper: '#f5f4ee',
 
     /** Primary button and selected-state fill. Pair with onAction. */
-    action: "#04291c",
-    actionHover: "#0a5b33",
-    actionPressed: "#021b12",
+    action: '#04291c',
+    actionHover: '#0a5b33',
+    actionPressed: '#021b12',
     /** Label and icon on action, actionHover, actionPressed. */
-    onAction: "#f5f4ee",
+    onAction: '#f5f4ee',
     /** Secondary button and selected chip fill. */
-    actionTonal: "#dce8d8",
-    onActionTonal: "#04291c",
+    actionTonal: '#dce8d8',
+    onActionTonal: '#04291c',
 
     /** Section tags, scan ring, progress fills, centre tab circle. Never a full-screen fill. */
-    accent: "#bef842",
+    accent: '#bef842',
     /** Label and icon on any accent or verdictSafe fill, in both themes. */
-    onAccent: "#04291c",
+    onAccent: '#04291c',
     /** Decorative only, same caution as brandLimeDeep. */
-    accentQuiet: "#8cc63e",
+    accentQuiet: '#8cc63e',
 
     /** Safe verdict fill. Pair with onAccent. */
-    verdictSafe: "#bef842",
+    verdictSafe: '#bef842',
     /** Safe wording and icon when set on surface rather than on the fill. */
-    verdictSafeInk: "#0a5b33",
+    verdictSafeInk: '#0a5b33',
     /** Caution verdict fill. Pair with onVerdictCaution. Never layout colour. */
-    verdictCaution: "#d98f2b",
-    onVerdictCaution: "#14201a",
-    verdictCautionInk: "#8a5410",
+    verdictCaution: '#d98f2b',
+    onVerdictCaution: '#14201a',
+    verdictCautionInk: '#8a5410',
     /** Not-safe verdict fill. Pair with onVerdictUnsafe. Never layout colour. */
-    verdictUnsafe: "#a83a22",
-    onVerdictUnsafe: "#f5f4ee",
-    verdictUnsafeInk: "#a83a22",
+    verdictUnsafe: '#a83a22',
+    onVerdictUnsafe: '#f5f4ee',
+    verdictUnsafeInk: '#a83a22',
 
     /** Hairline dividers. Decorative separation only. */
-    line: "#d7d5c9",
+    line: '#d7d5c9',
     /** Borders that carry meaning: field outlines, outlined buttons, unselected chips. */
-    lineStrong: "#7a857c",
+    lineStrong: '#7a857c',
     /** The 2px focus ring. Solid, never a soft glow. */
-    focusRing: "#0a5b33",
+    focusRing: '#0a5b33',
 
-    stateHoverOverlay: "rgba(4, 41, 28, 0.06)",
-    statePressedOverlay: "rgba(4, 41, 28, 0.12)",
+    stateHoverOverlay: 'rgba(4, 41, 28, 0.06)',
+    statePressedOverlay: 'rgba(4, 41, 28, 0.12)',
   },
 
   dark: {
-    surface: "#04291c",
-    surfaceRaised: "#0b3724",
-    surfaceSunken: "#021b12",
-    surfaceInverse: "#f5f4ee",
-    surfaceScrim: "rgba(2, 17, 11, 0.72)",
+    surface: '#04291c',
+    surfaceRaised: '#0b3724',
+    surfaceSunken: '#021b12',
+    surfaceInverse: '#f5f4ee',
+    surfaceScrim: 'rgba(2, 17, 11, 0.72)',
 
-    ink: "#cfe6d8",
-    inkMuted: "#9dc2ac",
-    inkSubtle: "#7fa791",
-    inkInverse: "#14201a",
+    ink: '#cfe6d8',
+    inkMuted: '#9dc2ac',
+    inkSubtle: '#7fa791',
+    inkInverse: '#14201a',
 
-    brandForest: "#04291c",
-    brandForestMid: "#0a5b33",
-    brandLime: "#bef842",
-    brandLimeDeep: "#8cc63e",
-    brandPaper: "#f5f4ee",
+    brandForest: '#04291c',
+    brandForestMid: '#0a5b33',
+    brandLime: '#bef842',
+    brandLimeDeep: '#8cc63e',
+    brandPaper: '#f5f4ee',
 
-    action: "#bef842",
-    actionHover: "#d2ff6e",
-    actionPressed: "#a9e22f",
-    onAction: "#04291c",
-    actionTonal: "#123f2a",
-    onActionTonal: "#cfe6d8",
+    action: '#bef842',
+    actionHover: '#d2ff6e',
+    actionPressed: '#a9e22f',
+    onAction: '#04291c',
+    actionTonal: '#123f2a',
+    onActionTonal: '#cfe6d8',
 
-    accent: "#bef842",
-    onAccent: "#04291c",
-    accentQuiet: "#8cc63e",
+    accent: '#bef842',
+    onAccent: '#04291c',
+    accentQuiet: '#8cc63e',
 
-    verdictSafe: "#bef842",
-    verdictSafeInk: "#bef842",
-    verdictCaution: "#d98f2b",
-    onVerdictCaution: "#14201a",
-    verdictCautionInk: "#e9a94f",
-    verdictUnsafe: "#a83a22",
-    onVerdictUnsafe: "#f5f4ee",
-    verdictUnsafeInk: "#e8836a",
+    verdictSafe: '#bef842',
+    verdictSafeInk: '#bef842',
+    verdictCaution: '#d98f2b',
+    onVerdictCaution: '#14201a',
+    verdictCautionInk: '#e9a94f',
+    verdictUnsafe: '#a83a22',
+    onVerdictUnsafe: '#f5f4ee',
+    verdictUnsafeInk: '#e8836a',
 
-    line: "#16452f",
-    lineStrong: "#4e7a62",
-    focusRing: "#bef842",
+    line: '#16452f',
+    lineStrong: '#4e7a62',
+    focusRing: '#bef842',
 
-    stateHoverOverlay: "rgba(190, 248, 66, 0.10)",
-    statePressedOverlay: "rgba(190, 248, 66, 0.18)",
+    stateHoverOverlay: 'rgba(190, 248, 66, 0.10)',
+    statePressedOverlay: 'rgba(190, 248, 66, 0.18)',
   },
 } as const;
 
-export type ColorTokens = (typeof colors)["light"];
+export type ColorTokens = (typeof colors)['light'];
 
 /** Resolve a theme. Pass the value from RN's useColorScheme(). */
 export const getColors = (scheme: ThemeName | null | undefined): ColorTokens =>
-  scheme === "dark" ? colors.dark : colors.light;
+  scheme === 'dark' ? colors.dark : colors.light;
 
 /* ------------------------------------------------------------------ */
 /* Type                                                                */
@@ -164,12 +164,12 @@ export const getColors = (scheme: ThemeName | null | undefined): ColorTokens =>
  * @expo-google-fonts/figtree. Load them with useFonts() before rendering.
  */
 export const fontFamilies = {
-  displayBold: "BricolageGrotesque_700Bold",
-  displayExtraBold: "BricolageGrotesque_800ExtraBold",
-  textRegular: "Figtree_400Regular",
-  textMedium: "Figtree_500Medium",
-  textSemiBold: "Figtree_600SemiBold",
-  textBold: "Figtree_700Bold",
+  displayBold: 'BricolageGrotesque_700Bold',
+  displayExtraBold: 'BricolageGrotesque_800ExtraBold',
+  textRegular: 'Figtree_400Regular',
+  textMedium: 'Figtree_500Medium',
+  textSemiBold: 'Figtree_600SemiBold',
+  textBold: 'Figtree_700Bold',
 } as const;
 
 export const typography = {
@@ -264,7 +264,7 @@ export const typography = {
     fontSize: 11,
     lineHeight: 14,
     letterSpacing: 1.1,
-    textTransform: "uppercase" as const,
+    textTransform: 'uppercase' as const,
   },
 
   /** The single number a nutrient sheet is about. */
@@ -348,7 +348,7 @@ export const shadow = {
   light: {
     /** The bottom sheet that carries a verdict. Cast upward. */
     sheet: {
-      shadowColor: "#04291c",
+      shadowColor: '#04291c',
       shadowOffset: { width: 0, height: -8 },
       shadowOpacity: 0.18,
       shadowRadius: 14,
@@ -356,7 +356,7 @@ export const shadow = {
     },
     /** Centred modals and the household switcher popover. */
     modal: {
-      shadowColor: "#04291c",
+      shadowColor: '#04291c',
       shadowOffset: { width: 0, height: 16 },
       shadowOpacity: 0.24,
       shadowRadius: 20,
@@ -364,7 +364,7 @@ export const shadow = {
     },
     /** Snackbar and dropdown menus. */
     menu: {
-      shadowColor: "#04291c",
+      shadowColor: '#04291c',
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.16,
       shadowRadius: 9,
@@ -373,21 +373,21 @@ export const shadow = {
   },
   dark: {
     sheet: {
-      shadowColor: "#000000",
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: -8 },
       shadowOpacity: 0.55,
       shadowRadius: 14,
       elevation: 12,
     },
     modal: {
-      shadowColor: "#000000",
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: 16 },
       shadowOpacity: 0.62,
       shadowRadius: 20,
       elevation: 16,
     },
     menu: {
-      shadowColor: "#000000",
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.5,
       shadowRadius: 9,
@@ -397,7 +397,7 @@ export const shadow = {
 } as const;
 
 export const getShadows = (scheme: ThemeName | null | undefined) =>
-  scheme === "dark" ? shadow.dark : shadow.light;
+  scheme === 'dark' ? shadow.dark : shadow.light;
 
 /* ------------------------------------------------------------------ */
 /* Icon — Material Symbols Rounded variable axes                       */
