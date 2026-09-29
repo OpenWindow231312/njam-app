@@ -26,6 +26,7 @@ export default function ComponentPreviewScreen() {
   const [email, setEmail] = useState('');
   const [search, setSearch] = useState('');
   const [carbs, setCarbs] = useState('10');
+  const [password, setPassword] = useState('njam1');
   const [recallAlerts, setRecallAlerts] = useState(true);
   const [loading, setLoading] = useState(false);
 
@@ -68,10 +69,19 @@ export default function ComponentPreviewScreen() {
 
         <View style={styles.block}>
           <SectionHeader variant="simple" headline="Fields" />
-          <TextField variant="search" label="Search products" value={search} onChangeText={setSearch} placeholder="Ouma Rusks" />
+          <TextField
+            variant="search"
+            label="Search products"
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Ouma Rusks"
+            trailingIcon={search ? 'close' : undefined}
+            trailingLabel="Clear search"
+            onTrailingPress={() => setSearch('')}
+          />
           <TextField
             label="Email"
-            icon="mail"
+            leadingIcon="mail"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -81,9 +91,9 @@ export default function ComponentPreviewScreen() {
           <TextField label="Carbs per serving" variant="numeric" unit="g" value={carbs} onChangeText={setCarbs} />
           <TextField
             label="Password"
-            icon="lock"
-            value="abc"
-            onChangeText={() => {}}
+            leadingIcon="lock"
+            value={password}
+            onChangeText={setPassword}
             secureTextEntry
             error="Use at least 8 characters."
           />

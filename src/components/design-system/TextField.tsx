@@ -12,16 +12,25 @@
  *   numeric  - a unit on the right ("g") and a decimal keyboard.
  *              For nutrient limits. The caller converts the text to a number.
  *
+ * Icon slots, like a Figma component's toggles:
+ *   leadingIcon  - an icon on the left (mail, lock, search). Pass a name to
+ *                  switch it on, leave it out to switch it off. Decorative.
+ *   trailingIcon - a tappable icon on the right, with onTrailingPress and a
+ *                  trailingLabel for screen readers.
+ * A password field (secureTextEntry) gets its own show/hide eye in the
+ * trailing slot automatically.
+ *
  * The label always sits above the box and is never a floating label (those
  * break at 200% text size). Placeholders are examples only, never the meaning.
  * Error messages say what to do: "Enter the email you signed up with",
  * never "Invalid email".
  */
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, type KeyboardTypeOptions } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
-import { border, layout, opacity, radius, space, typography } from '@/theme/tokens';
+import { IconButton } from '@/components/design-system/IconButton';
+import { border, icon, layout, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type TextFieldVariant = 'outlined' | 'search' | 'numeric';
@@ -32,10 +41,14 @@ type TextFieldProps = {
   value: string;
   onChangeText: (text: string) => void;
   variant?: TextFieldVariant;
-  /** Leading Material Symbols ligature. Decorative. */
-  icon?: string;
-  /** Something that acts at the end of the field, e.g. an IconButton to show a password. */
-  trailing?: ReactNode;
+  /** Left slot: a Material Symbols ligature. Omit to switch the slot off. The search variant always shows "search". */
+  leadingIcon?: string;
+  /** Right slot: a tappable Material Symbols ligature. Omit to switch the slot off. */
+  trailingIcon?: string;
+  /** What tapping the trailing icon does. */
+  onTrailingPress?: () => void;
+  /** Screen reader label for the trailing icon, naming the action: "Clear search". */
+  trailingLabel?: string;
   /** States the constraint or the reason. */
   helper?: string;
   /** When set, the field shows its error state with this message. */
@@ -54,8 +67,10 @@ export function TextField({
   value,
   onChangeText,
   variant = 'outlined',
-  icon: iconName,
-  trailing,
+  leadingIcon,
+  trailingIcon,
+  onTrailingPress,
+  trailingLabel,
   helper,
   error,
   unit,
@@ -68,8 +83,11 @@ export function TextField({
   const { colors } = useNjamTheme();
   const [focused, setFocused] = useState(false);
 
+  // Password fields start hidden; the eye flips this.
+  const [passwordVisible, setPasswordVisible] = useState(false);
+
   const isSearch = variant === 'search';
-  const leadingIcon = isSearch ? 'search' : iconName;
+  const leading = isSearch ? 'search' : leadingIcon;
 
   // Border colour by state. At rest it is the quiet `line`, because the
   // sunken fill already shows the field. Error uses the -ink token, not the
@@ -99,7 +117,7 @@ export function TextField({
             paddingHorizontal,
           },
         ]}>
-        {leadingIcon && <Icon name={leadingIcon} color={colors.inkMuted} />}
+        {leading && <Icon name={leading} color={colors.inkMuted} />}
 
         <TextInput
           value={value}
@@ -111,7 +129,7 @@ export function TextField({
           // inkMuted, not inkSubtle: inkSubtle falls to 4.15:1 on the sunken fill.
           placeholderTextColor={colors.inkMuted}
           keyboardType={variant === 'numeric' ? 'decimal-pad' : keyboardType}
-          secureTextEntry={secureTextEntry}
+          secureTextEntry={secureTextEntry && !passwordVisible}
           autoCapitalize={autoCapitalize}
           accessibilityLabel={label}
           accessibilityHint={error ?? helper}
@@ -128,7 +146,31 @@ export function TextField({
         {variant === 'numeric' && unit && (
           <Text style={[typography.label, { color: colors.inkMuted }]}>{unit}</Text>
         )}
-        {trailing}
+        {/* Password fields get the eye; otherwise the trailing slot if one was given.
+            The eye shows what tapping will do: "visibility" to reveal,
+            "visibility_off" to hide again. */}
+        {secureTextEntry ? (
+          <View style={styles.trailingSlot}>
+            <IconButton
+              icon={passwordVisible ? 'visibility_off' : 'visibility'}
+              accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+              onPress={() => setPasswordVisible(!passwordVisible)}
+              color={colors.inkMuted}
+            />
+          </View>
+        ) : (
+          trailingIcon &&
+          onTrailingPress && (
+            <View style={styles.trailingSlot}>
+              <IconButton
+                icon={trailingIcon}
+                accessibilityLabel={trailingLabel ?? trailingIcon}
+                onPress={onTrailingPress}
+                color={colors.inkMuted}
+              />
+            </View>
+          )
+        )}
       </View>
 
       {(error || helper) && (
@@ -163,6 +205,12 @@ const styles = StyleSheet.create({
     // TextInput adds its own vertical padding on Android; remove it so the
     // box height comes from touchTargetMin alone.
     paddingVertical: 0,
+  },
+  // The IconButton's 48 hit area is wider than its 24 icon. Pulling it
+  // outward by the difference keeps the visible icon the same distance from
+  // the edge as the leading icon, while the whole 48 stays tappable.
+  trailingSlot: {
+    marginRight: -(layout.touchTargetMin - icon.sizeMd) / 2,
   },
   helperRow: {
     flexDirection: 'row',
