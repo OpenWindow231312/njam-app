@@ -88,7 +88,11 @@ export function VerdictBanner({ state, headline, reasons, sourceNote, productNam
         <View style={styles.reasons}>
           {shownReasons.map((reason) => (
             <View key={reason.text} style={styles.reasonRow}>
-              <Icon name={reason.icon} size="sm" color={look.ink} />
+              {/* The slot is one bodyL line tall, so the icon centres on the
+                  first line of the reason even when the reason wraps. */}
+              <View style={styles.reasonIconSlot}>
+                <Icon name={reason.icon} size="sm" color={look.ink} />
+              </View>
               <Text style={[typography.bodyL, styles.reasonText, { color: look.ink }]}>
                 {reason.text}
               </Text>
@@ -98,7 +102,9 @@ export function VerdictBanner({ state, headline, reasons, sourceNote, productNam
 
         {sourceNote && (
           <View style={styles.noteRow}>
-            <Icon name="info" size="sm" color={look.ink} />
+            <View style={styles.noteIconSlot}>
+              <Icon name="info" size="sm" color={look.ink} />
+            </View>
             <Text style={[typography.caption, styles.reasonText, { color: look.ink }]}>
               {sourceNote}
             </Text>
@@ -132,10 +138,20 @@ const styles = StyleSheet.create({
   reasonText: {
     flex: 1,
   },
+  reasonIconSlot: {
+    height: typography.bodyL.lineHeight,
+    justifyContent: 'center',
+  },
   noteRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.s1,
+    alignItems: 'flex-start',
+    // Same gap as the reasons, so the note's icon and text line up with the
+    // reason icons and reason text above it.
+    gap: space.s2,
     marginTop: space.s1,
+  },
+  noteIconSlot: {
+    height: typography.caption.lineHeight,
+    justifyContent: 'center',
   },
 });
