@@ -38,9 +38,11 @@ type TabBarProps = {
   active: TabKey;
   onSelect: (tab: TabKey) => void;
   onScan: () => void;
+  /** false draws the bar in the normal flow instead of floating (previews only). */
+  floating?: boolean;
 };
 
-export function TabBar({ active, onSelect, onScan }: TabBarProps) {
+export function TabBar({ active, onSelect, onScan, floating = true }: TabBarProps) {
   const { colors } = useNjamTheme();
   const insets = useSafeAreaInsets();
 
@@ -64,11 +66,8 @@ export function TabBar({ active, onSelect, onScan }: TabBarProps) {
       accessibilityRole="tablist"
       style={[
         styles.bar,
-        {
-          bottom: layout.tabBarInset + insets.bottom,
-          backgroundColor: colors.surfaceRaised,
-          borderColor: colors.line,
-        },
+        floating && { ...styles.floating, bottom: layout.tabBarInset + insets.bottom },
+        { backgroundColor: colors.surfaceRaised, borderColor: colors.line },
       ]}>
       {LEFT_TABS.map(renderTab)}
       <Pressable
@@ -84,10 +83,12 @@ export function TabBar({ active, onSelect, onScan }: TabBarProps) {
 }
 
 const styles = StyleSheet.create({
-  bar: {
+  floating: {
     position: 'absolute',
     left: layout.screenGutter,
     right: layout.screenGutter,
+  },
+  bar: {
     height: layout.tabBarHeight,
     paddingHorizontal: space.s2,
     borderRadius: radius.pill,
