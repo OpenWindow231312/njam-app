@@ -109,7 +109,13 @@ export function TextField({
           accessibilityLabel={label}
           accessibilityHint={error ?? helper}
           selectionColor={colors.focusRing}
-          style={[styles.input, typography.body, { color: colors.ink }]}
+          // Only the font and size from the body style. Giving a TextInput a
+          // lineHeight is what pushed the text and password dots to the bottom
+          // of the box on iOS, so it is left out on purpose.
+          style={[
+            styles.input,
+            { fontFamily: typography.body.fontFamily, fontSize: typography.body.fontSize, color: colors.ink },
+          ]}
         />
 
         {variant === 'numeric' && unit && (
@@ -144,6 +150,9 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    // Fill the box's height and centre the text inside it.
+    alignSelf: 'stretch',
+    textAlignVertical: 'center',
     // TextInput adds its own vertical padding on Android; remove it so the
     // box height comes from touchTargetMin alone.
     paddingVertical: 0,
