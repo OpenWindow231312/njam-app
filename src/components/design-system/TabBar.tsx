@@ -1,9 +1,9 @@
 /**
  * TabBar: the floating pill navigation at the bottom of the main screens.
  *
- * Four tabs plus a Scan button in the centre. The active tab's icon sits in
- * a lime circle and takes its filled weight; Scan is always a larger forest
- * circle, because scanning is the action the whole app exists for.
+ * Five equal tabs: Home, Search, Scan, History, Profile. Whichever tab is
+ * active sits in a lime circle and takes its filled weight; every other tab
+ * is a plain icon. Scan is not styled differently (decision 29 Sep 2026).
  *
  * The bar floats above the content with a hairline border, not a shadow
  * (elevation stays reserved for sheets, modals and the snackbar). Screens
@@ -20,16 +20,14 @@ import { Icon } from '@/components/design-system/Icon';
 import { border, layout, radius, space } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
-export type TabKey = 'home' | 'search' | 'history' | 'profile';
+export type TabKey = 'home' | 'search' | 'scan' | 'history' | 'profile';
 
 type Tab = { key: TabKey; icon: string; label: string };
 
-// Left pair, then Scan, then right pair.
-const LEFT_TABS: Tab[] = [
+const TABS: Tab[] = [
   { key: 'home', icon: 'home', label: 'Home' },
   { key: 'search', icon: 'search', label: 'Search' },
-];
-const RIGHT_TABS: Tab[] = [
+  { key: 'scan', icon: 'barcode_scanner', label: 'Scan' },
   { key: 'history', icon: 'history', label: 'History' },
   { key: 'profile', icon: 'person', label: 'Profile' },
 ];
@@ -37,12 +35,11 @@ const RIGHT_TABS: Tab[] = [
 type TabBarProps = {
   active: TabKey;
   onSelect: (tab: TabKey) => void;
-  onScan: () => void;
   /** false draws the bar in the normal flow instead of floating (previews only). */
   floating?: boolean;
 };
 
-export function TabBar({ active, onSelect, onScan, floating = true }: TabBarProps) {
+export function TabBar({ active, onSelect, floating = true }: TabBarProps) {
   const { colors } = useNjamTheme();
   const insets = useSafeAreaInsets();
 
@@ -69,15 +66,7 @@ export function TabBar({ active, onSelect, onScan, floating = true }: TabBarProp
         floating && { ...styles.floating, bottom: layout.tabBarInset + insets.bottom },
         { backgroundColor: colors.surfaceRaised, borderColor: colors.line },
       ]}>
-      {LEFT_TABS.map(renderTab)}
-      <Pressable
-        onPress={onScan}
-        accessibilityRole="button"
-        accessibilityLabel="Scan a barcode"
-        style={[styles.scan, { backgroundColor: colors.selected }]}>
-        <Icon name="barcode_scanner" color={colors.onSelected} />
-      </Pressable>
-      {RIGHT_TABS.map(renderTab)}
+      {TABS.map(renderTab)}
     </View>
   );
 }
@@ -100,13 +89,6 @@ const styles = StyleSheet.create({
   tab: {
     width: layout.tabItemSize,
     height: layout.tabItemSize,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scan: {
-    width: layout.tabScanSize,
-    height: layout.tabScanSize,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',

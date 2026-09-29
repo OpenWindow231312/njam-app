@@ -475,8 +475,6 @@ export const layout = {
   tabBarHeight: 72,
   /** Circle behind each TabBar icon; the active one is filled lime. */
   tabItemSize: 52,
-  /** The forest Scan circle in the centre of the TabBar. */
-  tabScanSize: 60,
   /** Gap between the floating TabBar and the bottom of the screen. */
   tabBarInset: 28,
   /** Visual height of a FilterChip; its hit area still extends to touchTargetMin. */

@@ -202,7 +202,7 @@ export default function ComponentPreviewScreen() {
 
         <View style={styles.block}>
           <SectionHeader variant="simple" headline="Navigation" />
-          <TabBar active="home" onSelect={() => {}} onScan={() => {}} floating={false} />
+          <TabBar active="home" onSelect={() => {}} floating={false} />
         </View>
       </ScrollView>
     </SafeAreaView>
