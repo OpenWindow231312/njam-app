@@ -148,7 +148,11 @@ export const colors = {
   },
 } as const;
 
-export type ColorTokens = (typeof colors)["light"];
+/**
+ * The shape of one theme: every colour name, each holding a colour string.
+ * Typed as plain strings so a light and a dark theme fit the same type.
+ */
+export type ColorTokens = { readonly [K in keyof (typeof colors)["light"]]: string };
 
 /** Resolve a theme. Pass the value from RN's useColorScheme(). */
 export const getColors = (scheme: ThemeName | null | undefined): ColorTokens =>
