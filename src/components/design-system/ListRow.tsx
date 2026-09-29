@@ -140,7 +140,9 @@ export function ListRow({
       accessibilityLabel={[title, supporting, value].filter(Boolean).join(', ')}
       style={({ pressed }) => [
         styles.row,
-        pressed && { backgroundColor: colors.statePressedOverlay },
+        // A flat sunken fill on press, the same colour as fields, rather than
+        // a translucent tint (design system v1.2).
+        pressed && { backgroundColor: colors.surfaceSunken },
         disabled && { opacity: opacity.disabled },
       ]}>
       {iconName && <Icon name={iconName} color={iconColor} />}
