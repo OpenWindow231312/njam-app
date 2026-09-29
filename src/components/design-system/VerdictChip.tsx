@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.s1,
     minHeight: layout.chipHeight,
+    // Equal padding both sides (Anika's canvas edit, v1.3).
     paddingLeft: layout.chipPaddingStart,
     paddingRight: layout.chipPaddingEnd,
     borderRadius: radius.pill,
