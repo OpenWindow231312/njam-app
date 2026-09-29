@@ -75,13 +75,13 @@ function RowSwitch({ on }: { on: boolean }) {
       style={[
         styles.switchTrack,
         on
-          ? { backgroundColor: colors.action, borderColor: colors.action }
+          ? { backgroundColor: colors.selected, borderColor: colors.selected }
           : { backgroundColor: colors.surfaceSunken, borderColor: colors.lineStrong },
       ]}>
       <Animated.View
         style={[
           styles.switchThumb,
-          { backgroundColor: on ? colors.onAction : colors.inkSubtle, transform: [{ translateX }] },
+          { backgroundColor: on ? colors.onSelected : colors.inkSubtle, transform: [{ translateX }] },
         ]}
       />
     </View>
@@ -96,6 +96,13 @@ type ListRowProps = {
   title: string;
   /** Leading Material Symbols ligature. */
   icon?: string;
+  /**
+   * How the leading icon is drawn:
+   *   plain  - the bare icon (default).
+   *   soft   - in a sunken circle. Settings and toggles.
+   *   strong - lime icon in a forest circle. People and choices you pick.
+   */
+  iconBadge?: 'plain' | 'soft' | 'strong';
   supporting?: string;
   trailing?: 'chevron' | 'switch' | 'menu' | 'none';
   /** A count shown before the chevron. */
@@ -112,6 +119,7 @@ type ListRowProps = {
 export function ListRow({
   title,
   icon: iconName,
+  iconBadge = 'plain',
   supporting,
   trailing = 'chevron',
   value,
@@ -145,7 +153,20 @@ export function ListRow({
         pressed && { backgroundColor: colors.surfaceSunken },
         disabled && { opacity: opacity.disabled },
       ]}>
-      {iconName && <Icon name={iconName} color={iconColor} />}
+      {iconName && iconBadge === 'plain' && <Icon name={iconName} color={iconColor} />}
+      {iconName && iconBadge !== 'plain' && (
+        <View
+          style={[
+            styles.badge,
+            { backgroundColor: iconBadge === 'strong' ? colors.iconBadge : colors.surfaceSunken },
+          ]}>
+          <Icon
+            name={iconName}
+            size="sm"
+            color={iconBadge === 'strong' ? colors.onIconBadge : destructive ? colors.verdictUnsafeInk : colors.ink}
+          />
+        </View>
+      )}
 
       <View style={styles.text}>
         <Text style={[typography.title, { color: titleColor }]}>{title}</Text>
@@ -183,6 +204,13 @@ const styles = StyleSheet.create({
   },
   text: {
     flex: 1,
+  },
+  badge: {
+    width: layout.iconBadgeSize,
+    height: layout.iconBadgeSize,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   switchTrack: {
     width: layout.switchWidth,
