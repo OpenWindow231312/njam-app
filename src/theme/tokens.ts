@@ -2,6 +2,9 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.4 (29 Sep 2026): reference palette. Lime #D3FA53, forest #144425,
+ * surface #EDF2E9, raised #FFFFFF, sunken #E4E9D5, line #D2DBD0,
+ * lineStrong #657D6E.
  * v1.3 (29 Sep 2026): new Paper palette (cool green ground, near-white
  * raised surface), lime primary action, selected and iconBadge tokens,
  * saturated verdict fills, floating TabBar sizes, equal chip padding.
@@ -33,15 +36,15 @@ export type ThemeName = "light" | "dark";
 export const colors = {
   light: {
     /** Page background on every screen. Never pure white. */
-    surface: "#edf3ea",
-    /** Cards, fields, unselected options, the nav bar: near-white, never pure white. */
-    surfaceRaised: "#fbfcf8",
+    surface: "#edf2e9",
+    /** Cards, fields, unselected options, the nav bar: white (v1.4). */
+    surfaceRaised: "#ffffff",
     /** Inset wells: tonal icon buttons, filter chips at rest, meter tracks, pressed rows. */
-    surfaceSunken: "#e1e8d6",
+    surfaceSunken: "#e4e9d5",
     /** Deliberately flipped panels: splash, onboarding hero, verdict header strip. */
-    surfaceInverse: "#04291c",
+    surfaceInverse: "#144425",
     /** Dimmer behind sheets and modals. Never a decorative wash. */
-    surfaceScrim: "rgba(4, 41, 28, 0.55)",
+    surfaceScrim: "rgba(20, 68, 37, 0.55)",
 
     /** Body and heading copy. */
     ink: "#14201a",
@@ -53,42 +56,42 @@ export const colors = {
     inkInverse: "#f5f4ee",
 
     /** Fixed identity green. Logo tile, splash ground, dark app bars. */
-    brandForest: "#04291c",
+    brandForest: "#144425",
     /** Fixed mid green. Secondary pills and supporting brand fills. */
     brandForestMid: "#0a5b33",
     /** The single accent, fixed in both themes. */
-    brandLime: "#bef842",
+    brandLime: "#d3fa53",
     /** Decorative only. Below 4.5:1 on surface, so never set copy in it. */
     brandLimeDeep: "#8cc63e",
     /** Fixed identity paper, theme-locked unlike surface. */
     brandPaper: "#f5f4ee",
 
     /** Primary button and selected-state fill. Pair with onAction. */
-    action: "#bef842",
-    actionHover: "#d2ff6e",
-    actionPressed: "#a9e22f",
+    action: "#d3fa53",
+    actionHover: "#def97e",
+    actionPressed: "#bfe63f",
     /** Label and icon on action, actionHover, actionPressed. */
-    onAction: "#04291c",
+    onAction: "#144425",
     /** Selected option, secondary button, strong icon button (filters): forest. */
-    selected: "#04291c",
+    selected: "#144425",
     /** Label and icon on selected. Lime reads 12.5:1 on forest. */
-    onSelected: "#bef842",
+    onSelected: "#d3fa53",
     /** Circle behind an icon in sheets and list rows. */
-    iconBadge: "#04291c",
-    onIconBadge: "#bef842",
+    iconBadge: "#144425",
+    onIconBadge: "#d3fa53",
     /** Low-emphasis tonal fill (kept for compatibility). */
     actionTonal: "#dce8d8",
-    onActionTonal: "#04291c",
+    onActionTonal: "#144425",
 
     /** Section tags, scan ring, progress fills, centre tab circle. Never a full-screen fill. */
-    accent: "#bef842",
+    accent: "#d3fa53",
     /** Label and icon on any accent or verdictSafe fill, in both themes. */
-    onAccent: "#04291c",
+    onAccent: "#144425",
     /** Decorative only, same caution as brandLimeDeep. */
     accentQuiet: "#8cc63e",
 
     /** Safe verdict fill. Pair with onAccent. */
-    verdictSafe: "#bef842",
+    verdictSafe: "#d3fa53",
     /** Safe wording and icon when set on surface rather than on the fill. */
     verdictSafeInk: "#0a5b33",
     /** Caution verdict fill. Pair with onVerdictCaution. Never layout colour. */
@@ -101,18 +104,18 @@ export const colors = {
     verdictUnsafeInk: "#a83a22",
 
     /** Hairline dividers. Decorative separation only. */
-    line: "#d3dbc8",
+    line: "#d2dbd0",
     /** Borders that carry meaning: field outlines, outlined buttons, unselected chips. */
-    lineStrong: "#76817a",
+    lineStrong: "#657d6e",
     /** The 2px focus ring. Solid, never a soft glow. */
     focusRing: "#0a5b33",
 
-    stateHoverOverlay: "rgba(4, 41, 28, 0.06)",
-    statePressedOverlay: "rgba(4, 41, 28, 0.12)",
+    stateHoverOverlay: "rgba(20, 68, 37, 0.06)",
+    statePressedOverlay: "rgba(20, 68, 37, 0.12)",
   },
 
   dark: {
-    surface: "#04291c",
+    surface: "#144425",
     surfaceRaised: "#0b3724",
     surfaceSunken: "#021b12",
     surfaceInverse: "#f5f4ee",
@@ -123,29 +126,29 @@ export const colors = {
     inkSubtle: "#7fa791",
     inkInverse: "#14201a",
 
-    brandForest: "#04291c",
+    brandForest: "#144425",
     brandForestMid: "#0a5b33",
-    brandLime: "#bef842",
+    brandLime: "#d3fa53",
     brandLimeDeep: "#8cc63e",
     brandPaper: "#f5f4ee",
 
-    action: "#bef842",
+    action: "#d3fa53",
     actionHover: "#d2ff6e",
     actionPressed: "#a9e22f",
-    onAction: "#04291c",
+    onAction: "#144425",
     actionTonal: "#123f2a",
     onActionTonal: "#cfe6d8",
-    selected: "#bef842",
-    onSelected: "#04291c",
+    selected: "#d3fa53",
+    onSelected: "#144425",
     iconBadge: "#123f2a",
-    onIconBadge: "#bef842",
+    onIconBadge: "#d3fa53",
 
-    accent: "#bef842",
-    onAccent: "#04291c",
+    accent: "#d3fa53",
+    onAccent: "#144425",
     accentQuiet: "#8cc63e",
 
-    verdictSafe: "#bef842",
-    verdictSafeInk: "#bef842",
+    verdictSafe: "#d3fa53",
+    verdictSafeInk: "#d3fa53",
     verdictCaution: "#ee9321",
     onVerdictCaution: "#14201a",
     verdictCautionInk: "#e9a94f",
@@ -155,10 +158,10 @@ export const colors = {
 
     line: "#16452f",
     lineStrong: "#4e7a62",
-    focusRing: "#bef842",
+    focusRing: "#d3fa53",
 
-    stateHoverOverlay: "rgba(190, 248, 66, 0.10)",
-    statePressedOverlay: "rgba(190, 248, 66, 0.18)",
+    stateHoverOverlay: "rgba(211, 250, 83, 0.10)",
+    statePressedOverlay: "rgba(211, 250, 83, 0.18)",
   },
 } as const;
 
@@ -373,7 +376,7 @@ export const shadow = {
   light: {
     /** The bottom sheet that carries a verdict. Cast upward. */
     sheet: {
-      shadowColor: "#04291c",
+      shadowColor: "#144425",
       shadowOffset: { width: 0, height: -8 },
       shadowOpacity: 0.18,
       shadowRadius: 14,
@@ -381,7 +384,7 @@ export const shadow = {
     },
     /** Centred modals and the household switcher popover. */
     modal: {
-      shadowColor: "#04291c",
+      shadowColor: "#144425",
       shadowOffset: { width: 0, height: 16 },
       shadowOpacity: 0.24,
       shadowRadius: 20,
@@ -389,7 +392,7 @@ export const shadow = {
     },
     /** Snackbar and dropdown menus. */
     menu: {
-      shadowColor: "#04291c",
+      shadowColor: "#144425",
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.16,
       shadowRadius: 9,

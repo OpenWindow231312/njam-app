@@ -72,8 +72,8 @@ Do not invent one.
    return later. Still read colours from the hook, never hard-code them.
 3. **No gradients in the product UI.** Every surface, fill, chip and button is a flat
    token. Gradients are fine in the pitch deck, mockups and promo art, never in the app.
-4. **No pure white.** `surface` is a cool green tint (`#EDF3EA`); cards, fields and
-   unselected options sit on near-white `surfaceRaised` (`#FBFCF8`), never `#FFFFFF`.
+4. **Page and cards.** `surface` is a cool green tint (`#EDF2E9`); cards, fields and
+   unselected options sit on white `surfaceRaised` (`#FFFFFF`, since v1.4).
 5. **Radius signals role.** Every control is `pill`: chips, all buttons and all text
    fields. Cards and banners are `lg`. Sheets take `xl` on top corners only.
    The scanner frame is `xxl`. Never apply one radius across a whole screen.
