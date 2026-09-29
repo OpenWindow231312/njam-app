@@ -2,11 +2,12 @@
  * Button: the action a screen is asking for.
  *
  * Variants (from the design system Button card):
- *   primary  - action fill, pill. ONE per screen, e.g. "Scan a barcode".
- *   tonal    - actionTonal fill, pill. A real but secondary action.
- *   outlined - border only, pill. A low-commitment action; the border
- *              rather than a fill tells it apart.
- *   text     - no fill. Dismissals: "Skip for now", "Not now".
+ *   primary   - lime action fill, forest label. ONE per screen, e.g. "Scan a barcode".
+ *   secondary - forest fill, paper label. A real second action beside the
+ *               primary, e.g. "See alternatives".
+ *   tonal     - sunken fill, ink label. Small in-place actions: "Add a rule".
+ *   outlined  - near-white fill with a hairline. Low commitment: "Skip for now".
+ *   text      - no fill, mid-green label. Inline escapes: "Not now".
  *   danger   - verdictUnsafe fill. ONLY inside a confirming BottomSheet,
  *              because that colour means a verdict everywhere else.
  *
@@ -20,7 +21,7 @@ import { LoadingMark } from '@/components/design-system/LoadingMark';
 import { border, icon, layout, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
-type ButtonVariant = 'primary' | 'tonal' | 'outlined' | 'text' | 'danger';
+type ButtonVariant = 'primary' | 'secondary' | 'tonal' | 'outlined' | 'text' | 'danger';
 type ButtonSize = 'default' | 'small';
 
 type ButtonProps = {
@@ -55,9 +56,12 @@ export function Button({
   // Fill and label colour for each variant, all from theme tokens.
   const look = {
     primary: { fill: colors.action, pressedFill: colors.actionPressed, ink: colors.onAction },
-    tonal: { fill: colors.actionTonal, pressedFill: undefined, ink: colors.onActionTonal },
-    outlined: { fill: 'transparent', pressedFill: undefined, ink: colors.ink },
-    text: { fill: 'transparent', pressedFill: undefined, ink: colors.action },
+    secondary: { fill: colors.selected, pressedFill: undefined, ink: colors.brandPaper },
+    tonal: { fill: colors.surfaceSunken, pressedFill: undefined, ink: colors.ink },
+    outlined: { fill: colors.surfaceRaised, pressedFill: undefined, ink: colors.ink },
+    // Not `action`: lime text on the pale ground would be unreadable (1.2:1).
+    // brandForestMid holds 7.2:1.
+    text: { fill: 'transparent', pressedFill: undefined, ink: colors.brandForestMid },
     danger: { fill: colors.verdictUnsafe, pressedFill: undefined, ink: colors.onVerdictUnsafe },
   }[variant];
 
@@ -86,7 +90,7 @@ export function Button({
         },
         variant === 'outlined' && {
           borderWidth: border.hairline,
-          borderColor: colors.lineStrong,
+          borderColor: colors.line,
         },
       ]}>
       {({ pressed }) => (
