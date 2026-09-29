@@ -33,7 +33,7 @@ export type ThemeName = "light" | "dark";
 export const colors = {
   light: {
     /** Page background on every screen. Never pure white. */
-    surface: "#edf1e7",
+    surface: "#edf3ea",
     /** Cards, fields, unselected options, the nav bar: near-white, never pure white. */
     surfaceRaised: "#fbfcf8",
     /** Inset wells: tonal icon buttons, filter chips at rest, meter tracks, pressed rows. */
