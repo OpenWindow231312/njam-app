@@ -2,6 +2,9 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.3 (29 Sep 2026): new Paper palette (cool green ground, near-white
+ * raised surface), lime primary action, selected and iconBadge tokens,
+ * saturated verdict fills, floating TabBar sizes, equal chip padding.
  * v1.1 (29 Sep 2026): added icon font families, icon.sizeXs, border widths,
  * small button, chip and switch sizes, and three motion durations, all taken
  * from sizes the component cards already specify.
@@ -30,11 +33,11 @@ export type ThemeName = "light" | "dark";
 export const colors = {
   light: {
     /** Page background on every screen. Never pure white. */
-    surface: "#f5f4ee",
-    /** Cards, list rows, bottom sheets: anything sitting on surface. */
-    surfaceRaised: "#eae9e0",
-    /** Inset wells: viewfinder ground, search bars, meter tracks. */
-    surfaceSunken: "#e1e0d5",
+    surface: "#edf1e7",
+    /** Cards, fields, unselected options, the nav bar: near-white, never pure white. */
+    surfaceRaised: "#fbfcf8",
+    /** Inset wells: tonal icon buttons, filter chips at rest, meter tracks, pressed rows. */
+    surfaceSunken: "#e1e8d6",
     /** Deliberately flipped panels: splash, onboarding hero, verdict header strip. */
     surfaceInverse: "#04291c",
     /** Dimmer behind sheets and modals. Never a decorative wash. */
@@ -45,7 +48,7 @@ export const colors = {
     /** Supporting copy, helper text, inactive tab labels. */
     inkMuted: "#4a574f",
     /** Captions, timestamps, unit suffixes. The quietest text allowed. */
-    inkSubtle: "#5f6c63",
+    inkSubtle: "#5a675e",
     /** Copy on surfaceInverse and on any solid brandForest fill. */
     inkInverse: "#f5f4ee",
 
@@ -61,12 +64,19 @@ export const colors = {
     brandPaper: "#f5f4ee",
 
     /** Primary button and selected-state fill. Pair with onAction. */
-    action: "#04291c",
-    actionHover: "#0a5b33",
-    actionPressed: "#021b12",
+    action: "#bef842",
+    actionHover: "#d2ff6e",
+    actionPressed: "#a9e22f",
     /** Label and icon on action, actionHover, actionPressed. */
-    onAction: "#f5f4ee",
-    /** Secondary button and selected chip fill. */
+    onAction: "#04291c",
+    /** Selected option, secondary button, strong icon button (filters): forest. */
+    selected: "#04291c",
+    /** Label and icon on selected. Lime reads 12.5:1 on forest. */
+    onSelected: "#bef842",
+    /** Circle behind an icon in sheets and list rows. */
+    iconBadge: "#04291c",
+    onIconBadge: "#bef842",
+    /** Low-emphasis tonal fill (kept for compatibility). */
     actionTonal: "#dce8d8",
     onActionTonal: "#04291c",
 
@@ -82,18 +92,18 @@ export const colors = {
     /** Safe wording and icon when set on surface rather than on the fill. */
     verdictSafeInk: "#0a5b33",
     /** Caution verdict fill. Pair with onVerdictCaution. Never layout colour. */
-    verdictCaution: "#d98f2b",
+    verdictCaution: "#ee9321",
     onVerdictCaution: "#14201a",
     verdictCautionInk: "#8a5410",
     /** Not-safe verdict fill. Pair with onVerdictUnsafe. Never layout colour. */
-    verdictUnsafe: "#a83a22",
+    verdictUnsafe: "#b8331a",
     onVerdictUnsafe: "#f5f4ee",
     verdictUnsafeInk: "#a83a22",
 
     /** Hairline dividers. Decorative separation only. */
-    line: "#d7d5c9",
+    line: "#d3dbc8",
     /** Borders that carry meaning: field outlines, outlined buttons, unselected chips. */
-    lineStrong: "#7a857c",
+    lineStrong: "#76817a",
     /** The 2px focus ring. Solid, never a soft glow. */
     focusRing: "#0a5b33",
 
@@ -125,6 +135,10 @@ export const colors = {
     onAction: "#04291c",
     actionTonal: "#123f2a",
     onActionTonal: "#cfe6d8",
+    selected: "#bef842",
+    onSelected: "#04291c",
+    iconBadge: "#123f2a",
+    onIconBadge: "#bef842",
 
     accent: "#bef842",
     onAccent: "#04291c",
@@ -132,10 +146,10 @@ export const colors = {
 
     verdictSafe: "#bef842",
     verdictSafeInk: "#bef842",
-    verdictCaution: "#d98f2b",
+    verdictCaution: "#ee9321",
     onVerdictCaution: "#14201a",
     verdictCautionInk: "#e9a94f",
-    verdictUnsafe: "#a83a22",
+    verdictUnsafe: "#b8331a",
     onVerdictUnsafe: "#f5f4ee",
     verdictUnsafeInk: "#e8836a",
 
@@ -454,8 +468,18 @@ export const layout = {
   screenGutter: 20,
   /** Minimum hit area for anything tappable, including 24px icon buttons. */
   touchTargetMin: 48,
-  /** TabBar height, excluding the safe area inset. */
-  tabBarHeight: 64,
+  /** Floating TabBar height, excluding the safe area inset. */
+  tabBarHeight: 72,
+  /** Circle behind each TabBar icon; the active one is filled lime. */
+  tabItemSize: 52,
+  /** The forest Scan circle in the centre of the TabBar. */
+  tabScanSize: 60,
+  /** Gap between the floating TabBar and the bottom of the screen. */
+  tabBarInset: 28,
+  /** Visual height of a FilterChip; its hit area still extends to touchTargetMin. */
+  filterChipHeight: 36,
+  /** The circle behind an icon in a ListRow or sheet row. */
+  iconBadgeSize: 40,
   /** Top app bar height. */
   appBarHeight: 56,
   /** The square barcode target inside ScanFrame. */
@@ -468,8 +492,8 @@ export const layout = {
   buttonHeightSmall: 36,
   /** Visual height of a VerdictChip. A tappable row around it still needs touchTargetMin. */
   chipHeight: 28,
-  /** VerdictChip inset before the mark. */
-  chipPaddingStart: 6,
+  /** VerdictChip inset before the mark. Equal to chipPaddingEnd since v1.3. */
+  chipPaddingStart: 10,
   /** VerdictChip inset after the word. */
   chipPaddingEnd: 10,
   /** The switch in a ListRow. */
