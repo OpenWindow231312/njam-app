@@ -69,8 +69,8 @@ Do not invent one.
 3. **No gradients in the product UI.** Every surface, fill, chip and button is a flat
    token. Gradients are fine in the pitch deck, mockups and promo art, never in the app.
 4. **No pure white.** `surface` is warm paper in light, brand forest in dark.
-5. **Radius signals role.** Chips and filled buttons are `pill`. Fields and outlined
-   buttons are `md`. Cards and banners are `lg`. Sheets take `xl` on top corners only.
+5. **Radius signals role.** Every control is `pill`: chips, all buttons and all text
+   fields. Cards and banners are `lg`. Sheets take `xl` on top corners only.
    The scanner frame is `xxl`. Never apply one radius across a whole screen.
 6. **Borders, not shadows.** Use `line` for dividers and `lineStrong` for borders that
    carry meaning. Elevation exists in exactly three places: the verdict bottom sheet,
