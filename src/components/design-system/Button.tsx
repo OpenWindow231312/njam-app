@@ -4,8 +4,8 @@
  * Variants (from the design system Button card):
  *   primary  - action fill, pill. ONE per screen, e.g. "Scan a barcode".
  *   tonal    - actionTonal fill, pill. A real but secondary action.
- *   outlined - border only, radius md. The one non-pill button, so a
- *              low-commitment action looks different at a glance.
+ *   outlined - border only, pill. A low-commitment action; the border
+ *              rather than a fill tells it apart.
  *   text     - no fill. Dismissals: "Skip for now", "Not now".
  *   danger   - verdictUnsafe fill. ONLY inside a confirming BottomSheet,
  *              because that colour means a verdict everywhere else.
@@ -79,7 +79,7 @@ export function Button({
           minHeight: isSmall ? layout.buttonHeightSmall : layout.touchTargetMin,
           paddingHorizontal:
             variant === 'text' ? space.s3 : isSmall ? space.s4 : space.s6,
-          borderRadius: variant === 'outlined' ? radius.md : radius.pill,
+          borderRadius: radius.pill,
           backgroundColor: pressed && look.pressedFill ? look.pressedFill : look.fill,
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
           opacity: disabled ? opacity.disabled : 1,
@@ -100,7 +100,7 @@ export function Button({
                 StyleSheet.absoluteFill,
                 {
                   backgroundColor: colors.statePressedOverlay,
-                  borderRadius: variant === 'outlined' ? radius.md : radius.pill,
+                  borderRadius: radius.pill,
                 },
               ]}
             />
