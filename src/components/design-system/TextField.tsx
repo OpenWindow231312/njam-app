@@ -1,8 +1,8 @@
 /**
  * TextField: every text input in Njam.
  *
- * Every field shares one look (design system v1.2, 29 Sep 2026): a pill on
- * the surfaceSunken fill with a hairline `line` border, which thickens to the
+ * Every field shares one look (design system v1.3, 29 Sep 2026): a pill on
+ * the near-white surfaceRaised fill with a hairline `line` border, which thickens to the
  * 2px focus ring when the field is active. The variants only change what sits
  * inside the pill:
  *   outlined - the default for every form field. (The name is kept so screens
@@ -111,7 +111,7 @@ export function TextField({
           styles.box,
           {
             borderRadius: radius.pill,
-            backgroundColor: colors.surfaceSunken,
+            backgroundColor: colors.surfaceRaised,
             borderWidth,
             borderColor,
             paddingHorizontal,
@@ -126,8 +126,7 @@ export function TextField({
           onBlur={() => setFocused(false)}
           editable={!disabled}
           placeholder={placeholder}
-          // inkMuted, not inkSubtle: inkSubtle falls to 4.15:1 on the sunken fill.
-          placeholderTextColor={colors.inkMuted}
+          placeholderTextColor={colors.inkSubtle}
           keyboardType={variant === 'numeric' ? 'decimal-pad' : keyboardType}
           secureTextEntry={secureTextEntry && !passwordVisible}
           autoCapitalize={autoCapitalize}
