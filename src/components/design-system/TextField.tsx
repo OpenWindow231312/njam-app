@@ -1,11 +1,15 @@
 /**
  * TextField: every text input in Njam.
  *
- * Variants (from the design system TextField card):
- *   outlined - the default for every form field.
- *   search   - pill, sunken fill, no border, leading "search" icon.
+ * Every field shares one look (design system v1.2, 29 Sep 2026): a pill on
+ * the surfaceSunken fill with a hairline `line` border, which thickens to the
+ * 2px focus ring when the field is active. The variants only change what sits
+ * inside the pill:
+ *   outlined - the default for every form field. (The name is kept so screens
+ *              do not need changing; it is no longer drawn as an outline.)
+ *   search   - leading "search" icon, label read to screen readers only.
  *              Home and the product picker only.
- *   numeric  - outlined with a unit on the right ("g"), decimal keyboard.
+ *   numeric  - a unit on the right ("g") and a decimal keyboard.
  *              For nutrient limits. The caller converts the text to a number.
  *
  * The label always sits above the box and is never a floating label (those
@@ -67,14 +71,16 @@ export function TextField({
   const isSearch = variant === 'search';
   const leadingIcon = isSearch ? 'search' : iconName;
 
-  // Border colour by state. Error uses the -ink token, not the saturated
-  // verdictUnsafe fill, because a form field is not a scan verdict.
-  const borderColor = error ? colors.verdictUnsafeInk : focused ? colors.focusRing : colors.lineStrong;
+  // Border colour by state. At rest it is the quiet `line`, because the
+  // sunken fill already shows the field. Error uses the -ink token, not the
+  // saturated verdictUnsafe fill, because a form field is not a scan verdict.
+  const borderColor = error ? colors.verdictUnsafeInk : focused ? colors.focusRing : colors.line;
 
   // On focus the border grows from 1 to 2. Shrinking the padding by the same
   // amount stops the text inside from jumping.
-  const borderWidth = isSearch ? 0 : focused || error ? border.focus : border.hairline;
-  const paddingHorizontal = space.s4 - (borderWidth - border.hairline);
+  const borderWidth = focused || error ? border.focus : border.hairline;
+  // space.s5 rather than s4, so text clears the rounded ends of the pill.
+  const paddingHorizontal = space.s5 - (borderWidth - border.hairline);
 
   return (
     <View style={[styles.wrapper, { opacity: disabled ? opacity.disabled : 1 }]}>
@@ -86,8 +92,8 @@ export function TextField({
         style={[
           styles.box,
           {
-            borderRadius: isSearch ? radius.pill : radius.md,
-            backgroundColor: isSearch ? colors.surfaceSunken : colors.surface,
+            borderRadius: radius.pill,
+            backgroundColor: colors.surfaceSunken,
             borderWidth,
             borderColor,
             paddingHorizontal,
@@ -102,7 +108,8 @@ export function TextField({
           onBlur={() => setFocused(false)}
           editable={!disabled}
           placeholder={placeholder}
-          placeholderTextColor={colors.inkSubtle}
+          // inkMuted, not inkSubtle: inkSubtle falls to 4.15:1 on the sunken fill.
+          placeholderTextColor={colors.inkMuted}
           keyboardType={variant === 'numeric' ? 'decimal-pad' : keyboardType}
           secureTextEntry={secureTextEntry}
           autoCapitalize={autoCapitalize}
