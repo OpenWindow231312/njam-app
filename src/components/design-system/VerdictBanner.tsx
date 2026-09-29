@@ -1,6 +1,11 @@
 /**
- * VerdictBanner: the full-width verdict at the top of the verdict sheet.
+ * VerdictBanner: the verdict at the top of the verdict sheet.
  * The thing the whole app exists to show.
+ *
+ * Layout (design system v1.3): a header strip in the verdict colour carries
+ * the mark, the headline and the product name. The reasons sit below it on a
+ * near-white card, each icon in a round badge, so they are easy to read while
+ * the colour stays the loudest thing on screen.
  *
  * Three states and only three. A failed lookup is not a verdict; it is a
  * Snackbar with a retry. Each state is carried three ways at once: the mark's
@@ -20,7 +25,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
 import { VerdictMark, type VerdictState } from '@/components/design-system/VerdictMark';
-import { icon, radius, space, typography } from '@/theme/tokens';
+import { border, icon, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 export type VerdictReason = {
@@ -37,7 +42,7 @@ type VerdictBannerProps = {
   reasons: VerdictReason[];
   /** e.g. "Checked against 6 rules in your profile." or "Read from the label photo, not yet verified." */
   sourceNote?: string;
-  /** Used for the screen reader announcement only. */
+  /** Shown under the headline in the strip, and read out first by screen readers. */
   productName?: string;
 };
 
@@ -57,10 +62,12 @@ export function VerdictBanner({ state, headline, reasons, sourceNote, productNam
   }
   const shownReasons = reasons.slice(0, MAX_REASONS);
 
+  // The strip uses the saturated fill; reason icons use the darker -ink
+  // version of the same hue, which stays readable on the near-white card.
   const look = {
-    safe: { fill: colors.verdictSafe, ink: colors.onAccent },
-    caution: { fill: colors.verdictCaution, ink: colors.onVerdictCaution },
-    unsafe: { fill: colors.verdictUnsafe, ink: colors.onVerdictUnsafe },
+    safe: { fill: colors.verdictSafe, ink: colors.onAccent, reasonInk: colors.verdictSafeInk },
+    caution: { fill: colors.verdictCaution, ink: colors.onVerdictCaution, reasonInk: colors.verdictCautionInk },
+    unsafe: { fill: colors.verdictUnsafe, ink: colors.onVerdictUnsafe, reasonInk: colors.verdictUnsafeInk },
   }[state];
 
   // Announced as one block: state, product, headline, reason count.
@@ -79,36 +86,37 @@ export function VerdictBanner({ state, headline, reasons, sourceNote, productNam
     <View
       accessible
       accessibilityLabel={announcement}
-      style={[styles.banner, { backgroundColor: look.fill }]}>
-      <VerdictMark state={state} size={icon.sizeLg} />
-
-      <View style={styles.body}>
-        <Text style={[typography.displayM, { color: look.ink }]}>{headline}</Text>
-
-        <View style={styles.reasons}>
-          {shownReasons.map((reason) => (
-            <View key={reason.text} style={styles.reasonRow}>
-              {/* The slot is one bodyL line tall, so the icon centres on the
-                  first line of the reason even when the reason wraps. */}
-              <View style={styles.reasonIconSlot}>
-                <Icon name={reason.icon} size="sm" color={look.ink} />
-              </View>
-              <Text style={[typography.bodyL, styles.reasonText, { color: look.ink }]}>
-                {reason.text}
-              </Text>
-            </View>
-          ))}
+      style={[styles.card, { backgroundColor: colors.surfaceRaised, borderColor: colors.line }]}>
+      {/* Header strip: the verdict itself. */}
+      <View style={[styles.strip, { backgroundColor: look.fill }]}>
+        <VerdictMark state={state} size={icon.sizeLg} />
+        <View style={styles.stripText}>
+          <Text style={[typography.displayM, { color: look.ink }]}>{headline}</Text>
+          {productName && <Text style={[typography.bodyS, { color: look.ink }]}>{productName}</Text>}
         </View>
+      </View>
+
+      {/* Why: one row per reason, then the source note. */}
+      <View style={styles.body}>
+        {shownReasons.map((reason) => (
+          <View key={reason.text} style={styles.reasonRow}>
+            <View style={[styles.badge, { backgroundColor: colors.surfaceSunken }]}>
+              <Icon name={reason.icon} size="sm" color={look.reasonInk} />
+            </View>
+            <Text style={[typography.bodyL, styles.reasonText, { color: colors.ink }]}>{reason.text}</Text>
+          </View>
+        ))}
 
         {sourceNote && (
-          <View style={styles.noteRow}>
-            <View style={styles.noteIconSlot}>
-              <Icon name="info" size="sm" color={look.ink} />
+          <>
+            <View style={[styles.divider, { backgroundColor: colors.line }]} />
+            <View style={styles.noteRow}>
+              <Icon name="info" size="sm" color={colors.inkMuted} />
+              <Text style={[typography.caption, styles.reasonText, { color: colors.inkMuted }]}>
+                {sourceNote}
+              </Text>
             </View>
-            <Text style={[typography.caption, styles.reasonText, { color: look.ink }]}>
-              {sourceNote}
-            </Text>
-          </View>
+          </>
         )}
       </View>
     </View>
@@ -116,42 +124,46 @@ export function VerdictBanner({ state, headline, reasons, sourceNote, productNam
 }
 
 const styles = StyleSheet.create({
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: space.s4,
-    padding: space.s4,
+  card: {
     borderRadius: radius.lg,
+    borderWidth: border.hairline,
+    overflow: 'hidden',
+  },
+  strip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s3,
+    paddingHorizontal: space.s4,
+    paddingVertical: space.s3,
+  },
+  stripText: {
+    flex: 1,
   },
   body: {
-    flex: 1,
-    gap: space.s2,
-  },
-  reasons: {
-    gap: space.s1,
+    padding: space.s4,
+    gap: space.s3,
   },
   reasonRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: space.s2,
+    alignItems: 'center',
+    gap: space.s3,
+  },
+  badge: {
+    width: layout.iconBadgeSize,
+    height: layout.iconBadgeSize,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   reasonText: {
     flex: 1,
   },
-  reasonIconSlot: {
-    height: typography.bodyL.lineHeight,
-    justifyContent: 'center',
+  divider: {
+    height: border.hairline,
   },
   noteRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    // Same gap as the reasons, so the note's icon and text line up with the
-    // reason icons and reason text above it.
+    alignItems: 'center',
     gap: space.s2,
-    marginTop: space.s1,
-  },
-  noteIconSlot: {
-    height: typography.caption.lineHeight,
-    justifyContent: 'center',
   },
 });
