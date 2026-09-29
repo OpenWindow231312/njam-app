@@ -11,3 +11,4 @@ export { TextField } from './TextField';
 export { VerdictBanner, type VerdictReason } from './VerdictBanner';
 export { VerdictChip } from './VerdictChip';
 export { VerdictMark, type VerdictState } from './VerdictMark';
+export { IconButton } from './IconButton';
