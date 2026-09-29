@@ -2,7 +2,7 @@
  * Component preview.
  *
  * A temporary screen that shows every design system component in one place,
- * so they can be checked on a phone in both light and dark mode. It replaces
+ * so they can be checked on a phone. (Dark mode is paused for now.) It replaces
  * the Expo starter "Explore" tab and will itself be replaced by a real screen.
  */
 import { useState } from 'react';
@@ -11,9 +11,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   Button,
+  FilterChip,
+  IconButton,
   ListGroup,
   ListRow,
+  OptionButton,
   SectionHeader,
+  SegmentedControl,
+  TabBar,
   TextField,
   VerdictBanner,
   VerdictChip,
@@ -29,6 +34,10 @@ export default function ComponentPreviewScreen() {
   const [password, setPassword] = useState('njam1');
   const [recallAlerts, setRecallAlerts] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [severity, setSeverity] = useState('severe');
+  const [filter, setFilter] = useState('all');
+  const [view, setView] = useState<'history' | 'saved'>('saved');
+  const [vibrate, setVibrate] = useState(true);
 
   const fakeCheck = () => {
     setLoading(true);
@@ -57,14 +66,42 @@ export default function ComponentPreviewScreen() {
             onPress={fakeCheck}
           />
           <View style={styles.row}>
-            <Button label="See alternatives" icon="swap_horiz" variant="tonal" onPress={() => {}} />
-            <Button label="Skip for now" variant="text" onPress={() => {}} />
+            <Button label="See alternatives" icon="swap_horiz" variant="secondary" onPress={() => {}} />
+            <Button label="Skip for now" variant="outlined" onPress={() => {}} />
           </View>
           <View style={styles.row}>
-            <Button label="Review filters" icon="filter_alt" variant="outlined" onPress={() => {}} />
             <Button label="Add a rule" icon="add" variant="tonal" size="small" onPress={() => {}} />
+            <Button label="Not now" variant="text" onPress={() => {}} />
           </View>
           <Button label="Scan a barcode" disabled onPress={() => {}} />
+        </View>
+
+        <View style={styles.block}>
+          <SectionHeader variant="simple" headline="Choices" />
+          <View style={styles.row}>
+            <OptionButton label="Avoid" icon="do_not_disturb_on" selected={severity === 'avoid'} onPress={() => setSeverity('avoid')} />
+            <OptionButton label="Moderate" icon="error" selected={severity === 'moderate'} onPress={() => setSeverity('moderate')} />
+            <OptionButton label="Severe" icon="emergency" selected={severity === 'severe'} onPress={() => setSeverity('severe')} />
+          </View>
+          <SegmentedControl
+            segments={[
+              { value: 'history', label: 'History' },
+              { value: 'saved', label: 'Saved' },
+            ]}
+            value={view}
+            onChange={setView}
+          />
+          <View style={styles.row}>
+            {['all', 'safe', 'check', 'not safe'].map((f) => (
+              <FilterChip key={f} label={f[0].toUpperCase() + f.slice(1)} active={filter === f} onPress={() => setFilter(f)} />
+            ))}
+          </View>
+          <View style={styles.row}>
+            <IconButton icon="chevron_left" variant="tonal" accessibilityLabel="Back" onPress={() => {}} />
+            <IconButton icon="notifications" variant="tonal" accessibilityLabel="Notifications" onPress={() => {}} />
+            <IconButton icon="more_horiz" variant="tonal" accessibilityLabel="More options" onPress={() => {}} />
+            <IconButton icon="tune" variant="filled" accessibilityLabel="Filters" onPress={() => {}} />
+          </View>
         </View>
 
         <View style={styles.block}>
@@ -149,6 +186,23 @@ export default function ComponentPreviewScreen() {
             />
             <ListRow icon="delete" title="Delete this profile" destructive onPress={() => {}} />
           </ListGroup>
+          <ListGroup>
+            <ListRow icon="groups" iconBadge="strong" title="Everyone at home" supporting="3 profiles, 14 rules" onPress={() => {}} />
+            <ListRow icon="person" iconBadge="strong" title="Anika" supporting="Milk severe, halal" onPress={() => {}} />
+            <ListRow
+              icon="vibration"
+              iconBadge="soft"
+              title="Vibrate on Not safe"
+              trailing="switch"
+              switchValue={vibrate}
+              onSwitchChange={setVibrate}
+            />
+          </ListGroup>
+        </View>
+
+        <View style={styles.block}>
+          <SectionHeader variant="simple" headline="Navigation" />
+          <TabBar active="home" onSelect={() => {}} onScan={() => {}} floating={false} />
         </View>
       </ScrollView>
     </SafeAreaView>
