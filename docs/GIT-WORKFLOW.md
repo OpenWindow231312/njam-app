@@ -2,63 +2,40 @@
 
 Your commit history and version-control practice are directly assessed in DV300,
 so the workflow is part of the deliverable, not an afterthought. This is a solo
-project, so the model is deliberately light: `main` plus short-lived feature
-branches, merged through Pull Requests.
+project, so the model is deliberately light: small commits straight to `main`.
 
 ## The model
 
+This is a solo project, so all work is committed straight to **`main`** in
+small steps. There are no feature branches or Pull Requests.
+
 ```
-main ─────●────────●───────────●───────────●─────▶  always working, always demo-able
-           \        \           \
-            \        \           feat/verdict-engine
-             \        feat/scanner
-              feat/onboarding
+main ──●──●──●──●──●──●──●──▶  one small, working step per commit
 ```
 
-- **`main`** always holds the latest working code. Never commit half-finished work
-  straight to `main`. If `main` is broken during a live review, that is visible.
-- **One branch per feature or screen.** A branch is short-lived: it exists for one
-  screen or one fix, then it is merged and deleted.
-- **Merge through a Pull Request**, even though you are the only author. The PR is
-  where you write down what changed and why. It is a natural place for the marker
-  to see your reasoning, and for Claude Code to review a change before it lands.
-
-## Branch names
-
-Prefix by type, then a short kebab-case description:
-
-| Prefix     | For                                   | Example                   |
-| ---------- | ------------------------------------- | ------------------------- |
-| `feat/`    | a new screen or capability            | `feat/scanner`            |
-| `fix/`     | a bug fix                             | `fix/verdict-safe-cap`    |
-| `refactor/`| restructuring without behaviour change| `refactor/tokens-quotes`  |
-| `chore/`   | tooling, config, dependencies         | `chore/supabase-cli`      |
-| `docs/`    | documentation only                    | `docs/readme`             |
+- **`main` must always run.** Commit a step only once the app still starts.
+  If `main` is broken during a live review, that is visible.
+- **Small commits carry the story.** Because there are no branches to group
+  work, each commit message has to say clearly what changed and why.
+- **Pull before you start.** Work may have been pushed from another machine
+  or session.
 
 ## Everyday commands
 
-Start a feature:
-
 ```bash
-git switch main
 git pull origin main
-git switch -c feat/scanner
+# make one small change
+git add <files>
+git commit -m "feat: add scan frame with scope pill"
+git push origin main
 ```
 
-Work in small commits (see below), then push and open a PR:
+If a pull brings in a changed `package.json`, run `npm install` before
+`npx expo start`.
 
-```bash
-git push -u origin feat/scanner
-# open the Pull Request on GitHub, target: main
-```
-
-After the PR is merged, clean up:
-
-```bash
-git switch main
-git pull origin main
-git branch -d feat/scanner
-```
+> Earlier in the project (up to PR #3) work went through feature branches and
+> Pull Requests. The switch to committing on `main` was a deliberate choice to
+> keep a solo workflow simple.
 
 ## Commits
 
@@ -82,6 +59,7 @@ a short body.
 ## What not to do
 
 - Do not force-push `main`.
+- Do not commit code that stops the app from starting.
 - Do not commit `.env` or any secret. `.env` is git-ignored; keep it that way.
 - Do not batch a whole screen into one giant commit. The history is the story of
   how you built it, and that story is marked.
