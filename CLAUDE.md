@@ -67,12 +67,13 @@ Do not invent one.
 
 1. **No raw values in screens or components.** Never type a hex code, a font size, a
    spacing number or a radius into a screen. Import from `src/theme/tokens.ts`.
-2. **Both themes ship.** Paper (light) and Forest (dark) are equally supported. `action`
-   flips from forest to lime between them, and `on-action` flips with it. Never hard-code
-   either. Check a screen in dark before calling it done.
+2. **Paper only, for now.** Dark mode (Forest) is paused (decision 29 Sep 2026):
+   `useNjamTheme` always returns Paper. The dark tokens stay in `tokens.ts` so it can
+   return later. Still read colours from the hook, never hard-code them.
 3. **No gradients in the product UI.** Every surface, fill, chip and button is a flat
    token. Gradients are fine in the pitch deck, mockups and promo art, never in the app.
-4. **No pure white.** `surface` is warm paper in light, brand forest in dark.
+4. **No pure white.** `surface` is a cool green tint (`#EDF1E7`); cards, fields and
+   unselected options sit on near-white `surfaceRaised` (`#FBFCF8`), never `#FFFFFF`.
 5. **Radius signals role.** Every control is `pill`: chips, all buttons and all text
    fields. Cards and banners are `lg`. Sheets take `xl` on top corners only.
    The scanner frame is `xxl`. Never apply one radius across a whole screen.
@@ -85,15 +86,21 @@ Do not invent one.
 8. **Verdict hues are verdict-only.** `verdictCaution` and `verdictUnsafe` never appear
    as layout colour, header backgrounds or decorative accents. The one sanctioned
    exception is allergy severity on a RuleChip.
-9. **`accent` stays an accent.** Lime fills chips, the scan ring, progress and the centre
-   tab circle. The only large lime area in the app is a Safe verdict fill. Never build a
-   lime screen.
+9. **Lime means "go" or "on".** Lime (`action` / `accent`) fills the primary button, the
+   active tab, active filter chips and segments, and the Safe verdict. Forest (`selected`)
+   marks a chosen option and strong icon buttons. Never set text in lime on the pale
+   ground, and never build a lime screen.
 10. **Never set copy in `brandLimeDeep` or `accentQuiet`.** Both fall below 4.5:1 on
     surface and exist for decorative marks only.
 11. **Touch targets.** Nothing tappable is under `layout.touchTargetMin` (48), including
     icon buttons that render at 24. Extend the hit area, do not grow the icon.
 12. **Never tile or repeat the logo mark as a pattern.** The pill is the brand's pattern
     shape.
+
+13. **Two typefaces, no more.** Bricolage Grotesque (`display`) for headlines, numbers,
+    button labels and verdict words. Figtree (`text`) for everything read in sentences
+    and every label, chip and field. Take both from `typography` in `tokens.ts`. Any
+    other font appearing (Arial, system) is a bug.
 
 ### The one rule with no exception
 
