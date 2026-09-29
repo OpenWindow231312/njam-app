@@ -2,6 +2,9 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.1 (29 Sep 2026): added icon font families, icon.sizeXs, border widths,
+ * small button, chip and switch sizes, and three motion durations, all taken
+ * from sizes the component cards already specify.
  * https://claude.ai/artifact/3gFmougXCaYTd2YWEP8VYy
  *
  * This file is the only place a raw hex code, pixel size, radius or spacing
@@ -170,6 +173,10 @@ export const fontFamilies = {
   textMedium: "Figtree_500Medium",
   textSemiBold: "Figtree_600SemiBold",
   textBold: "Figtree_700Bold",
+  /** Material Symbols Rounded at wght 400, the icon default. */
+  icon: "MaterialSymbolsRounded_400Regular",
+  /** Material Symbols Rounded at wght 600 (icon.weightEmphasis), for selected or pressed icons. */
+  iconEmphasis: "MaterialSymbolsRounded_600SemiBold",
 } as const;
 
 export const typography = {
@@ -409,6 +416,8 @@ export const getShadows = (scheme: ThemeName | null | undefined) =>
  * The three verdict marks are the exception and live in assets/Verdict.
  */
 export const icon = {
+  /** The verdict mark inside a VerdictChip and the loading mark inside a Button. */
+  sizeXs: 18,
   /** Icons inside chips and small buttons. */
   sizeSm: 20,
   /** The default. List rows, buttons, tab bar, text fields. */
@@ -451,6 +460,28 @@ export const layout = {
   sheetMaxHeight: 0.88,
   /** Cap the column on tablets so line length stays readable. */
   contentMaxWidth: 480,
+  /** Visual height of a small Button. Its hit area still extends to touchTargetMin. */
+  buttonHeightSmall: 36,
+  /** Visual height of a VerdictChip. A tappable row around it still needs touchTargetMin. */
+  chipHeight: 28,
+  /** VerdictChip inset before the mark. */
+  chipPaddingStart: 6,
+  /** VerdictChip inset after the word. */
+  chipPaddingEnd: 10,
+  /** The switch in a ListRow. */
+  switchWidth: 48,
+  switchHeight: 28,
+} as const;
+
+/* ------------------------------------------------------------------ */
+/* Border — widths only; colours come from line, lineStrong, focusRing */
+/* ------------------------------------------------------------------ */
+
+export const border = {
+  /** Dividers, field outlines, outlined buttons, unselected chips. */
+  hairline: 1,
+  /** The focus ring. Solid, never a glow. */
+  focus: 2,
 } as const;
 
 /* ------------------------------------------------------------------ */
@@ -473,7 +504,13 @@ export const opacity = {
 /** 160ms for a state change, 240ms for a sheet. No bouncing, no pulsing. */
 export const motion = {
   stateChange: 160,
+  /** Chip select and the ListRow switch throw. */
+  chipSelect: 180,
+  /** Snackbar in and out. */
+  snackbar: 200,
   sheet: 240,
+  /** One full turn of the rotating Njam mark, the only loading indicator. Linear. */
+  loadingTurn: 1200,
 } as const;
 
 export const tokens = {
@@ -485,6 +522,7 @@ export const tokens = {
   shadow,
   icon,
   layout,
+  border,
   opacity,
   motion,
 } as const;
