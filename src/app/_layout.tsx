@@ -13,9 +13,8 @@ import {
   MaterialSymbolsRounded_600SemiBold,
 } from '@expo-google-fonts/material-symbols-rounded';
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DefaultTheme, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
@@ -23,8 +22,6 @@ import AppTabs from '@/components/app-tabs';
 SplashScreen.preventAutoHideAsync();
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   // Every font the design system names, loaded once here. Keys must match
   // fontFamilies in src/theme/tokens.ts, because that is how components ask for them.
   const [fontsLoaded] = useFonts({
@@ -45,7 +42,8 @@ export default function TabLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    // Always the light navigation theme while dark mode is paused (see use-njam-theme.ts).
+    <ThemeProvider value={DefaultTheme}>
       <AnimatedSplashOverlay />
       <AppTabs />
     </ThemeProvider>

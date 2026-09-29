@@ -12,10 +12,14 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getColors, getShadows, type ThemeName } from '@/theme/tokens';
 
+const DARK_MODE_ENABLED = false;
+
 export function useNjamTheme() {
   const systemScheme = useColorScheme();
-  // React Native can report 'unspecified'. Paper is the default theme.
-  const scheme: ThemeName = systemScheme === 'dark' ? 'dark' : 'light';
+  // Dark mode (Forest) is paused for now (decision 29 Sep 2026): the app always
+  // renders in Paper. The dark tokens stay in tokens.ts so it can return by
+  // setting DARK_MODE_ENABLED to true.
+  const scheme: ThemeName = DARK_MODE_ENABLED && systemScheme === 'dark' ? 'dark' : 'light';
 
   return {
     scheme,
