@@ -62,6 +62,8 @@ export function VerdictChip({ state, memberName }: VerdictChipProps) {
 const styles = StyleSheet.create({
   chip: {
     alignSelf: 'flex-start',
+    // Never squeezed by a long product name beside it in a row.
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.s1,
