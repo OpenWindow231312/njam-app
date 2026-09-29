@@ -49,6 +49,10 @@ role key never appears in the app; anything needing it goes in an Edge Function.
 Commit history frequency and quality are directly assessed. `main` must always hold the
 latest working code.
 
+**Authorship.** Every commit is authored as `Anika de Beer <231312@virtualwindow.co.za>`,
+including commits an AI assistant makes on her behalf. Do not add `Co-Authored-By` or
+session trailers, unless Anika asks for them. Work is committed straight to `main`.
+
 ---
 
 ## Design system: the hard rules
