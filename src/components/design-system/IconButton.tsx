@@ -7,9 +7,9 @@
  * layout.touchTargetMin (48). Never shrink the target to match the icon.
  *
  * Variants (from the design system IconButton card):
- *   standard - transparent, ink icon. The default.
- *   tonal    - actionTonal fill. A secondary action that needs to be findable.
- *   filled   - action fill. One per app bar at most.
+ *   standard - transparent, ink icon. Inside fields and rows.
+ *   tonal    - soft sunken circle, ink icon. Back, more, notifications.
+ *   filled   - forest circle, lime icon. The one strong action, e.g. filters.
  *   outlined - hairline lineStrong border.
  *
  * accessibilityLabel is required and names the action ("Show password"),
@@ -54,8 +54,8 @@ export function IconButton({
 
   const look = {
     standard: { fill: 'transparent', ink: color ?? colors.ink },
-    tonal: { fill: colors.actionTonal, ink: colors.onActionTonal },
-    filled: { fill: colors.action, ink: colors.onAction },
+    tonal: { fill: colors.surfaceSunken, ink: colors.ink },
+    filled: { fill: colors.selected, ink: colors.onSelected },
     outlined: { fill: 'transparent', ink: color ?? colors.ink },
   }[variant];
 
@@ -70,9 +70,9 @@ export function IconButton({
         styles.target,
         { backgroundColor: look.fill, opacity: disabled ? opacity.disabled : 1 },
         variant === 'outlined' && { borderWidth: border.hairline, borderColor: colors.lineStrong },
-        pressed && { backgroundColor: variant === 'filled' ? colors.actionPressed : colors.statePressedOverlay },
+        pressed && { backgroundColor: variant === 'filled' ? colors.brandForestMid : colors.statePressedOverlay },
       ]}>
-      <Icon name={icon} color={selected && variant === 'standard' ? colors.action : look.ink} selected={selected} />
+      <Icon name={icon} color={selected && variant === 'standard' ? colors.brandForestMid : look.ink} selected={selected} />
     </Pressable>
   );
 }
