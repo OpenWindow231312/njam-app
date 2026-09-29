@@ -12,3 +12,7 @@ export { VerdictBanner, type VerdictReason } from './VerdictBanner';
 export { VerdictChip } from './VerdictChip';
 export { VerdictMark, type VerdictState } from './VerdictMark';
 export { IconButton } from './IconButton';
+export { FilterChip } from './FilterChip';
+export { OptionButton } from './OptionButton';
+export { SegmentedControl } from './SegmentedControl';
+export { TabBar, type TabKey } from './TabBar';
