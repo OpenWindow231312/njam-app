@@ -7,7 +7,10 @@
  * layout.touchTargetMin (48). Never shrink the target to match the icon.
  *
  * Variants (from the design system IconButton card):
- *   standard - transparent, ink icon. Inside fields and rows.
+ *   standard - transparent, ink icon. Inside fields, rows and on product
+ *              tiles. Selected, its icon fills in (FILL on) in mid green, e.g.
+ *              a saved bookmark. It shrinks a touch when pressed but shows no
+ *              pressed background, because it has no shape of its own.
  *   tonal    - soft sunken circle, ink icon. Back, more, notifications.
  *   filled   - forest circle, lime icon. The one strong action, e.g. filters.
  *   outlined - hairline lineStrong border.
@@ -33,7 +36,7 @@ type IconButtonProps = {
   accessibilityLabel: string;
   onPress: () => void;
   variant?: IconButtonVariant;
-  /** Shows the icon in its selected (heavier) weight and the action colour. */
+  /** Shows the icon filled in; on the standard variant, also in mid green (a saved bookmark). */
   selected?: boolean;
   disabled?: boolean;
   /** Icon colour for the standard variant, e.g. inkMuted inside a text field. */
@@ -71,12 +74,14 @@ export function IconButton({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled, selected }}
       radius={radius.pill}
+      wash={variant !== 'standard'}
       style={[
         styles.target,
         { backgroundColor: look.fill, opacity: disabled ? opacity.disabled : 1 },
         variant === 'outlined' && { borderWidth: border.hairline, borderColor: colors.lineStrong },
       ]}>
-      <Icon name={icon} color={selected && variant === 'standard' ? colors.brandForestMid : look.ink} selected={selected} />
+      {/* Selected is the filled icon, not a heavier outline. */}
+      <Icon name={icon} color={selected && variant === 'standard' ? colors.brandForestMid : look.ink} filled={selected} />
     </PressableSurface>
   );
 }

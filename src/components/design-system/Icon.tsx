@@ -41,9 +41,14 @@ type IconProps = {
    * also shown by the colour the caller passes in, never by swapping icon.
    */
   selected?: boolean;
+  /**
+   * The filled style (the FILL axis switched on): a saved bookmark, the active
+   * tab. Same icon, filled in, never a different icon.
+   */
+  filled?: boolean;
 };
 
-export function Icon({ name, size = 'md', color, selected = false }: IconProps) {
+export function Icon({ name, size = 'md', color, selected = false, filled = false }: IconProps) {
   const { colors } = useNjamTheme();
   const pixelSize = sizes[size];
   const paths = iconPaths[name as IconName];
@@ -60,7 +65,10 @@ export function Icon({ name, size = 'md', color, selected = false }: IconProps) 
       {paths && (
         // The glyphs are drawn in the font's own 960 unit square.
         <Svg width={pixelSize} height={pixelSize} viewBox="0 0 960 960">
-          <Path d={selected ? paths.emphasis : paths.regular} fill={color ?? colors.ink} />
+          <Path
+            d={filled ? paths.filled : selected ? paths.emphasis : paths.regular}
+            fill={color ?? colors.ink}
+          />
         </Svg>
       )}
     </View>
