@@ -13,10 +13,11 @@
  * Never hide this control to save space. A scan run against the wrong profile
  * is the worst failure this app has.
  */
-import { StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/design-system/Avatar';
 import { PressableSurface } from '@/components/design-system/PressableSurface';
+import { useSlidingIndicator } from '@/components/design-system/useSlidingIndicator';
 import { layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -35,33 +36,51 @@ type HouseholdBarProps = {
 export function HouseholdBar({ members, selectedId, onSelect }: HouseholdBarProps) {
   const { colors, shadows } = useNjamTheme();
 
-  const renderSegment = (id: string, label: string, showAvatar: boolean) => {
-    const active = id === selectedId;
-    return (
-      <PressableSurface
-        key={id}
-        onPress={() => onSelect(id)}
-        accessibilityRole="radio"
-        accessibilityState={{ checked: active }}
-        accessibilityLabel={id === EVERYONE ? 'Everyone in your household' : label}
-        radius={radius.pill}
-        style={[styles.segment, active && { backgroundColor: colors.selected }]}>
-        {showAvatar && <Avatar name={label} size="sm" />}
-        <Text
-          numberOfLines={1}
-          style={[typography.label, { color: active ? colors.onSelected : colors.ink }]}>
-          {label}
-        </Text>
-      </PressableSurface>
-    );
-  };
+  // Everyone first, then each member, as one list of segments.
+  const segments = [
+    { id: EVERYONE, label: 'Everyone', showAvatar: false },
+    ...members.map((member) => ({ id: member.id, label: member.name, showAvatar: true })),
+  ];
+  const selectedIndex = Math.max(
+    segments.findIndex((segment) => segment.id === selectedId),
+    0,
+  );
+  const { panHandlers, onItemLayout, indicatorStyle, highlightIndex } = useSlidingIndicator(
+    segments.length,
+    selectedIndex,
+    (index) => onSelect(segments[index].id),
+  );
 
   return (
     <View
+      {...panHandlers}
       accessibilityRole="radiogroup"
       style={[styles.track, { backgroundColor: colors.surfaceRaised }, shadows.ambient]}>
-      {renderSegment(EVERYONE, 'Everyone', false)}
-      {members.map((member) => renderSegment(member.id, member.name, true))}
+      {/* The highlight glides to the chosen person (and follows a drag). */}
+      <Animated.View
+        pointerEvents="none"
+        style={[indicatorStyle, { borderRadius: radius.pill, backgroundColor: colors.selected }]}
+      />
+      {segments.map((segment, index) => {
+        const lit = index === highlightIndex;
+        return (
+          <PressableSurface
+            key={segment.id}
+            onPress={() => onSelect(segment.id)}
+            onLayout={onItemLayout(index)}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: index === selectedIndex }}
+            accessibilityLabel={segment.id === EVERYONE ? 'Everyone in your household' : segment.label}
+            radius={radius.pill}
+            shrink={false}
+            style={styles.segment}>
+            {segment.showAvatar && <Avatar name={segment.label} size="sm" />}
+            <Text numberOfLines={1} style={[typography.label, { color: lit ? colors.onSelected : colors.ink }]}>
+              {segment.label}
+            </Text>
+          </PressableSurface>
+        );
+      })}
     </View>
   );
 }
