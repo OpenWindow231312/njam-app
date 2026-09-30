@@ -6,23 +6,29 @@
  *   secondary - forest fill, paper label. A real second action beside the
  *               primary, e.g. "See alternatives".
  *   tonal     - sunken fill, ink label. Small in-place actions: "Add a rule".
- *   outlined  - near-white fill with a hairline. Low commitment: "Skip for now".
+ *   outlined  - white fill with the soft ambient shadow, no outline (v1.5).
+ *               Low commitment: "Skip for now". The name is kept for code
+ *               compatibility.
  *   text      - no fill, mid-green label. Inline escapes: "Not now".
  *   danger   - verdictUnsafe fill. ONLY inside a confirming BottomSheet,
  *              because that colour means a verdict everywhere else.
  *
+ * Sizes: default (48), small (36 drawn, 48 to tap) and large (56), the
+ * full-width primary at the foot of a screen: "Save my allergies".
+ *
  * Labels are verb phrases that name the action. Never "Continue".
- * No shadows on buttons, ever.
+ * Coloured buttons never carry a shadow. Only the white outlined button has
+ * the ambient shadow, which replaces its old hairline.
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
 import { LoadingMark } from '@/components/design-system/LoadingMark';
-import { border, icon, layout, opacity, radius, space, typography } from '@/theme/tokens';
+import { icon, layout, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'tonal' | 'outlined' | 'text' | 'danger';
-type ButtonSize = 'default' | 'small';
+type ButtonSize = 'default' | 'small' | 'large';
 
 type ButtonProps = {
   /** A verb phrase naming the action. */
@@ -50,8 +56,9 @@ export function Button({
   disabled = false,
   fullWidth = false,
 }: ButtonProps) {
-  const { colors } = useNjamTheme();
+  const { colors, shadows } = useNjamTheme();
   const isSmall = size === 'small';
+  const isLarge = size === 'large';
 
   // Fill and label colour for each variant, all from theme tokens.
   const look = {
@@ -80,7 +87,11 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         {
-          minHeight: isSmall ? layout.buttonHeightSmall : layout.touchTargetMin,
+          minHeight: isSmall
+            ? layout.buttonHeightSmall
+            : isLarge
+              ? layout.buttonHeightLarge
+              : layout.touchTargetMin,
           paddingHorizontal:
             variant === 'text' ? space.s3 : isSmall ? space.s4 : space.s6,
           borderRadius: radius.pill,
@@ -88,10 +99,7 @@ export function Button({
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
           opacity: disabled ? opacity.disabled : 1,
         },
-        variant === 'outlined' && {
-          borderWidth: border.hairline,
-          borderColor: colors.line,
-        },
+        variant === 'outlined' && shadows.ambient,
       ]}>
       {({ pressed }) => (
         <>
@@ -116,7 +124,11 @@ export function Button({
             iconName && <Icon name={iconName} size="sm" color={look.ink} />
           )}
 
-          <Text style={[isSmall ? typography.buttonS : typography.button, { color: look.ink }]}>
+          <Text
+            style={[
+              isSmall ? typography.buttonS : isLarge ? typography.buttonL : typography.button,
+              { color: look.ink },
+            ]}>
             {loading && loadingLabel ? loadingLabel : label}
           </Text>
         </>
