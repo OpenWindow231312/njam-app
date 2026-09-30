@@ -12,10 +12,11 @@
  *
  * The Safe ring is forest, not lime: a lime ring on white would all but vanish.
  */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/design-system/Avatar';
 import { VerdictMark, type VerdictState } from '@/components/design-system/VerdictMark';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { border, icon, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -43,16 +44,14 @@ export function MemberVerdict({ name, verdict, selected = false, onPress }: Memb
   }[verdict];
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole="tab"
       accessibilityState={{ selected }}
       accessibilityLabel={`${name}, ${spokenWords[verdict]}`}
-      style={({ pressed }) => [
-        styles.tab,
-        (selected || pressed) && { backgroundColor: colors.surfaceSunken },
-      ]}>
+      radius={radius.lg}
+      style={[styles.tab, selected && { backgroundColor: colors.surfaceSunken }]}>
       <View>
         <View style={[styles.ring, { backgroundColor: ringColor }]}>
           <View style={[styles.gap, { backgroundColor: colors.surfaceRaised }]}>
@@ -68,7 +67,7 @@ export function MemberVerdict({ name, verdict, selected = false, onPress }: Memb
         {name}
       </Text>
       <Text style={[typography.caption, { color: colors.inkMuted }]}>{words[verdict]}</Text>
-    </Pressable>
+    </PressableSurface>
   );
 }
 

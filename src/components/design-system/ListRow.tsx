@@ -24,10 +24,11 @@
  * BottomSheet rather than delete straight away.
  */
 import { Children, Fragment, useEffect, useRef, type ReactNode } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
 import { VerdictMark, type VerdictState } from '@/components/design-system/VerdictMark';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { border, icon, layout, motion, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -162,7 +163,7 @@ export function ListRow({
   const handlePress = isSwitch ? () => onSwitchChange?.(!switchValue) : onPress;
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={handlePress}
       disabled={disabled}
       accessibilityRole={isSwitch ? 'switch' : 'button'}
@@ -175,13 +176,11 @@ export function ListRow({
       }
       // Supporting text and value are part of the row's label, not separate nodes.
       accessibilityLabel={[title, supporting, value].filter(Boolean).join(', ')}
-      style={({ pressed }) => [
-        styles.row,
-        // A flat sunken fill on press, the same colour as fields, rather than
-        // a translucent tint (design system v1.2).
-        pressed && { backgroundColor: colors.surfaceSunken },
-        disabled && { opacity: opacity.disabled },
-      ]}>
+      // Rows darken but do not shrink: a row moving inside its card looks broken.
+      // The group clips the wash to its rounded corners.
+      radius={radius.none}
+      shrink={false}
+      style={[styles.row, disabled && { opacity: opacity.disabled }]}>
       {iconName && iconBadge === 'plain' && <Icon name={iconName} color={iconColor} />}
       {iconName && iconBadge !== 'plain' && (
         <View
@@ -224,7 +223,7 @@ export function ListRow({
         <Icon name={expanded ? 'expand_less' : 'expand_more'} color={colors.inkSubtle} />
       )}
       {isSwitch && <RowSwitch on={switchValue} />}
-    </Pressable>
+    </PressableSurface>
   );
 }
 

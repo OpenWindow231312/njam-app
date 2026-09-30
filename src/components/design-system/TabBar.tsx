@@ -14,10 +14,11 @@
  * This component only draws the bar and reports taps. Wiring it to Expo
  * Router happens when the real screens exist.
  */
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/design-system/Icon';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { layout, radius, space } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -47,15 +48,16 @@ export function TabBar({ active, onSelect, floating = true }: TabBarProps) {
   const renderTab = (tab: Tab) => {
     const isActive = tab.key === active;
     return (
-      <Pressable
+      <PressableSurface
         key={tab.key}
         onPress={() => onSelect(tab.key)}
         accessibilityRole="tab"
         accessibilityLabel={tab.label}
         accessibilityState={{ selected: isActive }}
+        radius={radius.pill}
         style={[styles.tab, isActive && { backgroundColor: colors.accent }]}>
         <Icon name={tab.icon} selected={isActive} color={isActive ? colors.onAccent : colors.ink} />
-      </Pressable>
+      </PressableSurface>
     );
   };
 

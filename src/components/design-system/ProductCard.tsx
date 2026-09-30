@@ -14,10 +14,11 @@
  * and size never truncate. Njam is not a price comparison app, so price is
  * never the main detail.
  */
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
 import { VerdictMark, type VerdictState } from '@/components/design-system/VerdictMark';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { icon, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -56,15 +57,16 @@ export function ProductCard({
   const spoken = [name, detail, verdict && spokenWords[verdict], metaText].filter(Boolean).join(', ');
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={spoken}
-      style={({ pressed }) => [
+      radius={radius.lg}
+      style={[
         styles.card,
-        isRow && [styles.rowCard, { backgroundColor: pressed ? colors.surfaceSunken : colors.surfaceRaised }],
-        isRow && !pressed && shadows.ambient,
+        isRow && [styles.rowCard, { backgroundColor: colors.surfaceRaised }],
+        isRow && shadows.ambient,
       ]}>
       <View
         style={[
@@ -102,7 +104,7 @@ export function ProductCard({
           <Text style={[typography.caption, { color: colors.inkMuted }]}>{words[verdict]}</Text>
         </View>
       )}
-    </Pressable>
+    </PressableSurface>
   );
 }
 

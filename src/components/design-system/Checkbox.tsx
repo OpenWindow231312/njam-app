@@ -10,9 +10,10 @@
  * means, so nobody has to guess from the box alone.
  * For a setting that takes effect immediately, prefer a ListRow switch.
  */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { border, layout, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -27,17 +28,15 @@ export function Checkbox({ label, checked, onChange, disabled = false }: Checkbo
   const { colors } = useNjamTheme();
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={() => onChange(!checked)}
       disabled={disabled}
       accessibilityRole="checkbox"
       accessibilityState={{ checked, disabled }}
       accessibilityLabel={label}
-      style={({ pressed }) => [
-        styles.row,
-        pressed && { backgroundColor: colors.surfaceSunken },
-        disabled && { opacity: opacity.disabled },
-      ]}>
+      radius={radius.none}
+      shrink={false}
+      style={[styles.row, disabled && { opacity: opacity.disabled }]}>
       <View
         style={[
           styles.box,
@@ -48,7 +47,7 @@ export function Checkbox({ label, checked, onChange, disabled = false }: Checkbo
         {checked && <Icon name="check" size="xs" color={colors.onSelected} selected />}
       </View>
       <Text style={[typography.body, styles.label, { color: colors.ink }]}>{label}</Text>
-    </Pressable>
+    </PressableSurface>
   );
 }
 

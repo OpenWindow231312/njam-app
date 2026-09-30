@@ -11,11 +11,12 @@
  * screen-reader label says the verdict in words. The full verdict with its
  * reasons is one tap away.
  */
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
 import { IconButton } from '@/components/design-system/IconButton';
 import { VerdictMark, type VerdictState } from '@/components/design-system/VerdictMark';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { icon, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -41,10 +42,13 @@ export function ProductTile({
   const { colors, shadows } = useNjamTheme();
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${name}, ${spokenWords[verdict]}`}
+      // The tile shrinks a touch; no wash, because the name sits on the page.
+      radius={radius.lg}
+      wash={false}
       style={styles.tile}>
       <View style={[styles.well, { backgroundColor: colors.surfaceRaised }, shadows.ambient]}>
         {imageUrl ? (
@@ -72,7 +76,7 @@ export function ProductTile({
       <Text numberOfLines={2} style={[typography.label, { color: colors.ink }]}>
         {name}
       </Text>
-    </Pressable>
+    </PressableSurface>
   );
 }
 
