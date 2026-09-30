@@ -2,6 +2,9 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.6 (30 Sep 2026): press feedback (motion.pressIn, motion.pressScale),
+ * a quieter field focus (border.fieldFocus in brandForest) and displayS for
+ * the verdict headline.
  * v1.5 (30 Sep 2026): components from the "Njam UI v1.4" canvas. White
  * shapes drop their outline and take the soft `ambient` shadow instead;
  * search sits on surfaceSunken with no edge. Added surfaceMedia,
@@ -241,6 +244,13 @@ export const typography = {
     fontSize: 26,
     lineHeight: 30,
     letterSpacing: -0.52,
+  },
+  /** The verdict headline in VerdictBanner (v1.6: calmer than displayM). */
+  displayS: {
+    fontFamily: fontFamilies.displayBold,
+    fontSize: 22,
+    lineHeight: 27,
+    letterSpacing: -0.44,
   },
   /** Card headlines and product names on ProductCard. */
   headline: {
@@ -614,6 +624,8 @@ export const border = {
   hairline: 1,
   /** The focus ring. Solid, never a glow. */
   focus: 2,
+  /** A focused or errored text field: a quiet outline, thinner than the 2px focus ring (v1.6). */
+  fieldFocus: 1.5,
   /** The verdict ring around a MemberVerdict avatar, and the white gap inside it. */
   ring: 3,
 } as const;
@@ -637,6 +649,11 @@ export const opacity = {
 
 /** 160ms for a state change, 240ms for a sheet. No bouncing, no pulsing. */
 export const motion = {
+  /** Pressing down on anything tappable: eases into the pressed state. */
+  pressIn: 120,
+  /** How far a pressed control shrinks (scale). Skipped when reduce motion is on. */
+  pressScale: 0.97,
+  /** A state change, and letting go of a press. */
   stateChange: 160,
   /** Chip select and the ListRow switch throw. */
   chipSelect: 180,
