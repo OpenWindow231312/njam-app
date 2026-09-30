@@ -41,6 +41,7 @@ import {
   Snackbar,
   StepProgress,
   TabBar,
+  type TabKey,
   TextField,
   VerdictBanner,
   VerdictChip,
@@ -98,6 +99,7 @@ export default function ComponentPreviewScreen() {
   const [expanded, setExpanded] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showSnackbar, setShowSnackbar] = useState(true);
+  const [tab, setTab] = useState<TabKey>('home');
 
   const toggleRule = (rule: string) =>
     setRules((current) => (current.includes(rule) ? current.filter((r) => r !== rule) : [...current, rule]));
@@ -163,7 +165,7 @@ export default function ComponentPreviewScreen() {
           <State label="Filled: the one strong action">
             <IconButton icon="tune" variant="filled" accessibilityLabel="Filters" onPress={() => {}} />
           </State>
-          <State label="Standard: rest and selected">
+          <State label="Standard: rest and selected (filled)">
             <View style={styles.row}>
               <IconButton icon="bookmark" accessibilityLabel="Save" onPress={() => {}} />
               <IconButton icon="bookmark" selected accessibilityLabel="Saved" onPress={() => {}} />
@@ -182,7 +184,7 @@ export default function ComponentPreviewScreen() {
               <OptionButton label="Severe" icon="emergency" selected={severity === 'severe'} onPress={() => setSeverity('severe')} />
             </View>
           </State>
-          <State label="Segmented control: active and rest">
+          <State label="Segmented control: tap, or hold and drag">
             <SegmentedControl
               segments={[
                 { value: 'history', label: 'History' },
@@ -392,7 +394,7 @@ export default function ComponentPreviewScreen() {
         </Section>
 
         <Section title="Household and scanner">
-          <State label="Household bar">
+          <State label="Household bar: tap, or hold and drag">
             <HouseholdBar
               members={[
                 { id: 'anika', name: 'Anika' },
@@ -467,8 +469,8 @@ export default function ComponentPreviewScreen() {
         </Section>
 
         <Section title="Navigation">
-          <State label="Tab bar: Home active">
-            <TabBar active="home" onSelect={() => {}} floating={false} />
+          <State label="Tab bar: tap a tab, or hold and drag along the bar">
+            <TabBar active={tab} onSelect={setTab} floating={false} />
           </State>
         </Section>
       </ScrollView>
