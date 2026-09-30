@@ -95,7 +95,7 @@ export function VerdictBanner({ state, headline, reasons, sourceNote, productNam
         <View style={[styles.strip, { backgroundColor: look.fill }]}>
           <VerdictMark state={state} size={icon.markLg} />
           <View style={styles.stripText}>
-            <Text style={[typography.displayM, { color: look.ink }]}>{headline}</Text>
+            <Text style={[typography.displayS, { color: look.ink }]}>{headline}</Text>
             {productName && <Text style={[typography.bodyS, { color: look.ink }]}>{productName}</Text>}
           </View>
         </View>
