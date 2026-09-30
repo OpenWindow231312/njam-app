@@ -2,6 +2,8 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.7 (30 Sep 2026): motion.slide for the sliding highlight in TabBar,
+ * SegmentedControl and HouseholdBar.
  * v1.6 (30 Sep 2026): press feedback (motion.pressIn, motion.pressScale),
  * a quieter field focus (border.fieldFocus in brandForest) and displayS for
  * the verdict headline.
@@ -653,6 +655,8 @@ export const motion = {
   pressIn: 120,
   /** How far a pressed control shrinks (scale). Skipped when reduce motion is on. */
   pressScale: 0.97,
+  /** The highlight gliding to a new tab, segment or household member. */
+  slide: 240,
   /** A state change, and letting go of a press. */
   stateChange: 160,
   /** Chip select and the ListRow switch throw. */
