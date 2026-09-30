@@ -11,6 +11,8 @@
  *   tonal    - soft sunken circle, ink icon. Back, more, notifications.
  *   filled   - forest circle, lime icon. The one strong action, e.g. filters.
  *   outlined - hairline lineStrong border.
+ *   raised   - white circle, ink icon. Over the camera panel (torch), where
+ *              the white reads cleanly on any picture (v1.5 canvas).
  *
  * accessibilityLabel is required and names the action ("Show password"),
  * not the icon ("Eye").
@@ -21,7 +23,7 @@ import { Icon } from '@/components/design-system/Icon';
 import { border, layout, opacity, radius } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
-type IconButtonVariant = 'standard' | 'tonal' | 'filled' | 'outlined';
+type IconButtonVariant = 'standard' | 'tonal' | 'filled' | 'outlined' | 'raised';
 
 type IconButtonProps = {
   /** Material Symbols ligature name. */
@@ -57,6 +59,7 @@ export function IconButton({
     tonal: { fill: colors.surfaceSunken, ink: colors.ink },
     filled: { fill: colors.selected, ink: colors.onSelected },
     outlined: { fill: 'transparent', ink: color ?? colors.ink },
+    raised: { fill: colors.surfaceRaised, ink: colors.ink },
   }[variant];
 
   return (
