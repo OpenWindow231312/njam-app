@@ -8,7 +8,13 @@
  *   value   - a count beside the chevron, e.g. "3".
  *   switch  - the row toggles something. Tapping anywhere throws the switch.
  *   menu    - "more_vert". Admin review queue only.
+ *   expand  - "expand_more", for a row that opens a section in place
+ *             (Nutrients, Ingredients on the product result). Pass `expanded`.
  *   none    - nothing.
+ *
+ * `supportingVerdict` turns the supporting line into a verdict line: a small
+ * verdict dot before it and the text in that verdict's ink, e.g.
+ * "2 flagged: milk, E322". The words carry the meaning; the dot repeats it.
  *
  * Rows always sit inside a ListGroup, which draws the rounded container and
  * the hairlines between rows (not around each row).
@@ -21,7 +27,8 @@ import { Children, Fragment, useEffect, useRef, type ReactNode } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
-import { border, layout, motion, opacity, radius, space, typography } from '@/theme/tokens';
+import { VerdictMark, type VerdictState } from '@/components/design-system/VerdictMark';
+import { border, icon, layout, motion, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 /* ------------------------------------------------------------------ */
@@ -29,21 +36,23 @@ import { useNjamTheme } from '@/theme/use-njam-theme';
 /* ------------------------------------------------------------------ */
 
 export function ListGroup({ children }: { children: ReactNode }) {
-  const { colors } = useNjamTheme();
+  const { colors, shadows } = useNjamTheme();
   const rows = Children.toArray(children);
 
+  // Two views on purpose: the outer one carries the ambient shadow, the inner
+  // one clips the pressed rows to the rounded corners. On iOS a view that
+  // clips (overflow: hidden) cannot also show a shadow.
   return (
-    <View
-      style={[
-        styles.group,
-        { backgroundColor: colors.surfaceRaised, borderColor: colors.line },
-      ]}>
-      {rows.map((row, index) => (
-        <Fragment key={index}>
-          {index > 0 && <View style={[styles.divider, { backgroundColor: colors.line }]} />}
-          {row}
-        </Fragment>
-      ))}
+    <View style={[styles.group, { backgroundColor: colors.surfaceRaised }, shadows.ambient]}>
+      <View style={styles.clip}>
+        {rows.map((row, index) => (
+          <Fragment key={index}>
+            {/* Dividers between rows, inset from the edges like the canvas. */}
+            {index > 0 && <View style={[styles.divider, { backgroundColor: colors.line }]} />}
+            {row}
+          </Fragment>
+        ))}
+      </View>
     </View>
   );
 }
@@ -104,7 +113,11 @@ type ListRowProps = {
    */
   iconBadge?: 'plain' | 'soft' | 'strong';
   supporting?: string;
-  trailing?: 'chevron' | 'switch' | 'menu' | 'none';
+  /** Colours the supporting line in this verdict's ink and puts its dot before it. */
+  supportingVerdict?: VerdictState;
+  trailing?: 'chevron' | 'switch' | 'menu' | 'expand' | 'none';
+  /** For trailing="expand": whether the section below is open. */
+  expanded?: boolean;
   /** A count shown before the chevron. */
   value?: string;
   /** For trailing="switch": whether it is on. */
@@ -121,7 +134,9 @@ export function ListRow({
   icon: iconName,
   iconBadge = 'plain',
   supporting,
+  supportingVerdict,
   trailing = 'chevron',
+  expanded = false,
   value,
   switchValue = false,
   onSwitchChange,
@@ -135,6 +150,14 @@ export function ListRow({
   const titleColor = destructive ? colors.verdictUnsafeInk : colors.ink;
   const iconColor = destructive ? colors.verdictUnsafeInk : colors.inkMuted;
 
+  const verdictInk = supportingVerdict
+    ? {
+        safe: colors.verdictSafeInk,
+        caution: colors.verdictCautionInk,
+        unsafe: colors.verdictUnsafeInk,
+      }[supportingVerdict]
+    : undefined;
+
   // A switch row does one thing on tap: throw the switch.
   const handlePress = isSwitch ? () => onSwitchChange?.(!switchValue) : onPress;
 
@@ -143,7 +166,13 @@ export function ListRow({
       onPress={handlePress}
       disabled={disabled}
       accessibilityRole={isSwitch ? 'switch' : 'button'}
-      accessibilityState={isSwitch ? { checked: switchValue, disabled } : { disabled }}
+      accessibilityState={
+        isSwitch
+          ? { checked: switchValue, disabled }
+          : trailing === 'expand'
+            ? { expanded, disabled }
+            : { disabled }
+      }
       // Supporting text and value are part of the row's label, not separate nodes.
       accessibilityLabel={[title, supporting, value].filter(Boolean).join(', ')}
       style={({ pressed }) => [
@@ -163,7 +192,13 @@ export function ListRow({
           <Icon
             name={iconName}
             size="sm"
-            color={iconBadge === 'strong' ? colors.onIconBadge : destructive ? colors.verdictUnsafeInk : colors.ink}
+            color={
+              iconBadge === 'strong'
+                ? colors.onIconBadge
+                : destructive
+                  ? colors.verdictUnsafeInk
+                  : colors.brandForest
+            }
           />
         </View>
       )}
@@ -171,7 +206,12 @@ export function ListRow({
       <View style={styles.text}>
         <Text style={[typography.title, { color: titleColor }]}>{title}</Text>
         {supporting && (
-          <Text style={[typography.bodyS, { color: colors.inkMuted }]}>{supporting}</Text>
+          <View style={styles.supportingRow}>
+            {supportingVerdict && <VerdictMark state={supportingVerdict} size={icon.markXs} ground="surface" />}
+            <Text style={[typography.bodyS, styles.supportingText, { color: verdictInk ?? colors.inkMuted }]}>
+              {supporting}
+            </Text>
+          </View>
         )}
       </View>
 
@@ -180,6 +220,9 @@ export function ListRow({
       )}
       {trailing === 'chevron' && <Icon name="chevron_right" color={colors.inkSubtle} />}
       {trailing === 'menu' && <Icon name="more_vert" color={colors.inkSubtle} />}
+      {trailing === 'expand' && (
+        <Icon name={expanded ? 'expand_less' : 'expand_more'} color={colors.inkSubtle} />
+      )}
       {isSwitch && <RowSwitch on={switchValue} />}
     </Pressable>
   );
@@ -188,11 +231,14 @@ export function ListRow({
 const styles = StyleSheet.create({
   group: {
     borderRadius: radius.lg,
-    borderWidth: border.hairline,
+  },
+  clip: {
+    borderRadius: radius.lg,
     overflow: 'hidden',
   },
   divider: {
     height: border.hairline,
+    marginHorizontal: space.s4,
   },
   row: {
     minHeight: layout.touchTargetMin,
@@ -204,6 +250,14 @@ const styles = StyleSheet.create({
   },
   text: {
     flex: 1,
+  },
+  supportingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s1,
+  },
+  supportingText: {
+    flexShrink: 1,
   },
   badge: {
     width: layout.iconBadgeSize,
