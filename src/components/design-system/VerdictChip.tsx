@@ -7,14 +7,16 @@
  * because the shape and the word are what a colour-blind person reads.
  * "Check" is the only abbreviation in the system: "Caution" does not fit.
  *
- * Only the filled treatment exists for now. The outlined treatment in the
- * design system needs verdict marks drawn for a plain background, which the
- * system does not have yet (see the PR notes).
+ * Two treatments, one per list:
+ *   filled   - the default: the verdict fill with its mark.
+ *   outlined - transparent with a lineStrong edge, the word in the verdict's
+ *              ink and the surface version of the mark. For a list where
+ *              every row is Safe and the fills would become wallpaper.
  */
 import { StyleSheet, Text, View } from 'react-native';
 
 import { VerdictMark, type VerdictState } from '@/components/design-system/VerdictMark';
-import { icon, layout, radius, space, typography } from '@/theme/tokens';
+import { border, icon, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 const words: Record<VerdictState, string> = {
@@ -34,15 +36,17 @@ type VerdictChipProps = {
   state: VerdictState;
   /** On the camera scope pill: whose profile the verdict is for. */
   memberName?: string;
+  variant?: 'filled' | 'outlined';
 };
 
-export function VerdictChip({ state, memberName }: VerdictChipProps) {
+export function VerdictChip({ state, memberName, variant = 'filled' }: VerdictChipProps) {
   const { colors } = useNjamTheme();
+  const outlined = variant === 'outlined';
 
   const look = {
-    safe: { fill: colors.verdictSafe, ink: colors.onAccent },
-    caution: { fill: colors.verdictCaution, ink: colors.onVerdictCaution },
-    unsafe: { fill: colors.verdictUnsafe, ink: colors.onVerdictUnsafe },
+    safe: { fill: colors.verdictSafe, ink: colors.onAccent, outlineInk: colors.verdictSafeInk },
+    caution: { fill: colors.verdictCaution, ink: colors.onVerdictCaution, outlineInk: colors.verdictCautionInk },
+    unsafe: { fill: colors.verdictUnsafe, ink: colors.onVerdictUnsafe, outlineInk: colors.verdictUnsafeInk },
   }[state];
 
   const word = memberName ? `${words[state]} for ${memberName}` : words[state];
@@ -52,9 +56,14 @@ export function VerdictChip({ state, memberName }: VerdictChipProps) {
     <View
       accessible
       accessibilityLabel={spoken}
-      style={[styles.chip, { backgroundColor: look.fill }]}>
-      <VerdictMark state={state} size={icon.sizeXs} />
-      <Text style={[typography.buttonS, { color: look.ink }]}>{word}</Text>
+      style={[
+        styles.chip,
+        outlined
+          ? { borderWidth: border.hairline, borderColor: colors.lineStrong }
+          : { backgroundColor: look.fill },
+      ]}>
+      <VerdictMark state={state} size={icon.sizeXs} ground={outlined ? 'surface' : 'fill'} />
+      <Text style={[typography.buttonS, { color: outlined ? look.outlineInk : look.ink }]}>{word}</Text>
     </View>
   );
 }
