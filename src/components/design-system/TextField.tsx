@@ -1,10 +1,11 @@
 /**
  * TextField: every text input in Njam.
  *
- * Every field shares one look (design system v1.3, 29 Sep 2026): a pill on
- * the near-white surfaceRaised fill with a hairline `line` border, which thickens to the
- * 2px focus ring when the field is active. The variants only change what sits
- * inside the pill:
+ * Every field shares one shape: a pill, layout.fieldHeight tall (v1.5).
+ * Form fields are white (surfaceRaised) with the soft ambient shadow and no
+ * outline at rest. The search bar sits on surfaceSunken with no edge and no
+ * shadow, so it reads as part of the page rather than a form. Focus and error
+ * draw a 2px ring. The variants only change what sits inside the pill:
  *   outlined - the default for every form field. (The name is kept so screens
  *              do not need changing; it is no longer drawn as an outline.)
  *   search   - leading "search" icon, label read to screen readers only.
@@ -80,7 +81,7 @@ export function TextField({
   autoCapitalize,
   disabled = false,
 }: TextFieldProps) {
-  const { colors } = useNjamTheme();
+  const { colors, shadows } = useNjamTheme();
   const [focused, setFocused] = useState(false);
 
   // Password fields start hidden; the eye flips this.
@@ -89,16 +90,13 @@ export function TextField({
   const isSearch = variant === 'search';
   const leading = isSearch ? 'search' : leadingIcon;
 
-  // Border colour by state. At rest it is the quiet `line`, because the
-  // sunken fill already shows the field. Error uses the -ink token, not the
+  // No edge at rest (v1.5): the white fill and shadow already show the field.
+  // The 2px ring is always there but transparent until it is needed, so the
+  // text never jumps when it appears. Error uses the -ink token, not the
   // saturated verdictUnsafe fill, because a form field is not a scan verdict.
-  const borderColor = error ? colors.verdictUnsafeInk : focused ? colors.focusRing : colors.line;
-
-  // On focus the border grows from 1 to 2. Shrinking the padding by the same
-  // amount stops the text inside from jumping.
-  const borderWidth = focused || error ? border.focus : border.hairline;
+  const borderColor = error ? colors.verdictUnsafeInk : focused ? colors.focusRing : 'transparent';
   // space.s5 rather than s4, so text clears the rounded ends of the pill.
-  const paddingHorizontal = space.s5 - (borderWidth - border.hairline);
+  const paddingHorizontal = space.s5 - border.focus;
 
   return (
     <View style={[styles.wrapper, { opacity: disabled ? opacity.disabled : 1 }]}>
@@ -111,11 +109,12 @@ export function TextField({
           styles.box,
           {
             borderRadius: radius.pill,
-            backgroundColor: colors.surfaceRaised,
-            borderWidth,
+            backgroundColor: isSearch ? colors.surfaceSunken : colors.surfaceRaised,
+            borderWidth: border.focus,
             borderColor,
             paddingHorizontal,
           },
+          !isSearch && shadows.ambient,
         ]}>
         {leading && <Icon name={leading} color={colors.inkMuted} />}
 
@@ -191,7 +190,7 @@ const styles = StyleSheet.create({
     gap: space.s2,
   },
   box: {
-    minHeight: layout.touchTargetMin,
+    minHeight: layout.fieldHeight,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.s2,
