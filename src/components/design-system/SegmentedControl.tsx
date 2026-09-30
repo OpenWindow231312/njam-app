@@ -6,8 +6,9 @@
  * holds the segments; the active one fills lime.
  * Each segment is a full 48 tall, so the track is 48 plus its padding.
  */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -32,16 +33,17 @@ export function SegmentedControl<T extends string>({ segments, value, onChange }
       {segments.map((segment) => {
         const active = segment.value === value;
         return (
-          <Pressable
+          <PressableSurface
             key={segment.value}
             onPress={() => onChange(segment.value)}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
+            radius={radius.pill}
             style={[styles.segment, active && { backgroundColor: colors.accent }]}>
             <Text style={[typography.label, { color: active ? colors.onAccent : colors.ink }]}>
               {segment.label}
             </Text>
-          </Pressable>
+          </PressableSurface>
         );
       })}
     </View>

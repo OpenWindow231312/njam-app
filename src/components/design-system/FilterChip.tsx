@@ -8,8 +8,9 @@
  * Not to be confused with VerdictChip, which shows a scan result and is never
  * tappable as a filter.
  */
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -26,15 +27,16 @@ export function FilterChip({ label, active, onPress }: FilterChipProps) {
   const { colors } = useNjamTheme();
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={onPress}
       hitSlop={{ top: EXTRA_HIT, bottom: EXTRA_HIT }}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
+      radius={radius.pill}
       style={[styles.chip, { backgroundColor: active ? colors.accent : colors.surfaceSunken }]}>
       <Text style={[typography.label, { color: active ? colors.onAccent : colors.ink }]}>{label}</Text>
-    </Pressable>
+    </PressableSurface>
   );
 }
 

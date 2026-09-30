@@ -15,10 +15,11 @@
  * Drawn layout.chipHeightLarge tall; the hit area still extends to 48.
  * Not to be confused with FilterChip, which switches instantly and has no menu.
  */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
 import { VerdictMark, type VerdictState } from '@/components/design-system/VerdictMark';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { icon, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -50,18 +51,17 @@ export function DropdownChip({
   const ink = selected ? colors.inkInverse : colors.ink;
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={onPress}
       hitSlop={{ top: EXTRA_HIT, bottom: EXTRA_HIT }}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint="Opens the options"
-      style={({ pressed }) => [
+      radius={radius.pill}
+      style={[
         styles.chip,
-        {
-          backgroundColor: selected ? colors.selected : pressed ? colors.surfaceSunken : colors.surfaceRaised,
-        },
-        !selected && !pressed && shadows.ambient,
+        { backgroundColor: selected ? colors.selected : colors.surfaceRaised },
+        !selected && shadows.ambient,
       ]}>
       {verdicts && verdicts.length > 0 && (
         <View style={styles.marks}>
@@ -72,7 +72,7 @@ export function DropdownChip({
       )}
       {label && <Text style={[typography.label, { color: ink }]}>{label}</Text>}
       <Icon name="expand_more" size="sm" color={ink} />
-    </Pressable>
+    </PressableSurface>
   );
 }
 

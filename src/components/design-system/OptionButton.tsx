@@ -9,9 +9,10 @@
  * Put several in a row with flex: 1 each. The parent keeps which one is
  * selected; this component only draws and reports the tap.
  */
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { layout, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -32,25 +33,23 @@ export function OptionButton({ label, selected, onPress, icon: iconName, disable
   const iconInk = selected ? colors.onSelected : colors.brandForestMid;
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="radio"
       accessibilityState={{ checked: selected, disabled }}
       accessibilityLabel={label}
-      style={({ pressed }) => [
+      radius={radius.pill}
+      style={[
         styles.option,
-        {
-          backgroundColor: pressed && !selected ? colors.surfaceSunken : fill,
-          opacity: disabled ? opacity.disabled : 1,
-        },
+        { backgroundColor: fill, opacity: disabled ? opacity.disabled : 1 },
         // Only the white, unselected option needs the shadow to lift it off
         // the pale ground; the forest fill of a selected one already stands out.
-        !selected && !pressed && shadows.ambient,
+        !selected && shadows.ambient,
       ]}>
       {iconName && <Icon name={iconName} size="sm" color={iconInk} selected={selected} />}
       <Text style={[typography.label, { color: ink }]}>{label}</Text>
-    </Pressable>
+    </PressableSurface>
   );
 }
 

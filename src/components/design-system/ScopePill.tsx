@@ -10,9 +10,10 @@
  * White on the camera panel, so it reads over any picture. Drawn
  * layout.scopePillHeight tall; the hit area extends to 48.
  */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/design-system/Avatar';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { border, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -34,16 +35,14 @@ export function ScopePill({ people, label, onPress }: ScopePillProps) {
   const faces = people.slice(0, MAX_FACES);
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={onPress}
       hitSlop={{ top: EXTRA_HIT, bottom: EXTRA_HIT }}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint="Changes whose rules this scan checks"
-      style={({ pressed }) => [
-        styles.pill,
-        { backgroundColor: pressed ? colors.surfaceSunken : colors.surfaceRaised },
-      ]}>
+      radius={radius.pill}
+      style={[styles.pill, { backgroundColor: colors.surfaceRaised }]}>
       <View style={styles.faces}>
         {faces.map((name, index) => (
           <View
@@ -60,7 +59,7 @@ export function ScopePill({ people, label, onPress }: ScopePillProps) {
         ))}
       </View>
       <Text style={[typography.label, { color: colors.ink }]}>{label}</Text>
-    </Pressable>
+    </PressableSurface>
   );
 }
 

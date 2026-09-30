@@ -16,9 +16,10 @@
  * Several can be chosen at once. For a pick-one choice use OptionButton.
  * Tapping a chosen chip is how a screen lets the person change its severity.
  */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { border, fontFamilies, icon, layout, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -50,20 +51,18 @@ export function RuleChip({ label, selected, onToggle, severity, disabled = false
   const showSeverity = selected && severity;
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={onToggle}
       disabled={disabled}
       hitSlop={{ top: EXTRA_HIT, bottom: EXTRA_HIT }}
       accessibilityRole="button"
       accessibilityState={{ selected, disabled }}
       accessibilityLabel={showSeverity ? `${label}, ${severityWords[severity]}` : label}
-      style={({ pressed }) => [
+      radius={radius.pill}
+      style={[
         styles.chip,
-        {
-          backgroundColor: selected ? colors.selected : pressed ? colors.surfaceSunken : colors.surfaceRaised,
-          opacity: disabled ? opacity.disabled : 1,
-        },
-        !selected && !pressed && shadows.ambient,
+        { backgroundColor: selected ? colors.selected : colors.surfaceRaised, opacity: disabled ? opacity.disabled : 1 },
+        !selected && shadows.ambient,
       ]}>
       {!selected && <Icon name="add" size="sm" color={colors.brandForestMid} />}
       <Text style={[typography.label, { color: selected ? colors.inkInverse : colors.ink }]}>{label}</Text>
@@ -79,7 +78,7 @@ export function RuleChip({ label, selected, onToggle, severity, disabled = false
           </View>
         </>
       )}
-    </Pressable>
+    </PressableSurface>
   );
 }
 

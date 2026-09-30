@@ -13,9 +13,10 @@
  * Never hide this control to save space. A scan run against the wrong profile
  * is the worst failure this app has.
  */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/design-system/Avatar';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -37,12 +38,13 @@ export function HouseholdBar({ members, selectedId, onSelect }: HouseholdBarProp
   const renderSegment = (id: string, label: string, showAvatar: boolean) => {
     const active = id === selectedId;
     return (
-      <Pressable
+      <PressableSurface
         key={id}
         onPress={() => onSelect(id)}
         accessibilityRole="radio"
         accessibilityState={{ checked: active }}
         accessibilityLabel={id === EVERYONE ? 'Everyone in your household' : label}
+        radius={radius.pill}
         style={[styles.segment, active && { backgroundColor: colors.selected }]}>
         {showAvatar && <Avatar name={label} size="sm" />}
         <Text
@@ -50,7 +52,7 @@ export function HouseholdBar({ members, selectedId, onSelect }: HouseholdBarProp
           style={[typography.label, { color: active ? colors.onSelected : colors.ink }]}>
           {label}
         </Text>
-      </Pressable>
+      </PressableSurface>
     );
   };
 
