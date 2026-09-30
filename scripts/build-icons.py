@@ -8,6 +8,12 @@ the same glyphs as SVG paths puts every icon exactly in the middle of its
 box on every platform. The icon family does not change: these are the
 Material Symbols Rounded glyphs, copied out of the font the app already uses.
 
+The filled version of each icon (used for a selected bookmark and the active
+tab) is not in the font package, which only ships the outlined style, so the
+script downloads Google's own filled Rounded SVGs (weight 400, 24px) from
+github.com/google/material-design-icons. It needs internet the first time;
+they are cached in scripts/.icon-cache afterwards.
+
 Run it after adding an icon name to ICONS below:
     pip install fonttools
     python3 scripts/build-icons.py
@@ -15,9 +21,12 @@ Run it after adding an icon name to ICONS below:
 import glob
 import json
 import os
+import re
+import urllib.request
 
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
+from fontTools.svgLib.path import parse_path
 from fontTools.ttLib import TTFont
 
 # Every Material Symbols ligature the app uses, plus the per-screen inventory
@@ -39,6 +48,28 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONT_DIR = os.path.join(ROOT, 'node_modules', '@expo-google-fonts', 'material-symbols-rounded')
 OUT = os.path.join(ROOT, 'src', 'components', 'design-system', 'icon-paths.ts')
 WEIGHTS = {'regular': '400Regular', 'emphasis': '600SemiBold'}
+CACHE = os.path.join(ROOT, 'scripts', '.icon-cache')
+FILLED_URL = (
+    'https://raw.githubusercontent.com/google/material-design-icons/master/'
+    'symbols/web/{name}/materialsymbolsrounded/{name}_fill1_24px.svg'
+)
+
+
+def filled_path(name):
+    """Google's filled Rounded icon as one path in a 0 0 960 960 box."""
+    os.makedirs(CACHE, exist_ok=True)
+    cached = os.path.join(CACHE, f'{name}_fill1.svg')
+    if not os.path.exists(cached):
+        with urllib.request.urlopen(FILLED_URL.format(name=name)) as response:
+            with open(cached, 'wb') as f:
+                f.write(response.read())
+    svg = open(cached).read()
+    # The downloaded SVG uses a "0 -960 960 960" box; shift it down by 960 so
+    # it lines up with the outlined paths taken from the font.
+    d = ' '.join(re.findall(r'<path[^>]* d="([^"]+)"', svg))
+    pen = SVGPathPen(None, ntos=lambda n: str(round(n)))
+    parse_path(d, TransformPen(pen, (1, 0, 0, 1, 0, 960)))
+    return pen.getCommands()
 
 
 def ligature_map(font):
@@ -86,8 +117,9 @@ def main():
         ' *',
         ' * Material Symbols Rounded outlines, copied from the font the app ships,',
         ' * as SVG paths in a 0 0 960 960 box. `regular` is weight 400 (rest),',
-        ' * `emphasis` is weight 600 (selected). Add an icon name to the script and',
-        ' * rerun it to add an icon.',
+        ' * `emphasis` is weight 600, `filled` is the filled style at weight 400',
+        ' * (a selected bookmark, the active tab). Add an icon name to the script',
+        ' * and rerun it to add an icon.',
         ' */',
         '',
         'export const iconPaths = {',
@@ -95,7 +127,8 @@ def main():
     for name in ICONS:
         regular = json.dumps(by_weight['regular'][name])
         emphasis = json.dumps(by_weight['emphasis'][name])
-        lines.append(f'  {name}: {{ regular: {regular}, emphasis: {emphasis} }},')
+        filled = json.dumps(filled_path(name))
+        lines.append(f'  {name}: {{ regular: {regular}, emphasis: {emphasis}, filled: {filled} }},')
     lines += ['} as const;', '', 'export type IconName = keyof typeof iconPaths;', '']
     with open(OUT, 'w') as f:
         f.write('\n'.join(lines))
