@@ -2,10 +2,11 @@
  * VerdictBanner: the verdict at the top of the verdict sheet.
  * The thing the whole app exists to show.
  *
- * Layout (design system v1.3): a header strip in the verdict colour carries
- * the mark, the headline and the product name. The reasons sit below it on a
- * near-white card, each icon in a round badge, so they are easy to read while
- * the colour stays the loudest thing on screen.
+ * Layout (design system v1.3, card edge v1.5): a header strip in the verdict
+ * colour carries the mark, the headline and the product name. The reasons sit
+ * below it on a white card with the soft ambient shadow (no outline), each
+ * icon in a round badge, so they are easy to read while the colour stays the
+ * loudest thing on screen.
  *
  * Three states and only three. A failed lookup is not a verdict; it is a
  * Snackbar with a retry. Each state is carried three ways at once: the mark's
@@ -55,7 +56,7 @@ const stateWords: Record<VerdictState, string> = {
 };
 
 export function VerdictBanner({ state, headline, reasons, sourceNote, productName }: VerdictBannerProps) {
-  const { colors } = useNjamTheme();
+  const { colors, shadows } = useNjamTheme();
 
   if (__DEV__ && (reasons.length === 0 || reasons.length > MAX_REASONS)) {
     console.warn(`VerdictBanner needs 1 to ${MAX_REASONS} reasons, got ${reasons.length}.`);
@@ -83,41 +84,45 @@ export function VerdictBanner({ state, headline, reasons, sourceNote, productNam
     .join('. ');
 
   return (
+    // Outer view: the shadow. Inner view: clips the strip to the rounded
+    // corners (iOS cannot clip and cast a shadow on the same view).
     <View
       accessible
       accessibilityLabel={announcement}
-      style={[styles.card, { backgroundColor: colors.surfaceRaised, borderColor: colors.line }]}>
-      {/* Header strip: the verdict itself. */}
-      <View style={[styles.strip, { backgroundColor: look.fill }]}>
-        <VerdictMark state={state} size={icon.sizeLg} />
-        <View style={styles.stripText}>
-          <Text style={[typography.displayM, { color: look.ink }]}>{headline}</Text>
-          {productName && <Text style={[typography.bodyS, { color: look.ink }]}>{productName}</Text>}
-        </View>
-      </View>
-
-      {/* Why: one row per reason, then the source note. */}
-      <View style={styles.body}>
-        {shownReasons.map((reason) => (
-          <View key={reason.text} style={styles.reasonRow}>
-            <View style={[styles.badge, { backgroundColor: colors.surfaceSunken }]}>
-              <Icon name={reason.icon} size="sm" color={look.reasonInk} />
-            </View>
-            <Text style={[typography.bodyL, styles.reasonText, { color: colors.ink }]}>{reason.text}</Text>
+      style={[styles.card, { backgroundColor: colors.surfaceRaised }, shadows.ambient]}>
+      <View style={styles.clip}>
+        {/* Header strip: the verdict itself. */}
+        <View style={[styles.strip, { backgroundColor: look.fill }]}>
+          <VerdictMark state={state} size={icon.markLg} />
+          <View style={styles.stripText}>
+            <Text style={[typography.displayM, { color: look.ink }]}>{headline}</Text>
+            {productName && <Text style={[typography.bodyS, { color: look.ink }]}>{productName}</Text>}
           </View>
-        ))}
+        </View>
 
-        {sourceNote && (
-          <>
-            <View style={[styles.divider, { backgroundColor: colors.line }]} />
-            <View style={styles.noteRow}>
-              <Icon name="info" size="sm" color={colors.inkMuted} />
-              <Text style={[typography.caption, styles.reasonText, { color: colors.inkMuted }]}>
-                {sourceNote}
-              </Text>
+        {/* Why: one row per reason, then the source note. */}
+        <View style={styles.body}>
+          {shownReasons.map((reason) => (
+            <View key={reason.text} style={styles.reasonRow}>
+              <View style={[styles.badge, { backgroundColor: colors.surfaceSunken }]}>
+                <Icon name={reason.icon} size="sm" color={look.reasonInk} />
+              </View>
+              <Text style={[typography.bodyL, styles.reasonText, { color: colors.ink }]}>{reason.text}</Text>
             </View>
-          </>
-        )}
+          ))}
+
+          {sourceNote && (
+            <>
+              <View style={[styles.divider, { backgroundColor: colors.line }]} />
+              <View style={styles.noteRow}>
+                <Icon name="info" size="sm" color={colors.inkMuted} />
+                <Text style={[typography.caption, styles.reasonText, { color: colors.inkMuted }]}>
+                  {sourceNote}
+                </Text>
+              </View>
+            </>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -126,7 +131,9 @@ export function VerdictBanner({ state, headline, reasons, sourceNote, productNam
 const styles = StyleSheet.create({
   card: {
     borderRadius: radius.lg,
-    borderWidth: border.hairline,
+  },
+  clip: {
+    borderRadius: radius.lg,
     overflow: 'hidden',
   },
   strip: {
