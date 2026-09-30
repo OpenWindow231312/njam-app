@@ -214,7 +214,7 @@ export const fontFamilies = {
   textMedium: "Figtree_500Medium",
   textSemiBold: "Figtree_600SemiBold",
   textBold: "Figtree_700Bold",
-  /** Material Symbols Rounded at wght 400, the icon default. */
+  /** Material Symbols Rounded at wght 400. No longer loaded: icons are SVG paths (Icon.tsx). */
   icon: "MaterialSymbolsRounded_400Regular",
   /** Material Symbols Rounded at wght 600 (icon.weightEmphasis), for selected or pressed icons. */
   iconEmphasis: "MaterialSymbolsRounded_600SemiBold",

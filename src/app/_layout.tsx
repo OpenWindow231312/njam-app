@@ -8,10 +8,6 @@ import {
   Figtree_600SemiBold,
   Figtree_700Bold,
 } from '@expo-google-fonts/figtree';
-import {
-  MaterialSymbolsRounded_400Regular,
-  MaterialSymbolsRounded_600SemiBold,
-} from '@expo-google-fonts/material-symbols-rounded';
 import { useFonts } from 'expo-font';
 import { DefaultTheme, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -31,12 +27,12 @@ export default function TabLayout() {
     Figtree_500Medium,
     Figtree_600SemiBold,
     Figtree_700Bold,
-    MaterialSymbolsRounded_400Regular,
-    MaterialSymbolsRounded_600SemiBold,
   });
+  // Icons are SVG paths now (see Icon.tsx), so the Material Symbols font no
+  // longer needs loading here.
 
   // Render nothing until fonts are ready. The splash screen is still showing,
-  // and without this every icon would briefly render as its ligature name.
+  // and without this text would briefly flash in the system font.
   if (!fontsLoaded) {
     return null;
   }
