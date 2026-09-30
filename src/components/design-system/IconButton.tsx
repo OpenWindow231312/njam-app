@@ -17,9 +17,10 @@
  * accessibilityLabel is required and names the action ("Show password"),
  * not the icon ("Eye").
  */
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { border, layout, opacity, radius } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -63,20 +64,20 @@ export function IconButton({
   }[variant];
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled, selected }}
-      style={({ pressed }) => [
+      radius={radius.pill}
+      style={[
         styles.target,
         { backgroundColor: look.fill, opacity: disabled ? opacity.disabled : 1 },
         variant === 'outlined' && { borderWidth: border.hairline, borderColor: colors.lineStrong },
-        pressed && { backgroundColor: variant === 'filled' ? colors.brandForestMid : colors.statePressedOverlay },
       ]}>
       <Icon name={icon} color={selected && variant === 'standard' ? colors.brandForestMid : look.ink} selected={selected} />
-    </Pressable>
+    </PressableSurface>
   );
 }
 

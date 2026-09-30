@@ -20,10 +20,11 @@
  * Coloured buttons never carry a shadow. Only the white outlined button has
  * the ambient shadow, which replaces its old hairline.
  */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
 import { LoadingMark } from '@/components/design-system/LoadingMark';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { icon, layout, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -60,16 +61,18 @@ export function Button({
   const isSmall = size === 'small';
   const isLarge = size === 'large';
 
-  // Fill and label colour for each variant, all from theme tokens.
+  // Fill and label colour for each variant, all from theme tokens. The
+  // pressed state is the same for every variant: PressableSurface eases the
+  // pressed wash in over the fill and shrinks the button a touch.
   const look = {
-    primary: { fill: colors.action, pressedFill: colors.actionPressed, ink: colors.onAction },
-    secondary: { fill: colors.selected, pressedFill: undefined, ink: colors.brandPaper },
-    tonal: { fill: colors.surfaceSunken, pressedFill: undefined, ink: colors.ink },
-    outlined: { fill: colors.surfaceRaised, pressedFill: undefined, ink: colors.ink },
+    primary: { fill: colors.action, ink: colors.onAction },
+    secondary: { fill: colors.selected, ink: colors.brandPaper },
+    tonal: { fill: colors.surfaceSunken, ink: colors.ink },
+    outlined: { fill: colors.surfaceRaised, ink: colors.ink },
     // Not `action`: lime text on the pale ground would be unreadable (1.2:1).
     // brandForestMid holds 7.2:1.
-    text: { fill: 'transparent', pressedFill: undefined, ink: colors.brandForestMid },
-    danger: { fill: colors.verdictUnsafe, pressedFill: undefined, ink: colors.onVerdictUnsafe },
+    text: { fill: 'transparent', ink: colors.brandForestMid },
+    danger: { fill: colors.verdictUnsafe, ink: colors.onVerdictUnsafe },
   }[variant];
 
   // A small button is drawn 36 tall but must still be 48 to tap. hitSlop
@@ -77,14 +80,15 @@ export function Button({
   const extraHit = isSmall ? (layout.touchTargetMin - layout.buttonHeightSmall) / 2 : 0;
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={onPress}
       disabled={disabled || loading}
       hitSlop={{ top: extraHit, bottom: extraHit }}
       accessibilityRole="button"
       accessibilityLabel={loading && loadingLabel ? loadingLabel : label}
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
-      style={({ pressed }) => [
+      radius={radius.pill}
+      style={[
         styles.base,
         {
           minHeight: isSmall
@@ -92,48 +96,28 @@ export function Button({
             : isLarge
               ? layout.buttonHeightLarge
               : layout.touchTargetMin,
-          paddingHorizontal:
-            variant === 'text' ? space.s3 : isSmall ? space.s4 : space.s6,
+          paddingHorizontal: variant === 'text' ? space.s3 : isSmall ? space.s4 : space.s6,
           borderRadius: radius.pill,
-          backgroundColor: pressed && look.pressedFill ? look.pressedFill : look.fill,
+          backgroundColor: look.fill,
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
           opacity: disabled ? opacity.disabled : 1,
         },
         variant === 'outlined' && shadows.ambient,
       ]}>
-      {({ pressed }) => (
-        <>
-          {/* Variants without their own pressed colour get the pressed overlay
-              laid over the fill instead, as the motion-and-states foundation asks. */}
-          {pressed && !look.pressedFill && (
-            <View
-              pointerEvents="none"
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor: colors.statePressedOverlay,
-                  borderRadius: radius.pill,
-                },
-              ]}
-            />
-          )}
-
-          {loading ? (
-            <LoadingMark size={icon.sizeXs} color={look.ink} />
-          ) : (
-            iconName && <Icon name={iconName} size="sm" color={look.ink} />
-          )}
-
-          <Text
-            style={[
-              isSmall ? typography.buttonS : isLarge ? typography.buttonL : typography.button,
-              { color: look.ink },
-            ]}>
-            {loading && loadingLabel ? loadingLabel : label}
-          </Text>
-        </>
+      {loading ? (
+        <LoadingMark size={icon.sizeXs} color={look.ink} />
+      ) : (
+        iconName && <Icon name={iconName} size="sm" color={look.ink} />
       )}
-    </Pressable>
+
+      <Text
+        style={[
+          isSmall ? typography.buttonS : isLarge ? typography.buttonL : typography.button,
+          { color: look.ink },
+        ]}>
+        {loading && loadingLabel ? loadingLabel : label}
+      </Text>
+    </PressableSurface>
   );
 }
 
