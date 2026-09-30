@@ -5,19 +5,22 @@
  *   full   - optional step numeral and tag row, a displayL headline, and a
  *            deck (standfirst) below it. The top of Home and onboarding.
  *   simple - headline only, in displayM. Section breaks inside a screen.
+ *   shelf  - a smaller headline (headline style) with an optional "View all"
+ *            link on the right, above a shelf of ProductTiles on Home (v1.5).
  *
  * Only one displayL per screen. The step and tag row is for onboarding only.
  * Headlines are questions or statements, never labels:
  * "What can you not eat?" rather than "Dietary restrictions".
  */
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { icon, radius, space, typography } from '@/theme/tokens';
+import { Icon } from '@/components/design-system/Icon';
+import { icon, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type SectionHeaderProps = {
   headline: string;
-  variant?: 'full' | 'simple';
+  variant?: 'full' | 'simple' | 'shelf';
   /** The reassurance line under the headline, e.g. "You can change any of it later." */
   deck?: string;
   /** Onboarding only: the current step number. */
@@ -26,6 +29,9 @@ type SectionHeaderProps = {
   totalSteps?: number;
   /** Onboarding only: the short tag beside the step, e.g. "Your rules". */
   tag?: string;
+  /** Shelf only: the link on the right, e.g. "View all". */
+  actionLabel?: string;
+  onAction?: () => void;
 };
 
 export function SectionHeader({
@@ -35,8 +41,32 @@ export function SectionHeader({
   step,
   totalSteps,
   tag,
+  actionLabel,
+  onAction,
 }: SectionHeaderProps) {
   const { colors } = useNjamTheme();
+
+  if (variant === 'shelf') {
+    return (
+      <View style={styles.shelf}>
+        <Text accessibilityRole="header" style={[typography.headline, styles.shelfTitle, { color: colors.ink }]}>
+          {headline}
+        </Text>
+        {actionLabel && onAction && (
+          <Pressable
+            onPress={onAction}
+            accessibilityRole="link"
+            accessibilityLabel={`${actionLabel}, ${headline}`}
+            style={styles.shelfAction}>
+            {/* Mid green, not lime: lime text on the pale ground is unreadable. */}
+            <Text style={[typography.label, { color: colors.brandForestMid }]}>{actionLabel}</Text>
+            <Icon name="chevron_right" size="sm" color={colors.brandForestMid} />
+          </Pressable>
+        )}
+      </View>
+    );
+  }
+
   const isFull = variant === 'full';
   const showTagRow = isFull && (step !== undefined || tag);
 
@@ -80,6 +110,20 @@ export function SectionHeader({
 const styles = StyleSheet.create({
   container: {
     gap: space.s3,
+  },
+  shelf: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.s3,
+  },
+  shelfTitle: {
+    flexShrink: 1,
+  },
+  shelfAction: {
+    minHeight: layout.touchTargetMin,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   tagRow: {
     flexDirection: 'row',
