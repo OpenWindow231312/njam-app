@@ -4,8 +4,8 @@
  * Generated from the Njam Design System artifact (tokens.json, version 1).
  * v1.5 (30 Sep 2026): components from the "Njam UI v1.4" canvas. White
  * shapes drop their outline and take the soft `ambient` shadow instead;
- * search sits on surfaceSunken with no edge. Added surfaceMedia, the severity
- * dot colours on a selected chip, onSelectedDivider, buttonL, border.ring,
+ * search sits on surfaceSunken with no edge. Added surfaceMedia,
+ * unsafeOnForest, cautionOnForest, onSelectedDivider, buttonL, border.ring,
  * verdict mark sizes and the layout sizes the new components use.
  * v1.4 (29 Sep 2026): reference palette. Lime #D3FA53, forest #144425,
  * surface #EDF2E9, raised #FFFFFF, sunken #E4E9D5, line #D2DBD0,
@@ -85,10 +85,13 @@ export const colors = {
     onSelected: "#d3fa53",
     /** The hairline between a chip's label and its severity on a selected (forest) RuleChip. */
     onSelectedDivider: "rgba(211, 250, 83, 0.35)",
-    /** Severity dot for "Severe" on a selected RuleChip. The word always sits beside it. */
-    severitySevereOnSelected: "#e8836a",
-    /** Severity dot for "Moderate" on a selected RuleChip. The word always sits beside it. */
-    severityModerateOnSelected: "#e9a94f",
+    /**
+     * Not-safe red that reads on a forest fill: the "Severe" dot on a selected
+     * RuleChip and the failure icon in a Snackbar. Never on its own: a word sits beside it.
+     */
+    unsafeOnForest: "#e8836a",
+    /** Caution orange that reads on a forest fill: the "Moderate" dot on a selected RuleChip. */
+    cautionOnForest: "#e9a94f",
     /** Circle behind an icon in sheets and list rows. */
     iconBadge: "#144425",
     onIconBadge: "#d3fa53",
@@ -155,8 +158,8 @@ export const colors = {
     selected: "#d3fa53",
     onSelected: "#144425",
     onSelectedDivider: "rgba(20, 68, 37, 0.35)",
-    severitySevereOnSelected: "#a83a22",
-    severityModerateOnSelected: "#8a5410",
+    unsafeOnForest: "#a83a22",
+    cautionOnForest: "#8a5410",
     iconBadge: "#123f2a",
     onIconBadge: "#d3fa53",
 
@@ -596,6 +599,10 @@ export const layout = {
   sliderThumb: 28,
   /** Checkbox box size. */
   checkboxSize: 24,
+  /** The severity dot on a selected RuleChip. */
+  severityDot: 8,
+  /** Widest a chat bubble may grow, as a share of the conversation width. */
+  bubbleMaxWidth: "78%",
 } as const;
 
 /* ------------------------------------------------------------------ */
