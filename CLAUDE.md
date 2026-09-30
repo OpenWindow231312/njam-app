@@ -79,9 +79,13 @@ Do not invent one.
 5. **Radius signals role.** Every control is `pill`: chips, all buttons and all text
    fields. Cards and banners are `lg`. Sheets take `xl` on top corners only.
    The scanner frame is `xxl`. Never apply one radius across a whole screen.
-6. **Borders, not shadows.** Use `line` for dividers and `lineStrong` for borders that
-   carry meaning. Elevation exists in exactly three places: the verdict bottom sheet,
-   modals, and the snackbar. A card never has a shadow. A button never has a shadow.
+6. **No outlines on white shapes (v1.5).** White (`surfaceRaised`) cards, fields, option
+   buttons, the segmented control, list groups, chips and the tab bar carry the soft
+   `shadow.ambient` instead of a border. The search bar sits on `surfaceSunken` with no
+   edge. Inner dividers stay `line`; `lineStrong` is for borders that carry meaning (an
+   unticked checkbox). Real elevation (`sheet`, `modal`, `menu`) exists in exactly three
+   places: the bottom sheet, modals and the snackbar. Hard drop shadows anywhere else,
+   and any shadow on a coloured button, stay banned.
 7. **Material Symbols Rounded only.** One icon family, no exceptions. Selection is shown
    by the FILL axis plus a colour change, never by swapping to a different icon. If
    Material Symbols lacks an icon, compose one from an existing icon plus a label.
