@@ -1,28 +1,26 @@
 /**
- * Icon: one Material Symbols Rounded glyph.
+ * Icon: one Material Symbols Rounded icon.
  *
- * Material Symbols works through ligatures: the font turns the text
- * "barcode_scanner" into the barcode icon. So an icon here is just a <Text>
- * set in the icon font. Always pass the ligature name exactly as listed on
- * fonts.google.com/icons.
+ * Icons are drawn as SVG paths copied from the Material Symbols Rounded font
+ * (see icon-paths.ts and scripts/build-icons.py). They used to be drawn as
+ * font text using ligatures, but a line of text is laid out differently on
+ * iOS, Android and the web, and on the phone that left icons off-centre in
+ * their circles. A path in a square box is exactly centred everywhere.
+ *
+ * Pass the ligature name as listed on fonts.google.com/icons ("no_food").
+ * A name that is not in icon-paths.ts yet needs adding to the build script.
  *
  * Icons are decorative by default and hidden from screen readers. The control
  * that holds the icon (Button, IconButton, ListRow) carries the label.
  */
-import { Text, View, type TextStyle } from 'react-native';
+import { View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
-import { fontFamilies, icon } from '@/theme/tokens';
+import { iconPaths, type IconName } from '@/components/design-system/icon-paths';
+import { icon } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-
-// Material Symbols draws each icon in the middle of a line box 1.2 times the
-// icon size (the font's ascent 1056 plus descent 96, over its 960 em). Giving
-// the text exactly that line height keeps the glyph centred on every
-// platform. Squeezing the line height to the icon size (as before) is what
-// pushed icons low and clipped their tops on iOS, most visibly in the
-// heavier selected weight. This is font geometry, not a layout value.
-const ICON_FONT_LINE_RATIO = 1.2;
 
 const sizes: Record<IconSize, number> = {
   xs: icon.sizeXs,
@@ -39,44 +37,32 @@ type IconProps = {
   /** A colour from useNjamTheme().colors. Defaults to ink. */
   color?: string;
   /**
-   * Selected state. The design system asks for FILL 1 plus weightEmphasis.
-   * The Expo font package only ships the outlined (FILL 0) instances, so for
-   * now selection is shown by the heavier weight plus the colour change the
-   * caller passes in. See the PR notes.
+   * Selected state: the heavier weight (icon.weightEmphasis). Selection is
+   * also shown by the colour the caller passes in, never by swapping icon.
    */
   selected?: boolean;
-  style?: TextStyle;
 };
 
-export function Icon({ name, size = 'md', color, selected = false, style }: IconProps) {
+export function Icon({ name, size = 'md', color, selected = false }: IconProps) {
   const { colors } = useNjamTheme();
   const pixelSize = sizes[size];
+  const paths = iconPaths[name as IconName];
 
-  // The glyph sits in a square box of its own size, centred both ways, so
-  // layouts see a clean square. The text's line box is taller than the square
-  // and hangs over it evenly above and below; nothing clips it.
+  if (__DEV__ && !paths) {
+    console.warn(`Icon "${name}" is not in icon-paths.ts. Add it to scripts/build-icons.py and rerun it.`);
+  }
+
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: pixelSize, height: pixelSize, alignItems: 'center', justifyContent: 'center' }}>
-      <Text
-        allowFontScaling={false}
-        style={[
-          {
-            fontFamily: selected ? fontFamilies.iconEmphasis : fontFamilies.icon,
-            fontSize: pixelSize,
-            lineHeight: pixelSize * ICON_FONT_LINE_RATIO,
-            textAlign: 'center',
-            color: color ?? colors.ink,
-            // Android adds extra padding above text by default; icons must not have it.
-            includeFontPadding: false,
-            textAlignVertical: 'center',
-          },
-          style,
-        ]}>
-        {name}
-      </Text>
+      style={{ width: pixelSize, height: pixelSize }}>
+      {paths && (
+        // The glyphs are drawn in the font's own 960 unit square.
+        <Svg width={pixelSize} height={pixelSize} viewBox="0 0 960 960">
+          <Path d={selected ? paths.emphasis : paths.regular} fill={color ?? colors.ink} />
+        </Svg>
+      )}
     </View>
   );
 }
