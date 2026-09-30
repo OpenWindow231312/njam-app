@@ -5,8 +5,9 @@
  * active sits in a lime circle and takes its filled weight; every other tab
  * is a plain icon. Scan is not styled differently (decision 29 Sep 2026).
  *
- * The bar floats above the content with a hairline border, not a shadow
- * (elevation stays reserved for sheets, modals and the snackbar). Screens
+ * The bar floats above the content on the soft ambient shadow, with no
+ * outline (v1.5). Real elevation stays reserved for sheets, modals and the
+ * snackbar. Screens
  * that use it need bottom padding of layout.tabBarHeight + layout.tabBarInset
  * so the last item in a list is not hidden behind it.
  *
@@ -17,7 +18,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/design-system/Icon';
-import { border, layout, radius, space } from '@/theme/tokens';
+import { layout, radius, space } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 export type TabKey = 'home' | 'search' | 'scan' | 'history' | 'profile';
@@ -40,7 +41,7 @@ type TabBarProps = {
 };
 
 export function TabBar({ active, onSelect, floating = true }: TabBarProps) {
-  const { colors } = useNjamTheme();
+  const { colors, shadows } = useNjamTheme();
   const insets = useSafeAreaInsets();
 
   const renderTab = (tab: Tab) => {
@@ -64,7 +65,8 @@ export function TabBar({ active, onSelect, floating = true }: TabBarProps) {
       style={[
         styles.bar,
         floating && { ...styles.floating, bottom: layout.tabBarInset + insets.bottom },
-        { backgroundColor: colors.surfaceRaised, borderColor: colors.line },
+        { backgroundColor: colors.surfaceRaised },
+        shadows.ambient,
       ]}>
       {TABS.map(renderTab)}
     </View>
@@ -81,7 +83,6 @@ const styles = StyleSheet.create({
     height: layout.tabBarHeight,
     paddingHorizontal: space.s2,
     borderRadius: radius.pill,
-    borderWidth: border.hairline,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

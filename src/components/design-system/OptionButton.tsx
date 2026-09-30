@@ -2,7 +2,8 @@
  * OptionButton: one choice in a small set where exactly one can be picked,
  * e.g. milk allergy severity: Avoid / Moderate / Severe.
  *
- * Unselected: near-white pill with a hairline and a mid-green icon.
+ * Unselected: white pill with the soft ambient shadow (no outline since v1.5)
+ * and a mid-green icon.
  * Selected: forest pill with lime text and icon.
  *
  * Put several in a row with flex: 1 each. The parent keeps which one is
@@ -11,7 +12,7 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
-import { border, layout, opacity, radius, space, typography } from '@/theme/tokens';
+import { layout, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type OptionButtonProps = {
@@ -24,7 +25,7 @@ type OptionButtonProps = {
 };
 
 export function OptionButton({ label, selected, onPress, icon: iconName, disabled = false }: OptionButtonProps) {
-  const { colors } = useNjamTheme();
+  const { colors, shadows } = useNjamTheme();
 
   const fill = selected ? colors.selected : colors.surfaceRaised;
   const ink = selected ? colors.onSelected : colors.ink;
@@ -41,10 +42,11 @@ export function OptionButton({ label, selected, onPress, icon: iconName, disable
         styles.option,
         {
           backgroundColor: pressed && !selected ? colors.surfaceSunken : fill,
-          // Selected has no border: the forest fill already outlines it.
-          borderColor: selected ? fill : colors.line,
           opacity: disabled ? opacity.disabled : 1,
         },
+        // Only the white, unselected option needs the shadow to lift it off
+        // the pale ground; the forest fill of a selected one already stands out.
+        !selected && !pressed && shadows.ambient,
       ]}>
       {iconName && <Icon name={iconName} size="sm" color={iconInk} selected={selected} />}
       <Text style={[typography.label, { color: ink }]}>{label}</Text>
@@ -62,6 +64,5 @@ const styles = StyleSheet.create({
     gap: space.s1,
     paddingHorizontal: space.s3,
     borderRadius: radius.pill,
-    borderWidth: border.hairline,
   },
 });

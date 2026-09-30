@@ -2,12 +2,13 @@
  * SegmentedControl: switch between two or three views of the same screen,
  * e.g. History / Saved.
  *
- * A near-white pill track holds the segments; the active one fills lime.
+ * A white pill track with the soft ambient shadow (no outline since v1.5)
+ * holds the segments; the active one fills lime.
  * Each segment is a full 48 tall, so the track is 48 plus its padding.
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { border, layout, radius, space, typography } from '@/theme/tokens';
+import { layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type Segment<T extends string> = {
@@ -22,12 +23,12 @@ type SegmentedControlProps<T extends string> = {
 };
 
 export function SegmentedControl<T extends string>({ segments, value, onChange }: SegmentedControlProps<T>) {
-  const { colors } = useNjamTheme();
+  const { colors, shadows } = useNjamTheme();
 
   return (
     <View
       accessibilityRole="tablist"
-      style={[styles.track, { backgroundColor: colors.surfaceRaised, borderColor: colors.line }]}>
+      style={[styles.track, { backgroundColor: colors.surfaceRaised }, shadows.ambient]}>
       {segments.map((segment) => {
         const active = segment.value === value;
         return (
@@ -53,7 +54,6 @@ const styles = StyleSheet.create({
     padding: space.s1,
     gap: space.s1,
     borderRadius: radius.pill,
-    borderWidth: border.hairline,
   },
   segment: {
     flex: 1,
