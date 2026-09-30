@@ -6,12 +6,31 @@
  * the Expo starter "Explore" tab and will itself be replaced by a real screen.
  */
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
+  AiAvatar,
   Button,
+  ChatBubble,
+  ChatComposer,
+  Checkbox,
+  ConfirmDialog,
+  DropdownChip,
+  EmptyState,
+  EVERYONE,
   FilterChip,
+  HouseholdBar,
+  MemberVerdict,
+  PhotoStepCard,
+  ProductCard,
+  ProductTile,
+  RuleChip,
+  ScanFrame,
+  ScopePill,
+  Slider,
+  Snackbar,
+  StepProgress,
   IconButton,
   ListGroup,
   ListRow,
@@ -26,6 +45,9 @@ import {
 import { layout, space } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
+// Stands in for a label photo on the preview; a bundled image, so no network is needed.
+const SAMPLE_PHOTO = Image.resolveAssetSource(require('../../assets/images/icon.png')).uri;
+
 export default function ComponentPreviewScreen() {
   const { colors } = useNjamTheme();
   const [email, setEmail] = useState('');
@@ -38,6 +60,20 @@ export default function ComponentPreviewScreen() {
   const [filter, setFilter] = useState('all');
   const [view, setView] = useState<'history' | 'saved'>('saved');
   const [vibrate, setVibrate] = useState(true);
+  const [scope, setScope] = useState(EVERYONE);
+  const [person, setPerson] = useState('anika');
+  const [saved, setSaved] = useState(false);
+  const [rules, setRules] = useState<string[]>(['Milk', 'Peanut']);
+  const [traces, setTraces] = useState(true);
+  const [everyoneRules, setEveryoneRules] = useState(false);
+  const [carbLimit, setCarbLimit] = useState(10);
+  const [torch, setTorch] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [showSnackbar, setShowSnackbar] = useState(true);
+
+  const toggleRule = (rule: string) =>
+    setRules((current) => (current.includes(rule) ? current.filter((r) => r !== rule) : [...current, rule]));
 
   const fakeCheck = () => {
     setLoading(true);
@@ -204,6 +240,117 @@ export default function ComponentPreviewScreen() {
           <SectionHeader variant="simple" headline="Navigation" />
           <TabBar active="home" onSelect={() => {}} floating={false} />
         </View>
+
+        <View style={styles.block}>
+          <SectionHeader variant="simple" headline="Household" />
+          <HouseholdBar
+            members={[
+              { id: 'anika', name: 'Anika' },
+              { id: 'thabo', name: 'Thabo' },
+            ]}
+            selectedId={scope}
+            onSelect={setScope}
+          />
+          <View style={styles.row}>
+            <MemberVerdict name="Anika" verdict="unsafe" selected={person === 'anika'} onPress={() => setPerson('anika')} />
+            <MemberVerdict name="Thabo" verdict="caution" selected={person === 'thabo'} onPress={() => setPerson('thabo')} />
+            <MemberVerdict name="Lindi" verdict="safe" selected={person === 'lindi'} onPress={() => setPerson('lindi')} />
+          </View>
+          <View style={styles.row}>
+            <DropdownChip verdicts={['safe', 'caution', 'unsafe']} accessibilityLabel="Showing Safe, Check and Not safe" onPress={() => {}} />
+            <DropdownChip label="Safe only" verdicts={['safe']} selected onPress={() => {}} />
+            <DropdownChip label="Category" onPress={() => {}} />
+          </View>
+        </View>
+
+        <View style={styles.block}>
+          <SectionHeader variant="shelf" headline="Recent scans" actionLabel="View all" onAction={() => {}} />
+          <View style={styles.row}>
+            <ProductTile name="Ouma Rusks Buttermilk" verdict="unsafe" saved={saved} onPress={() => {}} onToggleSave={() => setSaved(!saved)} />
+            <ProductTile name="[PRODUCT NAME]" verdict="caution" onPress={() => {}} onToggleSave={() => {}} />
+          </View>
+          <ProductCard name="[OAT MILK]" detail="[BRAND · 1 L]" verdict="safe" onPress={() => {}} />
+          <ProductCard name="Ouma Rusks Buttermilk" detail="Ouma · 500 g" variant="identity" metaIcon="verified" metaText="Verified" />
+          <ListGroup>
+            <ListRow
+              icon="list_alt"
+              iconBadge="soft"
+              title="Ingredients"
+              supporting="2 flagged: milk, E322"
+              supportingVerdict="unsafe"
+              trailing="expand"
+              expanded={expanded}
+              onPress={() => setExpanded(!expanded)}
+            />
+          </ListGroup>
+          <Button label="See safe alternatives" icon="swap_horiz" size="large" fullWidth onPress={() => {}} />
+        </View>
+
+        <View style={styles.block}>
+          <SectionHeader variant="simple" headline="Your rules" />
+          <StepProgress step={2} total={6} />
+          <View style={styles.row}>
+            <RuleChip label="Milk" severity="severe" selected={rules.includes('Milk')} onToggle={() => toggleRule('Milk')} />
+            <RuleChip label="Peanut" severity="moderate" selected={rules.includes('Peanut')} onToggle={() => toggleRule('Peanut')} />
+            <RuleChip label="Egg" selected={rules.includes('Egg')} onToggle={() => toggleRule('Egg')} />
+            <RuleChip label="Wheat" selected={rules.includes('Wheat')} onToggle={() => toggleRule('Wheat')} />
+          </View>
+          <Slider label="Carbs per serving" value={carbLimit} onChange={setCarbLimit} min={0} max={30} unit="g" />
+          <ListGroup>
+            <Checkbox label='Warn me about "may contain" traces' checked={traces} onChange={setTraces} />
+            <Checkbox label="Apply these rules to everyone at home" checked={everyoneRules} onChange={setEveryoneRules} />
+          </ListGroup>
+        </View>
+
+        <View style={styles.block}>
+          <SectionHeader variant="simple" headline="Scanner" />
+          <View style={styles.scanner}>
+            <ScanFrame
+              scope={<ScopePill people={['Anika', 'Thabo', 'Lindi']} label="Checking for 3 people" onPress={() => {}} />}
+              torchOn={torch}
+              onToggleTorch={() => setTorch(!torch)}
+              hint="Point at a barcode. It scans by itself."
+              bottomAction={<Button label="Type the barcode instead" icon="keyboard" variant="outlined" onPress={() => {}} />}
+            />
+          </View>
+          <PhotoStepCard step="Photo 1" title="Front of the pack" supporting="So others can find it" photoUri={SAMPLE_PHOTO} onTakePhoto={() => {}} />
+          <PhotoStepCard step="Photo 2" title="Nutrition and ingredients" supporting="The whole panel, flat and in focus" onTakePhoto={() => {}} />
+        </View>
+
+        <View style={styles.block}>
+          <SectionHeader variant="simple" headline="Ask Njam" />
+          <View style={styles.row}>
+            <AiAvatar />
+          </View>
+          <ChatBubble from="assistant" text="Hi Anika. Ask me about any product or ingredient and I will check it against your rules." />
+          <ChatBubble from="user" text="Is there a rusk I can eat with my milk allergy?" />
+          <ChatComposer placeholder="Ask about a product or ingredient" onSend={() => {}} />
+        </View>
+
+        <View style={styles.block}>
+          <SectionHeader variant="simple" headline="Feedback" />
+          <EmptyState
+            icon="barcode_scanner"
+            headline="No scans yet"
+            body="Scan your first product and it will show up here with its verdict."
+            actionLabel="Scan a barcode"
+            onAction={() => {}}
+          />
+          {showSnackbar && (
+            <Snackbar message="Added to your saved products" actionLabel="Undo" onAction={() => setShowSnackbar(false)} />
+          )}
+          <Button label="Delete Thabo's profile" variant="tonal" icon="delete" onPress={() => setDialogOpen(true)} />
+          <ConfirmDialog
+            visible={dialogOpen}
+            icon="delete"
+            title="Delete Thabo's profile?"
+            body="His 6 rules and scan history go too. This cannot be undone."
+            cancelLabel="Keep profile"
+            confirmLabel="Delete"
+            onCancel={() => setDialogOpen(false)}
+            onConfirm={() => setDialogOpen(false)}
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -217,6 +364,10 @@ const styles = StyleSheet.create({
   },
   block: {
     gap: space.s3,
+  },
+  // A fixed-height stand-in for the scanner screen's camera area.
+  scanner: {
+    height: layout.scanFrameHeight * 3,
   },
   row: {
     flexDirection: 'row',
