@@ -16,12 +16,15 @@
  * Never use a snackbar for a verdict.
  *
  * The screen decides when to show it (render it or not); this component
- * handles the timer and calls onDismiss when it runs out.
+ * handles the timer and calls onDismiss when it runs out. A neutral (success)
+ * snackbar gives one short success vibration as it appears; warnings and
+ * failures never vibrate, so a buzz always means "that worked".
  */
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
+import { hapticSuccess } from '@/lib/haptics';
 import { layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -58,6 +61,11 @@ export function Snackbar({
 }: SnackbarProps) {
   const { colors, shadows } = useNjamTheme();
   const hasAction = Boolean(actionLabel && onAction);
+
+  // One success buzz when a neutral message appears (and again if its text changes).
+  useEffect(() => {
+    if (kind === 'neutral') hapticSuccess();
+  }, [kind, message]);
 
   useEffect(() => {
     if (!onDismiss) return;
