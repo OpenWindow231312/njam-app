@@ -16,6 +16,14 @@ import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
+// Material Symbols draws each icon in the middle of a line box 1.2 times the
+// icon size (the font's ascent 1056 plus descent 96, over its 960 em). Giving
+// the text exactly that line height keeps the glyph centred on every
+// platform. Squeezing the line height to the icon size (as before) is what
+// pushed icons low and clipped their tops on iOS, most visibly in the
+// heavier selected weight. This is font geometry, not a layout value.
+const ICON_FONT_LINE_RATIO = 1.2;
+
 const sizes: Record<IconSize, number> = {
   xs: icon.sizeXs,
   sm: icon.sizeSm,
@@ -44,9 +52,9 @@ export function Icon({ name, size = 'md', color, selected = false, style }: Icon
   const { colors } = useNjamTheme();
   const pixelSize = sizes[size];
 
-  // The glyph sits in a square box of its own size, centred both ways.
-  // Without the box, the font's built-in space above and below the glyph
-  // pushes icons off-centre next to text in buttons, fields and rows.
+  // The glyph sits in a square box of its own size, centred both ways, so
+  // layouts see a clean square. The text's line box is taller than the square
+  // and hangs over it evenly above and below; nothing clips it.
   return (
     <View
       accessibilityElementsHidden
@@ -58,7 +66,8 @@ export function Icon({ name, size = 'md', color, selected = false, style }: Icon
           {
             fontFamily: selected ? fontFamilies.iconEmphasis : fontFamilies.icon,
             fontSize: pixelSize,
-            lineHeight: pixelSize,
+            lineHeight: pixelSize * ICON_FONT_LINE_RATIO,
+            textAlign: 'center',
             color: color ?? colors.ink,
             // Android adds extra padding above text by default; icons must not have it.
             includeFontPadding: false,
