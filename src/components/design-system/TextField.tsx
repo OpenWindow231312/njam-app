@@ -4,8 +4,11 @@
  * Every field shares one shape: a pill, layout.fieldHeight tall (v1.5).
  * Form fields are white (surfaceRaised) with the soft ambient shadow and no
  * outline at rest. The search bar sits on surfaceSunken with no edge and no
- * shadow, so it reads as part of the page rather than a form. Focus and error
- * draw a 2px ring. The variants only change what sits inside the pill:
+ * shadow, so it reads as part of the page rather than a form. When a field is
+ * active it draws a quiet 1.5px dark-green outline (border.fieldFocus in
+ * brandForest) and its label and leading icon turn the same green (v1.6).
+ * An error draws the same outline in verdictUnsafeInk. The variants only
+ * change what sits inside the pill:
  *   outlined - the default for every form field. (The name is kept so screens
  *              do not need changing; it is no longer drawn as an outline.)
  *   search   - leading "search" icon, label read to screen readers only.
@@ -91,18 +94,21 @@ export function TextField({
   const leading = isSearch ? 'search' : leadingIcon;
 
   // No edge at rest (v1.5): the white fill and shadow already show the field.
-  // The 2px ring is always there but transparent until it is needed, so the
+  // The outline is always there but transparent until it is needed, so the
   // text never jumps when it appears. Error uses the -ink token, not the
   // saturated verdictUnsafe fill, because a form field is not a scan verdict.
-  const borderColor = error ? colors.verdictUnsafeInk : focused ? colors.focusRing : 'transparent';
+  const borderColor = error ? colors.verdictUnsafeInk : focused ? colors.brandForest : 'transparent';
+  // The label and leading icon join in, so the active field reads at a glance
+  // without a heavy ring.
+  const accent = error ? colors.verdictUnsafeInk : focused ? colors.brandForest : undefined;
   // space.s5 rather than s4, so text clears the rounded ends of the pill.
-  const paddingHorizontal = space.s5 - border.focus;
+  const paddingHorizontal = space.s5 - border.fieldFocus;
 
   return (
     <View style={[styles.wrapper, { opacity: disabled ? opacity.disabled : 1 }]}>
       {/* The search box is recognisable by its icon and shape, so its label is
           given to screen readers only. Every other field shows its label. */}
-      {!isSearch && <Text style={[typography.label, { color: colors.ink }]}>{label}</Text>}
+      {!isSearch && <Text style={[typography.label, { color: accent ?? colors.ink }]}>{label}</Text>}
 
       <View
         style={[
@@ -110,13 +116,13 @@ export function TextField({
           {
             borderRadius: radius.pill,
             backgroundColor: isSearch ? colors.surfaceSunken : colors.surfaceRaised,
-            borderWidth: border.focus,
+            borderWidth: border.fieldFocus,
             borderColor,
             paddingHorizontal,
           },
           !isSearch && shadows.ambient,
         ]}>
-        {leading && <Icon name={leading} color={colors.inkMuted} />}
+        {leading && <Icon name={leading} color={accent ?? colors.inkMuted} />}
 
         <TextInput
           value={value}
@@ -203,6 +209,9 @@ const styles = StyleSheet.create({
     // TextInput adds its own vertical padding on Android; remove it so the
     // box height comes from touchTargetMin alone.
     paddingVertical: 0,
+    // The browser draws its own box round a focused input on the web preview;
+    // the field's own outline already shows focus.
+    outlineWidth: 0,
   },
   // The IconButton's 48 hit area is wider than its 24 icon. Pulling it
   // outward by the difference keeps the visible icon the same distance from

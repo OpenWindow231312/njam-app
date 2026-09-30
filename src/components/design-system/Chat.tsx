@@ -134,5 +134,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignSelf: 'stretch',
     paddingVertical: 0,
+    // The browser draws its own box round a focused input on the web preview;
+    // the field's own outline already shows focus.
+    outlineWidth: 0,
   },
 });
