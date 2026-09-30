@@ -6,7 +6,7 @@
  * the Expo starter "Explore" tab and will itself be replaced by a real screen.
  */
 import { useState } from 'react';
-import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -46,7 +46,7 @@ import { layout, space } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 // Stands in for a label photo on the preview; a bundled image, so no network is needed.
-const SAMPLE_PHOTO = Image.resolveAssetSource(require('../../assets/images/icon.png')).uri;
+const SAMPLE_PHOTO = require('../../assets/images/icon.png');
 
 export default function ComponentPreviewScreen() {
   const { colors } = useNjamTheme();
@@ -313,7 +313,7 @@ export default function ComponentPreviewScreen() {
               bottomAction={<Button label="Type the barcode instead" icon="keyboard" variant="outlined" onPress={() => {}} />}
             />
           </View>
-          <PhotoStepCard step="Photo 1" title="Front of the pack" supporting="So others can find it" photoUri={SAMPLE_PHOTO} onTakePhoto={() => {}} />
+          <PhotoStepCard step="Photo 1" title="Front of the pack" supporting="So others can find it" photo={SAMPLE_PHOTO} onTakePhoto={() => {}} />
           <PhotoStepCard step="Photo 2" title="Nutrition and ingredients" supporting="The whole panel, flat and in focus" onTakePhoto={() => {}} />
         </View>
 

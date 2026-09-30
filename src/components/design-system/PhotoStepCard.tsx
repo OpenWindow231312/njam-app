@@ -10,7 +10,7 @@
  * Material "check", not the Safe verdict mark: a photo being taken says
  * nothing about whether the food is safe, and verdict marks mean verdicts only.
  */
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
 
 import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
@@ -24,14 +24,14 @@ type PhotoStepCardProps = {
   title: string;
   /** Why, or how: "The whole panel, flat and in focus". */
   supporting: string;
-  /** The photo once taken. */
-  photoUri?: string;
+  /** The photo once taken: the camera result ({ uri }) or a bundled image. */
+  photo?: ImageSourcePropType;
   onTakePhoto: () => void;
 };
 
-export function PhotoStepCard({ step, title, supporting, photoUri, onTakePhoto }: PhotoStepCardProps) {
+export function PhotoStepCard({ step, title, supporting, photo, onTakePhoto }: PhotoStepCardProps) {
   const { colors, shadows } = useNjamTheme();
-  const done = Boolean(photoUri);
+  const done = Boolean(photo);
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surfaceRaised }, shadows.ambient]}>
@@ -41,7 +41,7 @@ export function PhotoStepCard({ step, title, supporting, photoUri, onTakePhoto }
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants">
           {done ? (
-            <Image source={{ uri: photoUri }} style={styles.image} accessibilityIgnoresInvertColors />
+            <Image source={photo} style={styles.image} accessibilityIgnoresInvertColors />
           ) : (
             <Icon name="add_a_photo" size="lg" color={colors.brandForest} />
           )}
