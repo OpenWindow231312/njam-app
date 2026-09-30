@@ -56,7 +56,7 @@ export function TabBar({ active, onSelect, floating = true }: TabBarProps) {
         accessibilityState={{ selected: isActive }}
         radius={radius.pill}
         style={[styles.tab, isActive && { backgroundColor: colors.accent }]}>
-        <Icon name={tab.icon} selected={isActive} color={isActive ? colors.onAccent : colors.ink} />
+        <Icon name={tab.icon} filled={isActive} color={isActive ? colors.onAccent : colors.ink} />
       </PressableSurface>
     );
   };
