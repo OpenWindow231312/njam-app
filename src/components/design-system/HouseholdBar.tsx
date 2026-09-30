@@ -3,9 +3,10 @@
  * depends on: whose rules is this being checked against?
  *
  * A white pill track (ambient shadow, no outline) holding "Everyone" first,
- * then one segment per member with their initials. The chosen segment turns
- * forest with a lime label, like a selected OptionButton, because picking a
- * scope is a choice that changes what every verdict means.
+ * then one segment per member with their initials. The chosen segment sits
+ * in lime with a dark-green label (v1.8), the same as the SegmentedControl and
+ * the TabBar, because it switches what you are looking at. The highlight
+ * glides between people and can be held and dragged along the track.
  *
  * "Everyone" is the union of every member's rules: a product is Safe for
  * everyone only if it passes all of them.
@@ -59,7 +60,7 @@ export function HouseholdBar({ members, selectedId, onSelect }: HouseholdBarProp
       {/* The highlight glides to the chosen person (and follows a drag). */}
       <Animated.View
         pointerEvents="none"
-        style={[indicatorStyle, { borderRadius: radius.pill, backgroundColor: colors.selected }]}
+        style={[indicatorStyle, { borderRadius: radius.pill, backgroundColor: colors.accent }]}
       />
       {segments.map((segment, index) => {
         const lit = index === highlightIndex;
@@ -75,7 +76,7 @@ export function HouseholdBar({ members, selectedId, onSelect }: HouseholdBarProp
             shrink={false}
             style={styles.segment}>
             {segment.showAvatar && <Avatar name={segment.label} size="sm" />}
-            <Text numberOfLines={1} style={[typography.label, { color: lit ? colors.onSelected : colors.ink }]}>
+            <Text numberOfLines={1} style={[typography.label, { color: lit ? colors.onAccent : colors.ink }]}>
               {segment.label}
             </Text>
           </PressableSurface>
