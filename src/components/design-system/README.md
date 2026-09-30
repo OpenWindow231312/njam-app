@@ -25,6 +25,18 @@ design system describes but the canvas did not draw yet.
 
 Every one of them is on the preview screen (`src/app/explore.tsx`).
 
+How they behave (v1.6, 30 Sep 2026):
+
+- **Icons** are SVG paths copied out of the Material Symbols Rounded font
+  (`icon-paths.ts`, built by `scripts/build-icons.py`), so they sit exactly
+  centred on every platform. To add an icon, add its name to the script and
+  rerun it.
+- **Presses** all go through `PressableSurface`: the pressed wash eases in over
+  120ms and buttons, chips and cards shrink very slightly; rows and checkboxes
+  only darken. Reduce motion turns the shrink off.
+- **Haptics** are for good news only: `hapticSuccess()` in `src/lib/haptics.ts`,
+  called by a neutral Snackbar and, later, by the scanner when a scan succeeds.
+
 Hard rules that apply to everything in this folder live in `CLAUDE.md` under
 "Design system: the hard rules". The one with no exception: a verdict is never
 carried by colour alone.
