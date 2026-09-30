@@ -2,8 +2,9 @@
  * TabBar: the floating pill navigation at the bottom of the main screens.
  *
  * Five equal tabs: Home, Search, Scan, History, Profile. Whichever tab is
- * active sits in a lime circle and takes its filled weight; every other tab
- * is a plain icon. Scan is not styled differently (decision 29 Sep 2026).
+ * active sits in a lime circle with its icon filled in; every other tab is a
+ * plain outlined icon. The lime circle glides from tab to tab, and a finger
+ * held on the bar and dragged sideways pulls it along (v1.7). Scan is not styled differently (decision 29 Sep 2026).
  *
  * The bar floats above the content on the soft ambient shadow, with no
  * outline (v1.5). Real elevation stays reserved for sheets, modals and the
@@ -14,11 +15,12 @@
  * This component only draws the bar and reports taps. Wiring it to Expo
  * Router happens when the real screens exist.
  */
-import { StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/design-system/Icon';
 import { PressableSurface } from '@/components/design-system/PressableSurface';
+import { useSlidingIndicator } from '@/components/design-system/useSlidingIndicator';
 import { layout, radius, space } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -44,25 +46,19 @@ type TabBarProps = {
 export function TabBar({ active, onSelect, floating = true }: TabBarProps) {
   const { colors, shadows } = useNjamTheme();
   const insets = useSafeAreaInsets();
-
-  const renderTab = (tab: Tab) => {
-    const isActive = tab.key === active;
-    return (
-      <PressableSurface
-        key={tab.key}
-        onPress={() => onSelect(tab.key)}
-        accessibilityRole="tab"
-        accessibilityLabel={tab.label}
-        accessibilityState={{ selected: isActive }}
-        radius={radius.pill}
-        style={[styles.tab, isActive && { backgroundColor: colors.accent }]}>
-        <Icon name={tab.icon} filled={isActive} color={isActive ? colors.onAccent : colors.ink} />
-      </PressableSurface>
-    );
-  };
+  const selectedIndex = Math.max(
+    TABS.findIndex((tab) => tab.key === active),
+    0,
+  );
+  const { panHandlers, onItemLayout, indicatorStyle, highlightIndex } = useSlidingIndicator(
+    TABS.length,
+    selectedIndex,
+    (index) => onSelect(TABS[index].key),
+  );
 
   return (
     <View
+      {...panHandlers}
       accessibilityRole="tablist"
       style={[
         styles.bar,
@@ -70,7 +66,28 @@ export function TabBar({ active, onSelect, floating = true }: TabBarProps) {
         { backgroundColor: colors.surfaceRaised },
         shadows.ambient,
       ]}>
-      {TABS.map(renderTab)}
+      {/* The lime circle glides to the active tab, and follows a finger dragged along the bar. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[indicatorStyle, { borderRadius: radius.pill, backgroundColor: colors.accent }]}
+      />
+      {TABS.map((tab, index) => {
+        const lit = index === highlightIndex;
+        return (
+          <PressableSurface
+            key={tab.key}
+            onPress={() => onSelect(tab.key)}
+            onLayout={onItemLayout(index)}
+            accessibilityRole="tab"
+            accessibilityLabel={tab.label}
+            accessibilityState={{ selected: index === selectedIndex }}
+            radius={radius.pill}
+            shrink={false}
+            style={styles.tab}>
+            <Icon name={tab.icon} filled={lit} color={lit ? colors.onAccent : colors.ink} />
+          </PressableSurface>
+        );
+      })}
     </View>
   );
 }
