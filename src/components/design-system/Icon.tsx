@@ -14,9 +14,10 @@ import { Text, View, type TextStyle } from 'react-native';
 import { fontFamilies, icon } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
-type IconSize = 'sm' | 'md' | 'lg' | 'xl';
+type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 const sizes: Record<IconSize, number> = {
+  xs: icon.sizeXs,
   sm: icon.sizeSm,
   md: icon.sizeMd,
   lg: icon.sizeLg,
