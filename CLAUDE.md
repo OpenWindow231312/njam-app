@@ -51,7 +51,16 @@ latest working code.
 
 **Authorship.** Every commit is authored as `Anika de Beer <231312@virtualwindow.co.za>`,
 including commits an AI assistant makes on her behalf. Do not add `Co-Authored-By` or
-session trailers, unless Anika asks for them. Work is committed straight to `main`.
+session trailers, unless Anika asks for them.
+
+**Branches.** One branch per feature, named `anika/<feature>` in lower-case kebab case:
+`anika/scanner`, `anika/verdict-engine`. Never name a branch `claude/...`, even when a
+cloud session starts on one: create the `anika/` branch first and push there instead.
+A feature that spans several days or chats keeps adding commits to the same branch.
+No Pull Requests. When the feature works, merge it into `main` locally with
+`git merge --no-ff anika/<feature>`, so the merge commit groups the feature's commits in
+the history, then push `main` and delete the branch. Never commit half-finished work
+to `main`.
 
 ---
 

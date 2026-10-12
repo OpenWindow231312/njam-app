@@ -1,0 +1,59 @@
+/**
+ * Screen: the page every Njam screen sits on.
+ *
+ * It sets the things every screen shares, so no screen repeats them:
+ * the surface background, the safe area at the top, the screen gutter, the
+ * tablet width cap, and (for tab screens) room at the bottom so the last
+ * item is not hidden behind the floating TabBar.
+ */
+import type { ReactNode } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { layout, space } from '@/theme/tokens';
+import { useNjamTheme } from '@/theme/use-njam-theme';
+
+type ScreenProps = {
+  children: ReactNode;
+  /** false for screens that manage their own layout, like the scanner. */
+  scroll?: boolean;
+  /** true on tab screens: leaves room under the content for the TabBar. */
+  withTabBar?: boolean;
+};
+
+export function Screen({ children, scroll = true, withTabBar = false }: ScreenProps) {
+  const { colors } = useNjamTheme();
+  const bottomRoom = withTabBar ? layout.tabBarHeight + layout.tabBarInset + space.s4 : space.s8;
+
+  return (
+    <SafeAreaView edges={['top']} style={[styles.page, { backgroundColor: colors.surface }]}>
+      <KeyboardAvoidingView
+        style={styles.page}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {scroll ? (
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[styles.column, { paddingBottom: bottomRoom }]}>
+            {children}
+          </ScrollView>
+        ) : (
+          <View style={[styles.page, styles.column, { paddingBottom: bottomRoom }]}>{children}</View>
+        )}
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  page: {
+    flex: 1,
+  },
+  column: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: layout.screenGutter,
+    paddingTop: space.s6,
+    gap: space.s6,
+  },
+});

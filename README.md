@@ -71,6 +71,25 @@ is a stated project target.
 
 ---
 
+## Backend
+
+- **Database.** `supabase/migrations` holds the schema and a seed of 25 South
+  African products. The seed barcodes are placeholders (GS1 prefix `200`, never
+  printed on a real pack); swap in a real barcode to scan a real product.
+- **Label reading.** `supabase/functions/scan-label` sends a label photo or
+  ingredient text to Gemini and validates the JSON it returns. The Gemini key is
+  an Edge Function secret (`GEMINI_API_KEY`) and never reaches the app. Deploy
+  it with:
+
+  ```bash
+  npx supabase functions deploy scan-label --project-ref <your-project-ref>
+  ```
+
+- **Test accounts.** Two accounts exist for the demo: a Household Owner and an
+  Admin/Moderator. Their passwords are shared privately, never committed.
+
+---
+
 ## Project structure
 
 The short version:
