@@ -365,13 +365,18 @@ const styles = StyleSheet.create({
   footer: {
     gap: space.s2,
   },
+  // The row runs to both screen edges, so chips scroll off the edge of the
+  // phone rather than being cut off at the gutter. The first chip still
+  // starts on the gutter, thanks to the padding below.
   promptRow: {
     flexGrow: 0,
+    marginHorizontal: -layout.screenGutter,
   },
   // A FilterChip is drawn 36 tall but taps at 48. A ScrollView does not pass
   // on touches outside itself, so give the chips that extra room inside it.
   prompts: {
     gap: space.s2,
+    paddingHorizontal: layout.screenGutter,
     paddingVertical: (layout.touchTargetMin - layout.filterChipHeight) / 2,
   },
 });
