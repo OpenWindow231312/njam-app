@@ -15,7 +15,7 @@
  */
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -86,6 +86,8 @@ export function AskNjamScreen() {
   const [failure, setFailure] = useState<Failure | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
   const scroll = useRef<ScrollView>(null);
   // Bumped whenever a different conversation is put on screen. An answer
   // that comes back for the old one is then dropped, not mixed in.
@@ -97,6 +99,17 @@ export function AskNjamScreen() {
       .then((profile) => setRules(profile?.rules ?? []))
       .catch(() => setFailure({ message: 'We could not load your rules.', retryText: null }));
   }, [member?.householdId]);
+
+  // With the keyboard up, the home-indicator strip is hidden behind it, so
+  // the composer no longer needs to clear it.
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
+    const hidden = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, []);
 
   const firstName = member?.displayName.split(' ')[0] ?? 'there';
 
@@ -179,7 +192,7 @@ export function AskNjamScreen() {
   return (
     <View style={[styles.page, { backgroundColor: colors.surface }]}>
       <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={[styles.column, { paddingTop: insets.top + space.s2, paddingBottom: insets.bottom + space.s4 }]}>
+        <View style={[styles.column, { paddingTop: insets.top + space.s2, paddingBottom: keyboardOpen ? space.s2 : insets.bottom + space.s4 }]}>
           <View style={styles.header}>
             <View style={styles.back}>
               <IconButton icon="arrow_back" accessibilityLabel="Go back" onPress={() => router.back()} />
