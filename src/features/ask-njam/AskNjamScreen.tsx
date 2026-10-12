@@ -228,35 +228,43 @@ export function AskNjamScreen() {
             )}
           </ScrollView>
 
-          {prompts.length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.prompts}>
-              {prompts.map((prompt) => (
-                <FilterChip key={prompt} label={prompt} active={false} onPress={() => send(prompt)} />
-              ))}
-            </ScrollView>
-          )}
+          {/* Suggestions, any failure and the composer stay together at the
+              foot of the screen, with only a small gap between them. */}
+          <View style={styles.footer}>
+            {prompts.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                // React Native gives every ScrollView flexGrow: 1, so a
+                // horizontal row would stretch to share the screen's height
+                // with the messages. 0 keeps it as tall as its chips.
+                style={styles.promptRow}
+                contentContainerStyle={styles.prompts}>
+                {prompts.map((prompt) => (
+                  <FilterChip key={prompt} label={prompt} active={false} onPress={() => send(prompt)} />
+                ))}
+              </ScrollView>
+            )}
 
-          {failure && (
-            <Snackbar
-              kind="failure"
-              message={failure.message}
-              actionLabel={failure.retryText ? 'Retry' : undefined}
-              onAction={failure.retryText ? () => send(failure.retryText as string) : undefined}
-              onDismiss={() => setFailure(null)}
+            {failure && (
+              <Snackbar
+                kind="failure"
+                message={failure.message}
+                actionLabel={failure.retryText ? 'Retry' : undefined}
+                onAction={failure.retryText ? () => send(failure.retryText as string) : undefined}
+                onDismiss={() => setFailure(null)}
+              />
+            )}
+
+            <ChatComposer
+              placeholder="Ask about a product or ingredient"
+              onSend={send}
+              busy={busy || loadingConversation}
+              onChangeText={onChangeText}
+              ghost={ghost}
             />
-          )}
-
-          <ChatComposer
-            placeholder="Ask about a product or ingredient"
-            onSend={send}
-            busy={busy || loadingConversation}
-            onChangeText={onChangeText}
-            ghost={ghost}
-          />
+          </View>
         </View>
       </KeyboardAvoidingView>
 
@@ -311,6 +319,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.s2,
+  },
+  footer: {
+    gap: space.s2,
+  },
+  promptRow: {
+    flexGrow: 0,
   },
   // A FilterChip is drawn 36 tall but taps at 48. A ScrollView does not pass
   // on touches outside itself, so give the chips that extra room inside it.
