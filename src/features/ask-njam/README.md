@@ -16,7 +16,9 @@ E-number is, and what to eat instead.
 - **Rules come from the database, not the app.** The function reads your rules,
   recent scans and earlier messages with your JWT, so RLS applies.
 - **Saved conversations.** `chat_conversations` and `chat_messages`, written by
-  the function and read here (`conversations.ts`). Private to you.
+  the function and read here (`conversations.ts`). Private to you. Tap "Ask
+  Njam" at the top of the chat for the full-screen list, grouped by Today,
+  Yesterday and Earlier; the "+" on the right starts a new one.
 - **Ghost text.** `use-ghost-text.ts` asks for the rest of your sentence after a
   400 ms pause (3 characters minimum, one request per pause, stale requests
   cancelled, late replies ignored). `ChatComposer` draws it behind the input.
