@@ -148,12 +148,14 @@ a minimum of five; ten are planned.
 
 Household Owner · Standard User · Admin/Moderator.
 
-## Database (11 tables)
+## Database (13 tables)
 
 `households` · `users` · `diet_profiles` · `profile_rules` · `scans` ·
 `categories` · `products` · `nutrition_facts` · `product_ingredients` ·
-`ingredients` · `allergens`. Row Level Security is on for every table from the
-first migration.
+`ingredients` · `allergens` · `chat_conversations` · `chat_messages`.
+Row Level Security is on for every table from the migration that creates it.
+The two chat tables hold saved Ask Njam conversations, each private to the
+person who had it.
 
 ---
 
