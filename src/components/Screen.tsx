@@ -2,14 +2,15 @@
  * Screen: the page every Njam screen sits on.
  *
  * It sets the things every screen shares, so no screen repeats them:
- * the surface background, the safe area at the top, the screen gutter, the
+ * the surface background, the frosted strip behind the status bar, the screen gutter, the
  * tablet width cap, and (for tab screens) room at the bottom so the last
  * item is not hidden behind the floating TabBar.
  */
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { FrostedStrip } from '@/components/design-system';
 import { layout, space } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -31,22 +32,29 @@ export function Screen({ children, scroll = true, withTabBar = false }: ScreenPr
     ? layout.tabBarHeight + layout.tabBarInset + insets.bottom + space.s4
     : space.s8;
 
+  // Content starts below the status bar, but may scroll up behind it,
+  // where the frosted strip blurs it (v1.8).
+  const topRoom = insets.top + space.s6;
+
   return (
-    <SafeAreaView edges={['top']} style={[styles.page, { backgroundColor: colors.surface }]}>
+    <View style={[styles.page, { backgroundColor: colors.surface }]}>
       <KeyboardAvoidingView
         style={styles.page}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {scroll ? (
           <ScrollView
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={[styles.column, { paddingBottom: bottomRoom }]}>
+            contentContainerStyle={[styles.column, { paddingTop: topRoom, paddingBottom: bottomRoom }]}>
             {children}
           </ScrollView>
         ) : (
-          <View style={[styles.page, styles.column, { paddingBottom: bottomRoom }]}>{children}</View>
+          <View style={[styles.page, styles.column, { paddingTop: topRoom, paddingBottom: bottomRoom }]}>
+            {children}
+          </View>
         )}
       </KeyboardAvoidingView>
-    </SafeAreaView>
+      <FrostedStrip edge="top" height={insets.top} />
+    </View>
   );
 }
 
@@ -59,7 +67,6 @@ const styles = StyleSheet.create({
     maxWidth: layout.contentMaxWidth,
     alignSelf: 'center',
     paddingHorizontal: layout.screenGutter,
-    paddingTop: space.s6,
     gap: space.s6,
   },
 });
