@@ -1,11 +1,3 @@
-import { Screen } from '@/components/Screen';
-import { EmptyState } from '@/components/design-system';
+import { ScannerScreen } from '@/features/scanner/ScannerScreen';
 
-// Placeholder until the Scanner screen is built.
-export default function Placeholder() {
-  return (
-    <Screen withTabBar>
-      <EmptyState variant="screen" icon="info" headline="Scanner is next" body="This screen is being built." />
-    </Screen>
-  );
-}
+export default ScannerScreen;
