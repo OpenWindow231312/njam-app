@@ -7,16 +7,19 @@ import { StyleSheet, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
 import { Button, SectionHeader } from '@/components/design-system';
+import { AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
 import { ProductSearch } from '@/features/home/ProductSearch';
 import { space } from '@/theme/tokens';
 
 export function HomeScreen() {
   return (
     <Screen withTabBar>
-      <SectionHeader
-        headline="Check a product"
-        deck="Scan a barcode, or search the products Njam knows. Each one is checked against your rules."
-      />
+      <AskNjamHeader>
+        <SectionHeader
+          headline="Check a product"
+          deck="Scan a barcode, or search the products Njam knows. Each one is checked against your rules."
+        />
+      </AskNjamHeader>
 
       <Button
         label="Scan a barcode"

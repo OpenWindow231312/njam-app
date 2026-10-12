@@ -10,6 +10,7 @@ import { useCallback, useState } from 'react';
 
 import { Screen } from '@/components/Screen';
 import { EmptyState, ListGroup, ListRow, SectionHeader, Snackbar } from '@/components/design-system';
+import { AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
 import { fetchRecentScans, type ScanRecord } from '@/features/verdict/scans';
 import type { VerdictState } from '@/services/verdict';
 
@@ -45,7 +46,9 @@ export function HistoryScreen() {
 
   return (
     <Screen withTabBar>
-      <SectionHeader headline="Your scans" deck="Everything your household scanned, newest first." />
+      <AskNjamHeader>
+        <SectionHeader headline="Your scans" deck="Everything your household scanned, newest first." />
+      </AskNjamHeader>
 
       {scans !== null && scans.length === 0 && (
         <EmptyState

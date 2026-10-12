@@ -11,6 +11,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
 import { Button, ListGroup, ListRow, SectionHeader, Snackbar } from '@/components/design-system';
+import { AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
 import { useAuth, type Role } from '@/features/auth/AuthProvider';
 import { fetchActiveProfile, type ActiveProfile } from '@/features/profile/active-profile';
 import { allergenWord, type ProfileRule } from '@/services/verdict';
@@ -76,10 +77,12 @@ export function ProfileScreen() {
 
   return (
     <Screen withTabBar>
-      <SectionHeader
-        headline={member?.displayName ?? 'Your profile'}
-        deck={member ? ROLE_LABELS[member.role] : undefined}
-      />
+      <AskNjamHeader>
+        <SectionHeader
+          headline={member?.displayName ?? 'Your profile'}
+          deck={member ? ROLE_LABELS[member.role] : undefined}
+        />
+      </AskNjamHeader>
 
       <View style={styles.block}>
         <SectionHeader variant="simple" headline="Your rules" />
