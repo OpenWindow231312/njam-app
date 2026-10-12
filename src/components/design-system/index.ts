@@ -34,3 +34,4 @@ export { ScopePill } from './ScopePill';
 export { Slider } from './Slider';
 export { Snackbar } from './Snackbar';
 export { StepProgress } from './StepProgress';
+export { FrostedStrip } from './FrostedStrip';
