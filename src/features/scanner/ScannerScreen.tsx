@@ -1,10 +1,13 @@
 /**
  * Scanner: point the camera at a barcode and get a verdict.
  *
- * Two ways in:
+ * Three ways in, tried in this order:
  *   barcode - the camera reads a barcode, we look it up in the catalogue and
  *             open the Verdict screen for that product.
- *   label   - for a barcode we do not know (or no barcode at all), you
+ *   Open Food Facts - a barcode we do not know is looked up in Open Food
+ *             Facts, a public database. Its ingredient text is read by the
+ *             AI service, and the verdict is capped at Caution.
+ *   label   - if neither knows the barcode (or there is none), you
  *             photograph the ingredient list. The AI service reads it and
  *             the Verdict screen shows the result, capped at Caution.
  *
@@ -23,6 +26,7 @@ import { Screen } from '@/components/Screen';
 import { Button, EmptyState, ScanFrame, ScopePill, Snackbar } from '@/components/design-system';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { fetchActiveProfile, type ActiveProfile } from '@/features/profile/active-profile';
+import { fetchFromOpenFoodFacts, readOpenFoodFactsProduct } from '@/features/scanner/open-food-facts';
 import { fetchProductByBarcode } from '@/features/verdict/catalogue';
 import { hapticSuccess } from '@/lib/haptics';
 import { LabelReadError, readLabel } from '@/services/ai';
@@ -47,7 +51,7 @@ function hintFor(mode: Mode): string {
     case 'looking-up':
       return `Looking up ${mode.barcode}`;
     case 'not-found':
-      return 'We do not know this barcode yet. Photograph the ingredient list instead.';
+      return `We do not know barcode ${mode.barcode} yet. Photograph the ingredient list instead.`;
     case 'photo':
       return 'Fit the whole ingredient list inside the frame';
     case 'reading':
@@ -100,13 +104,45 @@ export function ScannerScreen() {
       if (product) {
         hapticSuccess();
         router.push({ pathname: '/verdict', params: { productId: product.id, barcode } });
-      } else {
-        setMode({ kind: 'not-found', barcode });
+        return;
       }
+
+      if (await openFromOpenFoodFacts(barcode)) return;
+      setMode({ kind: 'not-found', barcode });
     } catch {
       setProblem('We could not look up that barcode. Check your connection.');
       busy.current = false;
       setMode({ kind: 'scanning' });
+    }
+  }
+
+  /**
+   * Tries Open Food Facts for a barcode our catalogue does not have.
+   * Returns true if it opened a verdict. Any failure here (offline, a slow
+   * reply, no ingredient list) just returns false, so the scanner falls back
+   * to asking for a label photo instead of showing an error.
+   */
+  async function openFromOpenFoodFacts(barcode: string): Promise<boolean> {
+    try {
+      const found = await fetchFromOpenFoodFacts(barcode);
+      if (!found) return false;
+      const read = await readOpenFoodFactsProduct(found);
+      if (!read) return false;
+
+      hapticSuccess();
+      router.push({
+        pathname: '/verdict',
+        params: {
+          label: JSON.stringify(read),
+          barcode,
+          source: 'open-food-facts',
+          ...(found.brand ? { brand: found.brand } : {}),
+        },
+      });
+      return true;
+    } catch (error) {
+      console.warn('Open Food Facts lookup failed', error);
+      return false;
     }
   }
 
