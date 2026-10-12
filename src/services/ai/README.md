@@ -20,3 +20,9 @@ Interface to design (keep it small and honest):
 - input: a label photo or an ingredient string
 - output: structured, typed data (ingredients, categories, E-numbers, a
   confidence and a "read from photo, not verified" flag)
+
+Ask Njam (`askNjam`, `completeMessage`) calls the `ask-njam` edge function. The
+app sends only the message and the conversation id; the function reads the
+person's rules and scans itself, with their JWT, so the client cannot change
+what Njam checks against. Answers come back as validated JSON blocks. A product
+block names a catalogue product; the verdict engine decides its chip.

@@ -85,6 +85,17 @@ is a stated project target.
   npx supabase functions deploy scan-label --project-ref <your-project-ref>
   ```
 
+- **Ask Njam.** `supabase/functions/ask-njam` is the assistant. It reads your
+  rules, recent scans and conversation with your own JWT (so Row Level Security
+  applies), asks Gemini for JSON blocks, validates them, and saves the exchange
+  to `chat_conversations` and `chat_messages`. A second mode,
+  `{ "mode": "complete" }`, returns ghost text while you type. The AI never
+  decides a verdict: the app runs the verdict engine on any product it names.
+
+  ```bash
+  npx supabase functions deploy ask-njam --project-ref <your-project-ref>
+  ```
+
 - **Test accounts.** Two accounts exist for the demo: a Household Owner and an
   Admin/Moderator. Their passwords are shared privately, never committed.
 

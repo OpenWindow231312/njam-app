@@ -18,10 +18,16 @@ Built so far (v1.5, 30 Sep 2026, from the "Njam UI v1.4" canvas):
 | Scanner | `ScanFrame` |
 | Structure | `SectionHeader` (full, simple, shelf), `ListGroup` + `ListRow`, `StepProgress`, `TabBar`, `FrostedStrip` (v1.9: the frosted fade behind the status bar and the TabBar) |
 | Feedback | `Snackbar`, `EmptyState`, `ConfirmDialog`, `LoadingMark` |
-| AI | `NjamMark`, `AiAvatar`, `ChatBubble`, `ChatComposer` |
+| AI | `NjamMark`, `AiAvatar`, `ChatBubble`, `ChatComposer` (with optional ghost text) |
 
 Still to build: `BottomSheet` (the verdict sheet) and `NutrientMeter`, which the
 design system describes but the canvas did not draw yet.
+
+`ChatComposer` (12 Oct 2026, Ask Njam) can show ghost text: pass `ghost` and
+`onChangeText`, and the likely rest of the message is drawn after what was typed
+in `inkSubtle`, with a "Use the suggestion" button beside send. It is a Text
+overlay behind a transparent TextInput, and hides itself when the two would
+not fit on one line. Without those props the composer behaves as before.
 
 Every one of them is on the preview screen (`src/app/explore.tsx`).
 
