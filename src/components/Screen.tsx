@@ -53,8 +53,8 @@ export function Screen({ children, scroll = true, withTabBar = false }: ScreenPr
           </View>
         )}
       </KeyboardAvoidingView>
-      {/* Runs a little below the status bar, so the fade ends on the page, not on a line. */}
-      <FrostedStrip edge="top" height={insets.top + space.s6} />
+      {/* Exactly as tall as the status bar, so the fade happens behind it. */}
+      <FrostedStrip edge="top" height={insets.top} />
     </View>
   );
 }
