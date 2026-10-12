@@ -12,7 +12,7 @@ import type { ComponentProps } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FrostedStrip, TabBar, type TabKey } from '@/components/design-system';
-import { layout, space } from '@/theme/tokens';
+import { layout } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 const ROUTE_FOR_TAB: Record<TabKey, string> = {
@@ -29,8 +29,8 @@ function tabForRoute(routeName: string): TabKey {
 }
 
 /**
- * The TabBar on its frosted strip (v1.9). The strip runs edge to edge from a
- * little above the bar down to the bottom of the screen, and fades in, so
+ * The TabBar on its frosted strip (v1.9). The strip runs edge to edge from the
+ * top of the bar down to the bottom of the screen, and fades in, so
  * content that scrolls under the bar blurs gradually rather than meeting a line.
  */
 // What Tabs hands to its tabBar function, read off Tabs' own props so we do
@@ -39,8 +39,8 @@ type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>
 
 function NjamTabBar({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
-  // The extra space.s8 above the bar is where the fade happens.
-  const stripHeight = layout.tabBarHeight + layout.tabBarInset + insets.bottom + space.s8;
+  // The strip ends level with the top of the bar, so the fade happens behind it.
+  const stripHeight = layout.tabBarHeight + layout.tabBarInset + insets.bottom;
 
   return (
     <>
