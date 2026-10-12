@@ -16,7 +16,7 @@ Built so far (v1.5, 30 Sep 2026, from the "Njam UI v1.4" canvas):
 | Products | `ProductTile`, `ProductCard` (row, identity), `PhotoStepCard` |
 | People and scope | `Avatar`, `HouseholdBar`, `ScopePill` |
 | Scanner | `ScanFrame` |
-| Structure | `SectionHeader` (full, simple, shelf), `ListGroup` + `ListRow`, `StepProgress`, `TabBar`, `FrostedStrip` (v1.8: the flat frosted band behind the status bar and the TabBar) |
+| Structure | `SectionHeader` (full, simple, shelf), `ListGroup` + `ListRow`, `StepProgress`, `TabBar`, `FrostedStrip` (v1.9: the frosted fade behind the status bar and the TabBar) |
 | Feedback | `Snackbar`, `EmptyState`, `ConfirmDialog`, `LoadingMark` |
 | AI | `NjamMark`, `AiAvatar`, `ChatBubble`, `ChatComposer` |
 

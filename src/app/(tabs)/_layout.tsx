@@ -29,9 +29,9 @@ function tabForRoute(routeName: string): TabKey {
 }
 
 /**
- * The TabBar on its frosted strip (v1.8). The strip runs edge to edge from a
- * little above the bar down to the bottom of the screen, so content that
- * scrolls under the bar is blurred rather than cut off sharply.
+ * The TabBar on its frosted strip (v1.9). The strip runs edge to edge from a
+ * little above the bar down to the bottom of the screen, and fades in, so
+ * content that scrolls under the bar blurs gradually rather than meeting a line.
  */
 // What Tabs hands to its tabBar function, read off Tabs' own props so we do
 // not need a direct import from React Navigation.
@@ -39,7 +39,8 @@ type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>
 
 function NjamTabBar({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
-  const stripHeight = layout.tabBarHeight + layout.tabBarInset + insets.bottom + space.s3;
+  // The extra space.s8 above the bar is where the fade happens.
+  const stripHeight = layout.tabBarHeight + layout.tabBarInset + insets.bottom + space.s8;
 
   return (
     <>
