@@ -8,7 +8,7 @@
  */
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { layout, space } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
@@ -23,7 +23,13 @@ type ScreenProps = {
 
 export function Screen({ children, scroll = true, withTabBar = false }: ScreenProps) {
   const { colors } = useNjamTheme();
-  const bottomRoom = withTabBar ? layout.tabBarHeight + layout.tabBarInset + space.s4 : space.s8;
+  const insets = useSafeAreaInsets();
+  // The TabBar floats tabBarInset above the phone's own bottom inset (the
+  // home indicator strip on iPhones), so the room under the content must
+  // include that inset too, or the last item hides behind the bar.
+  const bottomRoom = withTabBar
+    ? layout.tabBarHeight + layout.tabBarInset + insets.bottom + space.s4
+    : space.s8;
 
   return (
     <SafeAreaView edges={['top']} style={[styles.page, { backgroundColor: colors.surface }]}>
