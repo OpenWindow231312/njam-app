@@ -3,8 +3,10 @@
  *
  * It opens three ways, named by its route params:
  *   productId - a product from the catalogue (search, or a barcode scan).
- *   label     - a label just read by the AI (JSON of a LabelRead), with the
- *               barcode it was scanned under if there was one.
+ *   label     - an ingredient list just read by the AI (JSON of a LabelRead),
+ *               with the barcode it was scanned under if there was one.
+ *               `source` says where the text came from: a label photo (the
+ *               default) or Open Food Facts, which also passes a `brand`.
  *   scanId    - a past scan from History, shown exactly as it was decided.
  *
  * This screen only shows the verdict. The verdict engine decides it, and
@@ -37,7 +39,30 @@ import { decideVerdict, type VerdictState } from '@/services/verdict';
 import { icon, layout, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
-type Params = { productId?: string; label?: string; barcode?: string; scanId?: string };
+type LabelSource = 'photo' | 'open-food-facts';
+
+type Params = {
+  productId?: string;
+  label?: string;
+  barcode?: string;
+  source?: LabelSource;
+  brand?: string;
+  scanId?: string;
+};
+
+/** How each label source is named on screen. Neither is ever verified. */
+const SOURCE_WORDS: Record<LabelSource, { note: string; meta: string; fallbackName: string }> = {
+  photo: {
+    note: 'Read from the label photo, not yet verified.',
+    meta: 'Read from the label photo, not yet verified',
+    fallbackName: 'Product from a label photo',
+  },
+  'open-food-facts': {
+    note: 'Found in Open Food Facts, a public database anyone can edit. Not yet verified.',
+    meta: 'From Open Food Facts, not yet verified',
+    fallbackName: 'Product from Open Food Facts',
+  },
+};
 
 /** Everything the screen draws once the verdict is known. */
 type Shown = {
@@ -106,12 +131,20 @@ async function showProduct(productId: string, barcode: string | undefined, membe
   return shown;
 }
 
-/** A label the AI just read: decide, and record the scan if it had a barcode. */
-async function showLabel(read: LabelRead, barcode: string | undefined, member: Member, profile: ActiveProfile) {
+/** An ingredient list the AI just read: decide, and record the scan if it had a barcode. */
+async function showLabel(
+  read: LabelRead,
+  source: LabelSource,
+  brand: string | undefined,
+  barcode: string | undefined,
+  member: Member,
+  profile: ActiveProfile,
+) {
+  const words = SOURCE_WORDS[source];
   const verdict = decideVerdict(
     {
       verified: false,
-      readFromLabel: true,
+      readFromLabel: source === 'photo',
       ingredients: read.ingredients.map((item) => ({ ...item, canonicalName: null })),
       mayContain: read.mayContain,
     },
@@ -133,11 +166,11 @@ async function showLabel(read: LabelRead, barcode: string | undefined, member: M
     state: verdict.state,
     headline: headlineFor(verdict.state, profile.name),
     reasons: verdict.reasons,
-    sourceNote: 'Read from the label photo, not yet verified.',
-    productName: read.productName ?? 'Product from a label photo',
-    detail: barcode ? `Barcode ${barcode}` : 'No barcode',
+    sourceNote: words.note,
+    productName: read.productName ?? words.fallbackName,
+    detail: [brand, barcode ? `Barcode ${barcode}` : 'No barcode'].filter(Boolean).join(' · '),
     metaIcon: 'info',
-    metaText: 'Read from the label photo, not yet verified',
+    metaText: words.meta,
     ingredients: read.ingredients.map((item) => item.name),
   };
   return shown;
@@ -188,7 +221,14 @@ export function VerdictScreen() {
         if (!read.readable) {
           return { kind: 'unreadable', problem: read.problem ?? 'We could not read an ingredient list.' };
         }
-        return { kind: 'shown', shown: await showLabel(read, params.barcode, current, profile) };
+        return { kind: 'shown', shown: await showLabel(
+            read,
+            params.source ?? 'photo',
+            params.brand,
+            params.barcode,
+            current,
+            profile,
+          ) };
       }
 
       if (params.productId) {
@@ -204,7 +244,7 @@ export function VerdictScreen() {
         console.warn('Could not show the verdict', error);
         setStatus({ kind: 'failed' });
       });
-  }, [member, params.productId, params.label, params.barcode, params.scanId, attempt]);
+  }, [member, params.productId, params.label, params.barcode, params.source, params.brand, params.scanId, attempt]);
 
   return (
     <Screen>
