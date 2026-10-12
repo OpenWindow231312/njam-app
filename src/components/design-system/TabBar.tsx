@@ -6,8 +6,8 @@
  * plain outlined icon. The lime circle glides from tab to tab, and a finger
  * held on the bar and dragged sideways pulls it along (v1.7). Scan is not styled differently (decision 29 Sep 2026).
  *
- * The bar floats above the content on the soft ambient shadow, with no
- * outline (v1.5). Real elevation stays reserved for sheets, modals and the
+ * The bar floats above the content on a soft shadow centred on it
+ * (shadow.floating, v1.10), so its top edge has depth too. No outline (v1.5). Real elevation stays reserved for sheets, modals and the
  * snackbar. Screens
  * that use it need bottom padding of layout.tabBarHeight + layout.tabBarInset
  * so the last item in a list is not hidden behind it.
@@ -64,7 +64,7 @@ export function TabBar({ active, onSelect, floating = true }: TabBarProps) {
         styles.bar,
         floating && { ...styles.floating, bottom: layout.tabBarInset + insets.bottom },
         { backgroundColor: colors.surfaceRaised },
-        shadows.ambient,
+        shadows.floating,
       ]}>
       {/* The lime circle glides to the active tab, and follows a finger dragged along the bar. */}
       <Animated.View

@@ -2,6 +2,8 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.10 (12 Oct 2026): shadow.floating, a soft shadow centred on the TabBar so its
+ * top edge has depth too, not only its bottom.
  * v1.9 (12 Oct 2026): the frosted strip fades in instead of starting with a hard
  * edge, as on iOS. surfaceFrost is replaced by blur.bands and blur.tintOpacity.
  * This is the one sanctioned gradient in the product UI (CLAUDE.md rule 3).
@@ -434,6 +436,17 @@ export const shadow = {
       shadowRadius: 8,
       elevation: 2,
     },
+    /**
+     * The floating TabBar (v1.10): no offset, so the soft shadow spreads evenly
+     * on every side, top edge included. Still soft, never a hard drop shadow.
+     */
+    floating: {
+      shadowColor: "#144425",
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 4,
+    },
     /** The bottom sheet that carries a verdict. Cast upward. */
     sheet: {
       shadowColor: "#144425",
@@ -466,6 +479,13 @@ export const shadow = {
       shadowOpacity: 0.25,
       shadowRadius: 8,
       elevation: 2,
+    },
+    floating: {
+      shadowColor: "#000000",
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      elevation: 4,
     },
     sheet: {
       shadowColor: "#000000",
