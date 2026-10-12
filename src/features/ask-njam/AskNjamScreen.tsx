@@ -3,9 +3,10 @@
  * got its verdict, what an ingredient or E-number is, and what to eat instead.
  *
  * Layout, from the "Njam UI v1.4" canvas (Assistant board):
- *   header   - AiAvatar, "Ask Njam", "Answers use your rules", and the more
- *              menu (new conversation, past conversations). A back button
- *              leads, because this is a Stack screen like Verdict.
+ *   header   - back on the left; AiAvatar, "Ask Njam" and "Answers use your
+ *              rules" in the middle, which opens your past conversations
+ *              when tapped (as in ChatGPT or Claude); a new conversation on
+ *              the right.
  *   messages - ChatBubbles: a greeting, then the conversation.
  *   bottom   - follow-up suggestions as chips, then the ChatComposer.
  *
@@ -24,10 +25,12 @@ import {
   ChatComposer,
   FilterChip,
   FrostedStrip,
+  Icon,
   IconButton,
   LoadingMark,
   Snackbar,
 } from '@/components/design-system';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { AnswerBlock } from '@/features/ask-njam/AnswerBlocks';
 import { fetchMessages, type ChatMessage } from '@/features/ask-njam/conversations';
@@ -36,7 +39,7 @@ import { useGhostText } from '@/features/ask-njam/use-ghost-text';
 import { fetchActiveProfile } from '@/features/profile/active-profile';
 import { AskNjamError, askNjam } from '@/services/ai';
 import { allergenWord, type ProfileRule } from '@/services/verdict';
-import { icon, layout, space, typography } from '@/theme/tokens';
+import { icon, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 // A stable empty list, so the answer blocks do not reload on every render.
@@ -192,23 +195,38 @@ export function AskNjamScreen() {
   return (
     <View style={[styles.page, { backgroundColor: colors.surface }]}>
       <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={[styles.column, { paddingTop: insets.top + space.s2, paddingBottom: keyboardOpen ? space.s2 : insets.bottom + space.s4 }]}>
+        <View
+          style={[
+            styles.column,
+            { paddingTop: insets.top + space.s2, paddingBottom: keyboardOpen ? space.s2 : insets.bottom + space.s4 },
+          ]}>
+          {/* Back on the left, Ask Njam in the middle (tap it for your
+              conversations, as in ChatGPT or Claude), a new chat on the right. */}
           <View style={styles.header}>
             <View style={styles.back}>
               <IconButton icon="arrow_back" accessibilityLabel="Go back" onPress={() => router.back()} />
             </View>
-            <AiAvatar />
-            <View style={styles.titles}>
-              <Text accessibilityRole="header" style={[typography.headline, { color: colors.ink }]}>
-                Ask Njam
-              </Text>
-              <Text style={[typography.bodyS, { color: colors.inkMuted }]}>Answers use your rules</Text>
-            </View>
-            <IconButton
-              icon="more_horiz"
-              variant="tonal"
-              accessibilityLabel="Conversations"
+            <PressableSurface
               onPress={() => setMenuOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Ask Njam, answers use your rules"
+              accessibilityHint="Shows your conversations"
+              radius={radius.pill}
+              style={styles.title}>
+              <AiAvatar />
+              <View>
+                <View style={styles.titleLine}>
+                  <Text style={[typography.headline, { color: colors.ink }]}>Ask Njam</Text>
+                  <Icon name="expand_more" size="sm" color={colors.inkMuted} />
+                </View>
+                <Text style={[typography.bodyS, { color: colors.inkMuted }]}>Answers use your rules</Text>
+              </View>
+            </PressableSurface>
+            <IconButton
+              icon="add"
+              variant="tonal"
+              accessibilityLabel="Start a new conversation"
+              onPress={startNew}
             />
           </View>
 
@@ -310,15 +328,26 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.s3,
+    justifyContent: 'space-between',
   },
   // Pull the back button out by the gap between its 48 hit area and its
   // 24 icon, so the icon lines up with the screen gutter (as on Verdict).
   back: {
     marginLeft: -(layout.touchTargetMin - icon.sizeMd) / 2,
   },
-  titles: {
-    flex: 1,
+  // The avatar is 52 tall, so the whole title is easily over the 48 target.
+  // The right padding gives the pressed wash a pill shape round the words.
+  title: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s3,
+    paddingRight: space.s3,
+    borderRadius: radius.pill,
+  },
+  titleLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s1,
   },
   messages: {
     flex: 1,
