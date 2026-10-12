@@ -8,8 +8,11 @@
  * maps below translate between them.
  */
 import { Tabs } from 'expo-router';
+import type { ComponentProps } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { TabBar, type TabKey } from '@/components/design-system';
+import { FrostedStrip, TabBar, type TabKey } from '@/components/design-system';
+import { layout, space } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 const ROUTE_FOR_TAB: Record<TabKey, string> = {
@@ -25,18 +28,37 @@ function tabForRoute(routeName: string): TabKey {
   return match ?? 'home';
 }
 
+/**
+ * The TabBar on its frosted strip (v1.8). The strip runs edge to edge from a
+ * little above the bar down to the bottom of the screen, so content that
+ * scrolls under the bar is blurred rather than cut off sharply.
+ */
+// What Tabs hands to its tabBar function, read off Tabs' own props so we do
+// not need a direct import from React Navigation.
+type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
+
+function NjamTabBar({ state, navigation }: TabBarProps) {
+  const insets = useSafeAreaInsets();
+  const stripHeight = layout.tabBarHeight + layout.tabBarInset + insets.bottom + space.s3;
+
+  return (
+    <>
+      <FrostedStrip edge="bottom" height={stripHeight} />
+      <TabBar
+        active={tabForRoute(state.routes[state.index].name)}
+        onSelect={(tab) => navigation.navigate(ROUTE_FOR_TAB[tab])}
+      />
+    </>
+  );
+}
+
 export default function TabsLayout() {
   const { colors } = useNjamTheme();
 
   return (
     <Tabs
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.surface } }}
-      tabBar={({ state, navigation }) => (
-        <TabBar
-          active={tabForRoute(state.routes[state.index].name)}
-          onSelect={(tab) => navigation.navigate(ROUTE_FOR_TAB[tab])}
-        />
-      )}>
+      tabBar={(props) => <NjamTabBar {...props} />}>
       <Tabs.Screen name="index" />
       <Tabs.Screen name="search" />
       <Tabs.Screen name="scan" />
