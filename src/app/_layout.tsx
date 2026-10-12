@@ -40,6 +40,7 @@ function RootNavigator() {
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="verdict" />
+        <Stack.Screen name="ask" />
         <Stack.Screen name="explore" />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
