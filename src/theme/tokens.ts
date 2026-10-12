@@ -2,6 +2,9 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.9 (12 Oct 2026): the frosted strip fades in instead of starting with a hard
+ * edge, as on iOS. surfaceFrost is replaced by blur.bands and blur.tintOpacity.
+ * This is the one sanctioned gradient in the product UI (CLAUDE.md rule 3).
  * v1.8 (12 Oct 2026): the TabBar sits lower (tabBarInset 28 to 12), and a flat
  * frosted strip (surfaceFrost, blur.intensity) sits behind the status bar and the
  * TabBar. Flat, never a gradient.
@@ -60,8 +63,6 @@ export const colors = {
     surfaceMedia: "#c9d2c4",
     /** Dimmer behind sheets and modals. Never a decorative wash. */
     surfaceScrim: "rgba(20, 68, 37, 0.55)",
-    /** Tint over the blur behind the status bar and the TabBar: surface at 72%. Flat, never a gradient. */
-    surfaceFrost: "rgba(237, 242, 233, 0.72)",
 
     /** Body and heading copy. */
     ink: "#14201a",
@@ -147,7 +148,6 @@ export const colors = {
     surfaceInverse: "#f5f4ee",
     surfaceMedia: "#0b3724",
     surfaceScrim: "rgba(2, 17, 11, 0.72)",
-    surfaceFrost: "rgba(20, 68, 37, 0.72)",
 
     ink: "#cfe6d8",
     inkMuted: "#9dc2ac",
@@ -656,14 +656,19 @@ export const opacity = {
 /* ------------------------------------------------------------------ */
 
 /**
- * The frosted strip behind the status bar and the TabBar (v1.8). An even
- * blur with surfaceFrost laid flat on top, so text passing underneath
- * stays readable. Where the phone cannot blur (some Android phones), the
- * surfaceFrost tint alone does the job.
+ * The frosted fade behind the status bar and the TabBar (v1.9). Content
+ * passing under it blurs more, and takes more of the surface colour, the
+ * closer it gets to the screen edge, so there is no hard line where the
+ * strip starts. Where the phone cannot blur (some Android phones), the
+ * surface tint alone does the job.
  */
 export const blur = {
-  /** expo-blur intensity, 1 to 100. */
+  /** expo-blur intensity at the screen edge, 1 to 100. */
   intensity: 40,
+  /** How many stacked blur layers build up that intensity. More is smoother, and slower. */
+  bands: 5,
+  /** The surface tint at the screen edge. It fades to 0 at the strip's inner edge. */
+  tintOpacity: 0.85,
 } as const;
 
 /* ------------------------------------------------------------------ */
