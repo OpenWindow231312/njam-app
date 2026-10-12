@@ -2,6 +2,9 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.8 (12 Oct 2026): the TabBar sits lower (tabBarInset 28 to 12), and a flat
+ * frosted strip (surfaceFrost, blur.intensity) sits behind the status bar and the
+ * TabBar. Flat, never a gradient.
  * v1.7 (30 Sep 2026): motion.slide for the sliding highlight in TabBar,
  * SegmentedControl and HouseholdBar.
  * v1.6 (30 Sep 2026): press feedback (motion.pressIn, motion.pressScale),
@@ -57,6 +60,8 @@ export const colors = {
     surfaceMedia: "#c9d2c4",
     /** Dimmer behind sheets and modals. Never a decorative wash. */
     surfaceScrim: "rgba(20, 68, 37, 0.55)",
+    /** Tint over the blur behind the status bar and the TabBar: surface at 72%. Flat, never a gradient. */
+    surfaceFrost: "rgba(237, 242, 233, 0.72)",
 
     /** Body and heading copy. */
     ink: "#14201a",
@@ -142,6 +147,7 @@ export const colors = {
     surfaceInverse: "#f5f4ee",
     surfaceMedia: "#0b3724",
     surfaceScrim: "rgba(2, 17, 11, 0.72)",
+    surfaceFrost: "rgba(20, 68, 37, 0.72)",
 
     ink: "#cfe6d8",
     inkMuted: "#9dc2ac",
@@ -546,7 +552,7 @@ export const layout = {
   /** Circle behind each TabBar icon; the active one is filled lime. */
   tabItemSize: 52,
   /** Gap between the floating TabBar and the bottom of the screen. */
-  tabBarInset: 28,
+  tabBarInset: 12,
   /** Visual height of a FilterChip; its hit area still extends to touchTargetMin. */
   filterChipHeight: 36,
   /** The circle behind an icon in a ListRow or sheet row. */
@@ -646,6 +652,21 @@ export const opacity = {
 } as const;
 
 /* ------------------------------------------------------------------ */
+/* Blur                                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The frosted strip behind the status bar and the TabBar (v1.8). An even
+ * blur with surfaceFrost laid flat on top, so text passing underneath
+ * stays readable. Where the phone cannot blur (some Android phones), the
+ * surfaceFrost tint alone does the job.
+ */
+export const blur = {
+  /** expo-blur intensity, 1 to 100. */
+  intensity: 40,
+} as const;
+
+/* ------------------------------------------------------------------ */
 /* Motion                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -679,6 +700,7 @@ export const tokens = {
   layout,
   border,
   opacity,
+  blur,
   motion,
 } as const;
 
