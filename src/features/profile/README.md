@@ -9,3 +9,8 @@ in onboarding, changeable any time.
 - Nutrient limits carry their unit and comparison: "over your 10 g limit".
 - A household may hold several profiles (a child, a guest); this screen edits the
   selected one.
+
+Built so far (13 Oct 2026): your initials, name, role and email; "Edit your
+rules", which opens the onboarding steps again (`/edit-rules`); and your rules
+grouped as Allergies, Ingredients you avoid, E-numbers you avoid and Other
+rules. The list is read again each time the tab comes into view.
