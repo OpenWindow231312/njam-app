@@ -9,7 +9,9 @@
  *            Home is showing). The name stays ink on the page; it never goes lime.
  *
  * Without onPress it is only the picture, for a row that is itself tappable
- * (the aisle rows on Search), so the circle is drawn without a label.
+ * (the aisle rows on Search), so the circle is drawn without a label. Those
+ * rows are white, so pass onWhite: the circle then takes surfaceSunken and
+ * no shadow, or it would vanish into the row.
  */
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -25,17 +27,19 @@ type CategoryBubbleProps = {
   label: string;
   active?: boolean;
   onPress?: () => void;
+  /** Drawn on a white card rather than the page. */
+  onWhite?: boolean;
 };
 
-export function CategoryBubble({ icon, label, active = false, onPress }: CategoryBubbleProps) {
+export function CategoryBubble({ icon, label, active = false, onPress, onWhite = false }: CategoryBubbleProps) {
   const { colors, shadows } = useNjamTheme();
 
   const circle = (
     <View
       style={[
         styles.circle,
-        { backgroundColor: active ? colors.accent : colors.surfaceRaised },
-        !active && shadows.ambient,
+        { backgroundColor: active ? colors.accent : onWhite ? colors.surfaceSunken : colors.surfaceRaised },
+        !active && !onWhite && shadows.ambient,
       ]}>
       <Icon name={icon} size="lg" filled={active} color={active ? colors.onAccent : colors.brandForestMid} />
     </View>
