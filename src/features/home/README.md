@@ -20,6 +20,13 @@ product catalogue, and a two-column grid of products, each with its verdict.
   bookmark on a card saves at once on screen and puts it back if the save
   fails.
 - Stores come from `stores` and `product_stores`.
-- The Search tab still uses `ProductSearch`, a plain list of `ProductCard`s.
+- Search (`SearchScreen`) is laid out like Checkers Sixty60's Discover page:
+  with the box empty it lists the aisles as white rows (bubble, name, product
+  count, chevron), saved products first. Typing swaps the list for matching
+  products from every aisle, in the same grid as Home.
+- An aisle row opens `AisleScreen` (route `/aisle`), that aisle's products in
+  the grid, starting with the filters Search had on.
+- Home, Search and the aisle page share `useCatalogue` (loading, verdicts,
+  saving), `ProductGrid` and `FilteredBy`.
 - The centre Scan tab is the way into the scanner. When nothing matches, the
   empty state offers "Scan a barcode".
