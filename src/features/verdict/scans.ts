@@ -16,6 +16,7 @@ export type ScanRecord = {
   scannedAt: string;
   productName: string | null;
   productBrand: string | null;
+  productImageUrl: string | null;
   profileName: string | null;
 };
 
@@ -25,11 +26,11 @@ type ScanRow = {
   verdict: VerdictState;
   reasons: VerdictReason[];
   scanned_at: string;
-  products: { name: string; brand: string | null } | null;
+  products: { name: string; brand: string | null; image_url: string | null } | null;
   diet_profiles: { name: string } | null;
 };
 
-const SCAN_COLUMNS = 'id, barcode, verdict, reasons, scanned_at, products ( name, brand ), diet_profiles ( name )';
+const SCAN_COLUMNS = 'id, barcode, verdict, reasons, scanned_at, products ( name, brand, image_url ), diet_profiles ( name )';
 
 function toRecord(row: ScanRow): ScanRecord {
   return {
@@ -40,6 +41,7 @@ function toRecord(row: ScanRow): ScanRecord {
     scannedAt: row.scanned_at,
     productName: row.products?.name ?? null,
     productBrand: row.products?.brand ?? null,
+    productImageUrl: row.products?.image_url ?? null,
     profileName: row.diet_profiles?.name ?? null,
   };
 }
