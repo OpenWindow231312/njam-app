@@ -20,15 +20,22 @@ export function AskNjamHeader({ children }: { children: ReactNode }) {
   return (
     <View style={styles.row}>
       <View style={styles.header}>{children}</View>
-      <PressableSurface
-        onPress={() => router.push('/ask')}
-        accessibilityRole="button"
-        accessibilityLabel="Ask Njam"
-        accessibilityHint="Opens the assistant, which answers using your rules"
-        radius={radius.pill}>
-        <AiAvatar />
-      </PressableSurface>
+      <AskNjamButton />
     </View>
+  );
+}
+
+/** The Njam mark on its own, for screens with no SectionHeader (the Verdict screen's top bar). */
+export function AskNjamButton() {
+  return (
+    <PressableSurface
+      onPress={() => router.push('/ask')}
+      accessibilityRole="button"
+      accessibilityLabel="Ask Njam"
+      accessibilityHint="Opens the assistant, which answers using your rules"
+      radius={radius.pill}>
+      <AiAvatar />
+    </PressableSurface>
   );
 }
 
