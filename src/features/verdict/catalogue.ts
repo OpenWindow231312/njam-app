@@ -20,12 +20,19 @@ export type CatalogueProduct = {
   source: 'user' | 'ai_label_read' | 'seed' | 'admin';
   /** In label order. */
   ingredients: VerdictIngredient[];
+  /** Allergen slugs from the label's "may contain" line. */
+  mayContain: string[];
+  /** The front of the pack, when someone photographed it. */
+  imageUrl: string | null;
+  /** The ingredient list photo it was read from, for the review queue. */
+  labelImageUrl: string | null;
 };
 
 // "allergen:allergen_id(slug)" means: follow the allergen_id foreign key and
 // call the result "allergen". canonical_id points back at ingredients itself.
 const PRODUCT_COLUMNS = `
   id, barcode, name, brand, serving_size, serving_unit, verified, source,
+  may_contain, image_url, label_image_url,
   product_ingredients (
     position,
     ingredients (
@@ -52,6 +59,9 @@ type ProductRow = {
   serving_unit: string | null;
   verified: boolean;
   source: CatalogueProduct['source'];
+  may_contain: string[];
+  image_url: string | null;
+  label_image_url: string | null;
   product_ingredients: { position: number; ingredients: IngredientRow | null }[];
 };
 
@@ -78,6 +88,9 @@ function toProduct(row: ProductRow): CatalogueProduct {
     verified: row.verified,
     source: row.source,
     ingredients,
+    mayContain: row.may_contain,
+    imageUrl: row.image_url,
+    labelImageUrl: row.label_image_url,
   };
 }
 

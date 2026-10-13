@@ -4,9 +4,11 @@
  * Request (POST, JSON, signed-in users only because verify_jwt is on):
  *   { "imageBase64": "...", "mimeType": "image/jpeg" }   a label photo
  *   { "text": "Ingredients: wheat flour, sugar, ..." }   typed ingredient text
+ *   { "mode": "front", "imageBase64": "...", "mimeType": "image/jpeg" }
+ *                                     a photo of the front of the pack
  *
  * Response:
- *   200 { "ok": true,  "data": LabelRead }
+ *   200 { "ok": true,  "data": LabelRead }   or FrontRead in front mode
  *   4xx/5xx { "ok": false, "error": { "code": "...", "message": "..." } }
  *
  * The Gemini key is read from the GEMINI_API_KEY function secret and never
@@ -16,7 +18,7 @@
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
-import { ALLERGEN_SLUGS, validateLabelRead } from './validate.ts';
+import { ALLERGEN_SLUGS, validateFrontRead, validateLabelRead } from './validate.ts';
 
 const MODEL = 'gemini-flash-lite-latest';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
@@ -79,6 +81,30 @@ const RESPONSE_SCHEMA = {
   required: ['readable', 'ingredients', 'mayContain', 'confidence'],
 };
 
+// The front of the pack: only the name and brand, so a product someone adds
+// has a name people recognise in History and Search.
+const FRONT_PROMPT = `You read the front of South African food packs for a grocery app.
+Return the product's brand and name as printed on the pack, as JSON.
+
+Rules:
+- brand: the brand as printed ("Clover", "Ouma", "Jungle"), keeping its own
+  casing, or null if no brand is printed.
+- name: the product name without the brand, in sentence case, with its variety
+  and pack size if printed ("Fresh full cream milk 2 l").
+- Never guess. If the name is cut off, blurred or not on the photo, set readable
+  to false and say what was wrong in problem.`;
+
+const FRONT_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    readable: { type: 'BOOLEAN' },
+    name: { type: 'STRING', nullable: true },
+    brand: { type: 'STRING', nullable: true },
+    problem: { type: 'STRING', nullable: true },
+  },
+  required: ['readable', 'name', 'brand'],
+};
+
 function reply(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -115,7 +141,7 @@ function readInput(body: unknown): LabelInput | string {
   return 'Send either imageBase64 with mimeType, or text.';
 }
 
-async function askGemini(input: LabelInput, apiKey: string): Promise<unknown> {
+async function askGemini(prompt: string, schema: unknown, input: LabelInput, apiKey: string): Promise<unknown> {
   const labelPart =
     input.kind === 'image'
       ? { inline_data: { mime_type: input.mimeType, data: input.base64 } }
@@ -126,12 +152,12 @@ async function askGemini(input: LabelInput, apiKey: string): Promise<unknown> {
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     signal: AbortSignal.timeout(TIMEOUT_MS),
     body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: PROMPT }, labelPart] }],
+      contents: [{ role: 'user', parts: [{ text: prompt }, labelPart] }],
       generationConfig: {
         // Low temperature: we want the label as printed, not a creative reading.
         temperature: 0,
         responseMimeType: 'application/json',
-        responseSchema: RESPONSE_SCHEMA,
+        responseSchema: schema,
       },
     }),
   });
@@ -177,9 +203,16 @@ Deno.serve(async (req) => {
   const input = readInput(body);
   if (typeof input === 'string') return fail(400, 'bad_request', input);
 
+  const isFront = (body as Record<string, unknown>).mode === 'front';
+  if (isFront && input.kind !== 'image') {
+    return fail(400, 'bad_request', 'Send a photo of the front of the pack.');
+  }
+
   try {
-    const raw = await askGemini(input, apiKey);
-    const data = validateLabelRead(raw);
+    const raw = isFront
+      ? await askGemini(FRONT_PROMPT, FRONT_SCHEMA, input, apiKey)
+      : await askGemini(PROMPT, RESPONSE_SCHEMA, input, apiKey);
+    const data = isFront ? validateFrontRead(raw) : validateLabelRead(raw);
     return reply(200, { ok: true, data });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'TimeoutError') {
@@ -189,6 +222,8 @@ Deno.serve(async (req) => {
       return fail(503, 'busy', 'Label reading is busy right now. Try again in a minute.');
     }
     console.error('scan-label failed', error);
-    return fail(502, 'ai_failed', 'We could not read this label. Try again or type the ingredients.');
+    return isFront
+      ? fail(502, 'ai_failed', 'We could not read the front of the pack. Try again.')
+      : fail(502, 'ai_failed', 'We could not read this label. Try again or type the ingredients.');
   }
 });

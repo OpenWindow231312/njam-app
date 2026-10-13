@@ -31,7 +31,7 @@ seeded rules, but a new person cannot add their own.
 | Feature | Status | Note |
 | --- | --- | --- |
 | Alternatives: safer products in the same category | To build | Category data exists |
-| Add a product (photo plus ingredient list) into the review queue | To build | Insert RLS already allows it |
+| Add a product (photo plus ingredient list) into the review queue | Built | `features/add-product`, migration `20261013204726`; duplicates flagged in the review queue |
 | Household screen: switch profile, add a child or guest profile | To build | Schema supports it |
 | Nutrient limits checked against nutrition facts | Partly | Rules exist; `nutrition_facts` is empty, so they come back Caution |
 | Full onboarding across all six profile layers | To build | Allergies first, the rest after |

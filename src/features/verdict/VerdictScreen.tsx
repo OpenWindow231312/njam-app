@@ -100,7 +100,7 @@ async function showProduct(productId: string, barcode: string | undefined, membe
   if (!product) throw new Error('Product not found');
 
   const verdict = decideVerdict(
-    { verified: product.verified, readFromLabel: false, ingredients: product.ingredients, mayContain: [] },
+    { verified: product.verified, readFromLabel: false, ingredients: product.ingredients, mayContain: product.mayContain },
     profile.rules,
   );
 

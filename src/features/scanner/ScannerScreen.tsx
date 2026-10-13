@@ -11,6 +11,12 @@
  *             photograph the ingredient list. The AI service reads it and
  *             the Verdict screen shows the result, capped at Caution.
  *
+ * After a label photo of a barcode we did not know, Njam asks for one more
+ * photo: the front of the pack. The AI reads the name off it, and the
+ * product is added to the catalogue (unverified) with both photos, so the
+ * next person who scans it finds it straight away. Skipping that photo
+ * shows the verdict from the label alone, as before.
+ *
  * The scope pill is mandatory: it says whose rules the scan runs against.
  * The camera does not start scanning until that profile has loaded, so a
  * scan can never run against nobody, or against the wrong person.
@@ -20,16 +26,18 @@
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { router, useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, StyleSheet } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
 import { Button, EmptyState, ScanFrame, ScopePill, Snackbar } from '@/components/design-system';
+import { IngredientConflictError, ProductExistsError, addProduct } from '@/features/add-product/add-product';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { fetchActiveProfile, type ActiveProfile } from '@/features/profile/active-profile';
 import { fetchFromOpenFoodFacts, readOpenFoodFactsProduct } from '@/features/scanner/open-food-facts';
 import { fetchProductByBarcode } from '@/features/verdict/catalogue';
 import { hapticSuccess } from '@/lib/haptics';
-import { LabelReadError, readLabel } from '@/services/ai';
+import { LabelReadError, readFront, readLabel, type LabelRead } from '@/services/ai';
+import { space } from '@/theme/tokens';
 
 /** The barcodes printed on groceries. Leaving out QR codes stops stray reads. */
 const GROCERY_BARCODES = ['ean13', 'ean8', 'upc_a', 'upc_e'] as const;
@@ -42,7 +50,9 @@ type Mode =
   | { kind: 'looking-up'; barcode: string }
   | { kind: 'not-found'; barcode: string }
   | { kind: 'photo'; barcode?: string }
-  | { kind: 'reading'; barcode?: string };
+  | { kind: 'reading'; barcode?: string }
+  | { kind: 'front'; barcode: string; read: LabelRead }
+  | { kind: 'adding'; barcode: string; read: LabelRead };
 
 function hintFor(mode: Mode): string {
   switch (mode.kind) {
@@ -56,6 +66,10 @@ function hintFor(mode: Mode): string {
       return 'Fit the whole ingredient list inside the frame';
     case 'reading':
       return 'Reading the label';
+    case 'front':
+      return 'Now the front of the pack. Fit the product name inside the frame.';
+    case 'adding':
+      return 'Adding the product to Njam';
   }
 }
 
@@ -69,6 +83,12 @@ export function ScannerScreen() {
   const [mode, setMode] = useState<Mode>({ kind: 'scanning' });
   const [torchOn, setTorchOn] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  // A failure on the front-photo step. Kept apart from `problem`, whose
+  // Retry starts a fresh scan and would throw away the label just read.
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // The label photo, kept until the front photo is taken so both can be saved.
+  const labelPhoto = useRef<string | null>(null);
 
   // The camera reports the same barcode many times a second. This flag lets
   // only the first one through until the screen is ready to scan again.
@@ -160,14 +180,86 @@ export function ScannerScreen() {
       if (!photo.base64) throw new LabelReadError('The camera did not return a photo. Try again.');
 
       const read = await readLabel({ imageBase64: photo.base64, mimeType: 'image/jpeg' });
-      // The label read travels to the Verdict screen as a route param.
-      router.push({
-        pathname: '/verdict',
-        params: barcode ? { label: JSON.stringify(read), barcode } : { label: JSON.stringify(read) },
-      });
+
+      // A barcode we did not know, and a label we could read: ask for the
+      // front of the pack so the product can be added. A product needs a
+      // barcode to be found again, so a label with none goes straight on.
+      if (barcode && read.readable) {
+        labelPhoto.current = photo.base64;
+        setMode({ kind: 'front', barcode, read });
+        return;
+      }
+      openLabelVerdict(read, barcode);
     } catch (error) {
       setProblem(error instanceof LabelReadError ? error.message : 'We could not read the label. Try again.');
       setMode({ kind: 'photo', barcode });
+    }
+  }
+
+  /** The verdict from the label read alone. Nothing is added to the catalogue. */
+  function openLabelVerdict(read: LabelRead, barcode?: string) {
+    // The label read travels to the Verdict screen as a route param.
+    router.push({
+      pathname: '/verdict',
+      params: barcode ? { label: JSON.stringify(read), barcode } : { label: JSON.stringify(read) },
+    });
+  }
+
+  /**
+   * The front of the pack: read its name, then add the product with both
+   * photos and open its verdict. Any failure keeps you on this step, with
+   * the label read kept, so you can try again or skip.
+   */
+  async function photographFront() {
+    if (!camera.current || mode.kind !== 'front' || !member || !labelPhoto.current) return;
+    const { barcode, read } = mode;
+    setNotice(null);
+    setMode({ kind: 'adding', barcode, read });
+
+    try {
+      const photo = await camera.current.takePictureAsync({
+        base64: true,
+        quality: PHOTO_QUALITY,
+        shutterSound: false,
+      });
+      if (!photo.base64) throw new LabelReadError('The camera did not return a photo. Try again.');
+
+      const front = await readFront({ imageBase64: photo.base64, mimeType: 'image/jpeg' });
+      if (!front.readable || !front.name) {
+        setNotice(`${front.problem ?? 'We could not read the product name.'} Fit the name inside the frame and try again.`);
+        setMode({ kind: 'front', barcode, read });
+        return;
+      }
+
+      const productId = await addProduct({
+        userId: member.id,
+        barcode,
+        front: { ...front, name: front.name },
+        label: read,
+        frontPhotoBase64: photo.base64,
+        labelPhotoBase64: labelPhoto.current,
+      });
+      labelPhoto.current = null;
+      hapticSuccess();
+      router.push({ pathname: '/verdict', params: { productId, barcode } });
+    } catch (error) {
+      // Someone added this barcode first: open theirs.
+      if (error instanceof ProductExistsError) {
+        const existing = await fetchProductByBarcode(barcode).catch(() => null);
+        if (existing) {
+          router.push({ pathname: '/verdict', params: { productId: existing.id, barcode } });
+          return;
+        }
+      }
+      console.warn('Could not add the product', error);
+      setNotice(
+        error instanceof IngredientConflictError
+          ? 'An admin needs to check one of these ingredients first, so we could not add this product. Show the verdict to see what the label says.'
+          : error instanceof LabelReadError
+            ? error.message
+            : 'We could not add this product. Try again, or show the verdict without it.',
+      );
+      setMode({ kind: 'front', barcode, read });
     }
   }
 
@@ -216,6 +308,21 @@ export function ScannerScreen() {
         bottomAction={
           mode.kind === 'photo' ? (
             <Button label="Take the photo" icon="photo_camera" onPress={photographLabel} />
+          ) : mode.kind === 'front' ? (
+            <View style={styles.actions}>
+              <Button label="Photograph the front" icon="photo_camera" onPress={photographFront} />
+              <Button
+                label="Show the verdict without it"
+                variant="outlined"
+                size="small"
+                onPress={() => {
+                  setNotice(null);
+                  openLabelVerdict(mode.read, mode.barcode);
+                }}
+              />
+            </View>
+          ) : mode.kind === 'adding' ? (
+            <Button label="Photograph the front" loading loadingLabel="Adding the product" onPress={() => {}} />
           ) : mode.kind === 'reading' ? (
             <Button label="Take the photo" loading loadingLabel="Reading the label" onPress={() => {}} />
           ) : mode.kind === 'not-found' ? (
@@ -260,6 +367,16 @@ export function ScannerScreen() {
           onDismiss={() => setProblem(null)}
         />
       )}
+
+      {notice && <Snackbar kind="failure" message={notice} onDismiss={() => setNotice(null)} />}
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  // "Photograph the front" with the way to skip it underneath.
+  actions: {
+    alignItems: 'center',
+    gap: space.s1,
+  },
+});

@@ -26,14 +26,16 @@ Reads an ingredient list from a label photo or from typed text.
 | --- | --- |
 | `{ "imageBase64": "...", "mimeType": "image/jpeg" }` | A label photo, under 4 MB |
 | `{ "text": "Ingredients: wheat flour, sugar, ..." }` | Ingredient text (also used for Open Food Facts text) |
+| `{ "mode": "front", "imageBase64": "...", "mimeType": "image/jpeg" }` | A photo of the front of the pack, read for its name and brand |
 
 `200 { "ok": true, "data": LabelRead }`, where LabelRead is
 `{ readable, productName, ingredients: [{ name, allergen, eNumber }], mayContain, confidence, problem }`.
+In front mode, `data` is a FrontRead: `{ readable, name, brand, problem }`.
 
 Errors: `400 bad_request`, `502 ai_failed`, `503 busy` (Gemini rate limit),
 `504 timeout` (20 s), `500 not_configured`.
 
-Called from: `src/services/ai/index.ts` (`readLabel`).
+Called from: `src/services/ai/index.ts` (`readLabel`, `readFront`).
 
 ### `POST /functions/v1/ask-njam`
 
@@ -76,6 +78,8 @@ Called from: `src/services/ai/index.ts` (`askNjam`, `completeMessage`).
 | `/rest/v1/diet_profiles` (+ `profile_rules`) | GET | The active profile and its rules | `features/profile/active-profile.ts` |
 | `/rest/v1/products` (+ ingredients) | GET | Search, barcode lookup, a product by id | `features/verdict/catalogue.ts`, `features/home/ProductSearch.tsx` |
 | `/rest/v1/products` | PATCH | Verify a product (admins only) | `features/admin-review/review-queue.ts` |
+| `/rest/v1/rpc/add_product` | POST | Add a scanned product, its ingredients and their order in one transaction (always unverified) | `features/add-product/add-product.ts` |
+| `/storage/v1/object/product-photos/<your user id>/...` | POST | Upload the front and label photos (only into your own folder) | `features/add-product/add-product.ts` |
 | `/rest/v1/scans` | GET, POST | Save and read scan history | `features/verdict/scans.ts` |
 | `/rest/v1/chat_conversations`, `/rest/v1/chat_messages` | GET | Your saved Ask Njam conversations | `features/ask-njam/conversations.ts` |
 

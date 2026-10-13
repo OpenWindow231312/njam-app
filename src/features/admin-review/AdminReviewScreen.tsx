@@ -11,29 +11,49 @@
  *     (RLS), so hiding the button is a courtesy, not the protection.
  *
  * Verifying asks first, because it lets the product be Safe for everyone.
+ *
+ * Each product shows the photos it was added with (the front on the card,
+ * the ingredient list one tap away) and a "Possible duplicate" flag when
+ * another product has the same brand and name.
  */
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
 import {
   Button,
   ConfirmDialog,
   EmptyState,
+  Icon,
   IconButton,
   LoadingMark,
   ProductCard,
   SectionHeader,
   Snackbar,
 } from '@/components/design-system';
-import { fetchUnverifiedProducts, verifyProduct } from '@/features/admin-review/review-queue';
+import {
+  fetchPossibleDuplicates,
+  fetchUnverifiedProducts,
+  verifyProduct,
+  type PossibleDuplicate,
+} from '@/features/admin-review/review-queue';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { productDetail, type CatalogueProduct } from '@/features/verdict/catalogue';
+import { allergenWord } from '@/services/verdict';
 import { icon, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
-type Loaded = { kind: 'loading' } | { kind: 'shown'; products: CatalogueProduct[] } | { kind: 'failed' };
+type Loaded =
+  | { kind: 'loading' }
+  | { kind: 'shown'; products: CatalogueProduct[]; duplicates: Map<string, PossibleDuplicate[]> }
+  | { kind: 'failed' };
+
+/** "Possible duplicate of Clover Fresh full cream milk 1 l, barcode 6001…". */
+function duplicateText(matches: PossibleDuplicate[]): string {
+  const named = matches.map((match) => `${[match.brand, match.name].filter(Boolean).join(' ')}, barcode ${match.barcode}`);
+  return `Possible duplicate of ${named.join('; ')}`;
+}
 
 function sourceText(product: CatalogueProduct): string {
   if (product.source === 'ai_label_read') return 'Read from a label photo';
@@ -53,7 +73,10 @@ export function AdminReviewScreen() {
   const load = useCallback(() => {
     setLoaded({ kind: 'loading' });
     fetchUnverifiedProducts()
-      .then((products) => setLoaded({ kind: 'shown', products }))
+      .then(async (products) => {
+        const duplicates = await fetchPossibleDuplicates(products);
+        setLoaded({ kind: 'shown', products, duplicates });
+      })
       .catch(() => setLoaded({ kind: 'failed' }));
   }, []);
 
@@ -124,14 +147,37 @@ export function AdminReviewScreen() {
               variant="identity"
               name={product.name}
               detail={productDetail(product)}
+              imageUrl={product.imageUrl ?? undefined}
               metaIcon="info"
               metaText={sourceText(product)}
             />
+            {loaded.duplicates.has(product.id) && (
+              <View style={styles.flag}>
+                <Icon name="flag" size="sm" color={colors.ink} />
+                <Text style={[typography.bodyS, styles.flagText, { color: colors.ink }]}>
+                  {duplicateText(loaded.duplicates.get(product.id) ?? [])}
+                </Text>
+              </View>
+            )}
             <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
               {product.ingredients.length > 0
                 ? product.ingredients.map((item) => item.name).join(', ')
                 : 'No ingredient list yet.'}
             </Text>
+            {product.mayContain.length > 0 && (
+              <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
+                {`May contain: ${product.mayContain.map(allergenWord).join(', ')}`}
+              </Text>
+            )}
+            {product.labelImageUrl && (
+              <Button
+                label="Open the label photo"
+                icon="visibility"
+                variant="tonal"
+                size="small"
+                onPress={() => product.labelImageUrl && Linking.openURL(product.labelImageUrl)}
+              />
+            )}
             <Button
               label="Verify this product"
               icon="verified"
@@ -174,5 +220,14 @@ const styles = StyleSheet.create({
     gap: space.s3,
     padding: space.s4,
     borderRadius: radius.lg,
+  },
+  flag: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: space.s2,
+  },
+  // Lets a long duplicate line wrap beside the flag instead of running off.
+  flagText: {
+    flex: 1,
   },
 });
