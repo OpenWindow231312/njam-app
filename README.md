@@ -76,6 +76,10 @@ is a stated project target.
 - **Database.** `supabase/migrations` holds the schema and a seed of 25 South
   African products. The seed barcodes are placeholders (GS1 prefix `200`, never
   printed on a real pack); swap in a real barcode to scan a real product.
+  Their photos and nutrition tables come from
+  [Open Food Facts](https://openfoodfacts.org) (photos CC BY-SA, data ODbL,
+  by Open Food Facts contributors), matched by name and checked by hand; see
+  the `seed_photos_nutrition` migration for each product's source.
 - **Label reading.** `supabase/functions/scan-label` sends a label photo or
   ingredient text to Gemini and validates the JSON it returns. The Gemini key is
   an Edge Function secret (`GEMINI_API_KEY`) and never reaches the app. Deploy
