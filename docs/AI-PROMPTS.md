@@ -42,6 +42,18 @@ nuisance; a false Safe is a health incident.
 unverified, so the best it can ever be is Caution. The verdict screen says
 "Read from the label photo, not yet verified."
 
+### Front of the pack (`"mode": "front"`)
+
+When someone adds a product, a second photo of the front is read for its
+name and brand only, so the product has a name in History and Search.
+The prompt asks for the brand as printed, the name without the brand in
+sentence case with its pack size, and never a guess: a cut-off or blurred
+name comes back `readable: false` with the problem. Validation trims both
+fields and treats a missing name as unreadable, whatever the model said.
+Gemini is not asked to look the barcode up on the web: for South African
+barcodes it often finds nothing or the wrong product, and a wrong name on a
+food product is worse than asking for a photo.
+
 ## 2. Ask Njam (`ask-njam`)
 
 ### Chat mode
