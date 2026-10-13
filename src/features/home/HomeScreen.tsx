@@ -5,8 +5,9 @@
  *
  * Top to bottom:
  *   - the greeting and headline, with Ask Njam on the right.
- *   - the search bar, and the filter button beside it.
- *   - two dropdown chips: which verdicts to show, and which store.
+ *   - the search bar, and the filter button beside it, which opens
+ *     FilterSheet (verdict and store). While a filter is on, a line under
+ *     the search bar says which, with "Clear filters".
  *   - the aisle chips: All, Saved, then one per category.
  *   - the products, two to a row.
  *
@@ -26,7 +27,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
 import {
-  DropdownChip,
+  Button,
   EmptyState,
   FilterChip,
   IconButton,
@@ -215,28 +216,26 @@ export function HomeScreen() {
         />
       </View>
 
-      {/* Both chip rows scroll sideways, edge to edge past the screen gutter. */}
-      <View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.bleed}
-          contentContainerStyle={styles.chipRow}>
-          <DropdownChip
-            label={VERDICT_FILTER_WORDS[verdictFilter].title}
-            verdicts={
-              verdictFilter === 'safe' ? ['safe'] : verdictFilter === 'notUnsafe' ? ['safe', 'caution'] : undefined
-            }
-            selected={verdictFilter !== 'all'}
-            onPress={() => setFiltering(true)}
+      {(verdictFilter !== 'all' || storeId !== null) && (
+        <View style={styles.filteredRow}>
+          <Text style={[typography.bodyS, styles.flex, { color: colors.inkMuted }]}>
+            Filtered by{' '}
+            {[verdictFilter !== 'all' && VERDICT_FILTER_WORDS[verdictFilter], storeName].filter(Boolean).join(', ')}
+          </Text>
+          <Button
+            label="Clear filters"
+            variant="text"
+            size="small"
+            onPress={() => {
+              setVerdictFilter('all');
+              setStoreId(null);
+            }}
           />
-          <DropdownChip
-            label={storeName ?? 'Any store'}
-            selected={storeId !== null}
-            onPress={() => setFiltering(true)}
-          />
-        </ScrollView>
+        </View>
+      )}
 
+      {/* The aisle chips scroll sideways, edge to edge past the screen gutter. */}
+      <View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -359,6 +358,11 @@ const styles = StyleSheet.create({
     gap: space.s2,
     paddingHorizontal: layout.screenGutter,
     paddingVertical: (layout.touchTargetMin - layout.filterChipHeight) / 2,
+  },
+  filteredRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s2,
   },
   loading: {
     flexDirection: 'row',
