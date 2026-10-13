@@ -110,6 +110,21 @@ export function ProfileScreen() {
         )}
       </View>
 
+      {/* Only an admin sees the way in. The database still refuses a
+          verification from anyone else (see admin-review/review-queue.ts). */}
+      {member?.role === 'admin' && (
+        <ListGroup>
+          <ListRow
+            title="Review queue"
+            supporting="Verify products shoppers added or Njam read from a label"
+            icon="admin_panel_settings"
+            iconBadge="strong"
+            trailing="chevron"
+            onPress={() => router.push('/admin-review')}
+          />
+        </ListGroup>
+      )}
+
       <ListGroup>
         <ListRow
           title="Component preview"
