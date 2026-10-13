@@ -185,7 +185,7 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
     setSaving(true);
     setFailure(null);
     try {
-      await saveMyRules(rules);
+      setRules(await saveMyRules(rules));
       if (mode === 'first-run') {
         // The root layout sees onboarded turn true and opens the tabs.
         await finishOnboarding();

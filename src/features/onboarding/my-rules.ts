@@ -102,14 +102,19 @@ function toRows(rules: MyRules): (ProfileRule & { diet_profile_id: string })[] {
  * with no allergies on file, and a scan would then come back Safe for
  * something you cannot eat.
  */
-export async function saveMyRules(rules: MyRules): Promise<void> {
+export async function saveMyRules(rules: MyRules): Promise<MyRules> {
   const rows = toRows(rules);
+  let newIds: string[] = [];
   if (rows.length > 0) {
-    const inserted = await supabase.from('profile_rules').insert(rows);
+    const inserted = await supabase.from('profile_rules').insert(rows).select('id');
     if (inserted.error) throw inserted.error;
+    newIds = inserted.data.map((row) => row.id);
   }
   if (rules.existingIds.length > 0) {
     const removed = await supabase.from('profile_rules').delete().in('id', rules.existingIds);
     if (removed.error) throw removed.error;
   }
+  // The saved rows are now the existing ones, so saving again (a retry)
+  // replaces them rather than adding a second copy.
+  return { ...rules, existingIds: newIds };
 }
