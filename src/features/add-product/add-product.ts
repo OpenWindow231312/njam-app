@@ -1,0 +1,83 @@
+/**
+ * Add a product: saves a product someone scanned and photographed into the
+ * shared catalogue, so the next person who scans that barcode finds it.
+ *
+ * Anyone signed in can add one, whatever their role. It goes in unverified
+ * (the database refuses anything else), so the verdict engine caps it at
+ * Caution until an admin verifies it in the review queue.
+ *
+ * Two steps:
+ *   1. Both photos go to Storage, in a folder named after you. The Storage
+ *      policy refuses any other folder.
+ *   2. add_product (a database function) saves the product, its ingredients
+ *      and their order in one transaction, so a product can never be saved
+ *      with half its ingredient list.
+ */
+import { supabase } from '@/lib/supabase';
+import type { FrontRead, LabelRead } from '@/services/ai';
+
+const BUCKET = 'product-photos';
+
+/** Someone else saved this barcode first, maybe a moment ago. */
+export class ProductExistsError extends Error {}
+
+/**
+ * The catalogue tags one of these ingredients more leniently than this label
+ * did, so saving would have dropped an allergen or E-number. Nothing is saved.
+ */
+export class IngredientConflictError extends Error {}
+
+/** The camera's base64 as bytes, for Storage. atob is built into React Native. */
+function toBytes(base64: string): ArrayBuffer {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes.buffer;
+}
+
+/** Uploads one JPEG and returns its public URL. */
+async function uploadPhoto(path: string, base64: string): Promise<string> {
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, toBytes(base64), { contentType: 'image/jpeg' });
+  if (error) throw error;
+  return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+export async function addProduct(input: {
+  userId: string;
+  barcode: string;
+  front: FrontRead & { name: string };
+  label: LabelRead;
+  frontPhotoBase64: string;
+  labelPhotoBase64: string;
+}): Promise<string> {
+  // The time keeps each upload's name new, so a photo is never overwritten.
+  const prefix = `${input.userId}/${input.barcode}-${Date.now()}`;
+  const [imageUrl, labelImageUrl] = await Promise.all([
+    uploadPhoto(`${prefix}-front.jpg`, input.frontPhotoBase64),
+    uploadPhoto(`${prefix}-label.jpg`, input.labelPhotoBase64),
+  ]);
+
+  const { data, error } = await supabase.rpc('add_product', {
+    p_barcode: input.barcode,
+    p_name: input.front.name,
+    p_brand: input.front.brand,
+    p_image_url: imageUrl,
+    p_label_image_url: labelImageUrl,
+    p_may_contain: input.label.mayContain,
+    p_ingredients: input.label.ingredients,
+  });
+
+  if (error) {
+    // 23505 is Postgres for "already exists": the barcode is unique.
+    if (error.code === '23505' && error.message.includes('products_barcode_key')) {
+      throw new ProductExistsError('Someone added this product already.');
+    }
+    if (error.hint === 'ingredient_conflict') throw new IngredientConflictError(error.message);
+    throw error;
+  }
+  return data as string;
+}
