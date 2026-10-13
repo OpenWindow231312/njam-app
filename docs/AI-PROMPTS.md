@@ -77,7 +77,7 @@ system instruction:
 | A sentence calls something safe ("safe", "safer", "safely") | The sentence is removed. "Not safe" and "isn't safe" may stay. |
 | A product id that the function did not read from the catalogue | The block is dropped; in a recipe, the ingredient keeps its name but loses the id |
 | The same product twice, or more than 3 products | Extra ones dropped |
-| A recipe with no title, ingredients or steps | Dropped |
+| A recipe with no title, ingredients or steps | Dropped, and logged with what was missing |
 | Emoji, em dashes | Removed |
 | More than one suggestions block | Only the last is kept, and it is moved to the end |
 | Nothing usable left | Throws, and the app gets `502 ai_failed` |
