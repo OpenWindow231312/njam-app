@@ -27,6 +27,7 @@ export { MemberVerdict } from './MemberVerdict';
 export { AiAvatar, NjamMark } from './NjamMark';
 export { PhotoStepCard } from './PhotoStepCard';
 export { ProductCard } from './ProductCard';
+export { ProductGridCard } from './ProductGridCard';
 export { ProductTile } from './ProductTile';
 export { RuleChip, type Severity } from './RuleChip';
 export { ScanFrame } from './ScanFrame';
