@@ -2,15 +2,16 @@
  * Profile: who you are, the rules your scans are checked against, and the
  * way out (Log out).
  *
- * Read-only for now. Editing rules belongs to the Profile & filters screen
- * and onboarding, which come next.
+ * The rules are grouped by kind (allergies, ingredients, E-numbers), so the
+ * screen answers "what can I not eat?" at a glance. "Edit your rules" opens
+ * the onboarding steps again, filled in with what is saved.
  */
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
-import { Button, ListGroup, ListRow, SectionHeader, Snackbar } from '@/components/design-system';
+import { Avatar, Button, ListGroup, ListRow, SectionHeader, Snackbar } from '@/components/design-system';
 import { AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
 import { useAuth, type Role } from '@/features/auth/AuthProvider';
 import { fetchActiveProfile, type ActiveProfile } from '@/features/profile/active-profile';
@@ -32,13 +33,21 @@ const RULE_ICONS: Record<string, string> = {
   diet: 'restaurant',
 };
 
+/** The groups the rules are shown in, in this order. Any other type falls into "Other rules". */
+const RULE_GROUPS: { title: string; types: string[] }[] = [
+  { title: 'Allergies', types: ['allergen'] },
+  { title: 'Ingredients you avoid', types: ['ingredient'] },
+  { title: 'E-numbers you avoid', types: ['e_number'] },
+];
+const GROUPED_TYPES = RULE_GROUPS.flatMap((group) => group.types);
+
 /** One rule as a row title and supporting line. */
 function describeRule(rule: ProfileRule): { title: string; supporting: string } {
   if (rule.type === 'allergen') {
     const word = allergenWord(rule.target);
     return {
       title: word.charAt(0).toUpperCase() + word.slice(1),
-      supporting: rule.severity ? `Allergy, marked ${rule.severity}` : 'Allergy',
+      supporting: rule.severity ? `Allergy, marked ${rule.severity}` : 'Allergy you avoid',
     };
   }
   if (rule.type === 'e_number') return { title: rule.target.toUpperCase(), supporting: 'E-number you avoid' };
@@ -50,19 +59,39 @@ function describeRule(rule: ProfileRule): { title: string; supporting: string } 
   return { title: rule.target, supporting: rule.type };
 }
 
+/** The non-empty groups, each with its rules. */
+function groupRules(rules: ProfileRule[]): { title: string; rules: ProfileRule[] }[] {
+  const groups = RULE_GROUPS.map((group) => ({
+    title: group.title,
+    rules: rules.filter((rule) => group.types.includes(rule.type)),
+  }));
+  groups.push({ title: 'Other rules', rules: rules.filter((rule) => !GROUPED_TYPES.includes(rule.type)) });
+  return groups.filter((group) => group.rules.length > 0);
+}
+
+/** "Every scan is checked against 4 rules." */
+function rulesSummary(count: number): string {
+  return `Every scan is checked against ${count} ${count === 1 ? 'rule' : 'rules'}.`;
+}
+
 export function ProfileScreen() {
   const { colors } = useNjamTheme();
-  const { member, signOut } = useAuth();
+  const { session, member, signOut } = useAuth();
   const [profile, setProfile] = useState<ActiveProfile | null>(null);
   const [failed, setFailed] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  useEffect(() => {
-    if (!member?.householdId) return;
-    fetchActiveProfile(member.householdId)
+  // Read again each time the tab comes into view, so rules changed on the
+  // edit-rules screen show as soon as you come back.
+  const householdId = member?.householdId;
+  const load = useCallback(() => {
+    if (!householdId) return;
+    fetchActiveProfile(householdId)
       .then(setProfile)
       .catch(() => setFailed(true));
-  }, [member?.householdId]);
+  }, [householdId]);
+
+  useFocusEffect(load);
 
   async function logOut() {
     setSigningOut(true);
@@ -78,11 +107,16 @@ export function ProfileScreen() {
   return (
     <Screen withTabBar>
       <AskNjamHeader>
-        <SectionHeader
-          headline={member?.displayName ?? 'Your profile'}
-          deck={member ? ROLE_LABELS[member.role] : undefined}
-        />
+        <View style={styles.identity}>
+          <Avatar name={member?.displayName} size="lg" tone="strong" />
+          <SectionHeader
+            headline={member?.displayName ?? 'Your profile'}
+            deck={[member ? ROLE_LABELS[member.role] : null, session?.user.email].filter(Boolean).join(', ')}
+          />
+        </View>
       </AskNjamHeader>
+
+      <Button label="Edit your rules" icon="edit" onPress={() => router.push('/edit-rules')} fullWidth />
 
       <View style={styles.block}>
         <SectionHeader variant="simple" headline="Your rules" />
@@ -92,22 +126,31 @@ export function ProfileScreen() {
           </Text>
         )}
         {profile && profile.rules.length > 0 && (
-          <ListGroup>
-            {profile.rules.map((rule) => {
-              const { title, supporting } = describeRule(rule);
-              return (
-                <ListRow
-                  key={`${rule.type}-${rule.target}`}
-                  title={title}
-                  supporting={supporting}
-                  icon={RULE_ICONS[rule.type] ?? 'rule'}
-                  iconBadge="soft"
-                  trailing="none"
-                />
-              );
-            })}
-          </ListGroup>
+          <Text style={[typography.body, { color: colors.inkMuted }]}>{rulesSummary(profile.rules.length)}</Text>
         )}
+        {profile &&
+          groupRules(profile.rules).map((group) => (
+            <View key={group.title} style={styles.group}>
+              <Text accessibilityRole="header" style={[typography.overline, { color: colors.inkMuted }]}>
+                {group.title}
+              </Text>
+              <ListGroup>
+                {group.rules.map((rule) => {
+                  const { title, supporting } = describeRule(rule);
+                  return (
+                    <ListRow
+                      key={`${rule.type}-${rule.target}`}
+                      title={title}
+                      supporting={supporting}
+                      icon={RULE_ICONS[rule.type] ?? 'rule'}
+                      iconBadge="soft"
+                      trailing="none"
+                    />
+                  );
+                })}
+              </ListGroup>
+            </View>
+          ))}
       </View>
 
       {/* Only an admin sees the way in. The database still refuses a
@@ -147,7 +190,13 @@ export function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  identity: {
+    gap: space.s3,
+  },
   block: {
     gap: space.s3,
+  },
+  group: {
+    gap: space.s2,
   },
 });
