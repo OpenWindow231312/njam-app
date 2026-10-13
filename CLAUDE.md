@@ -189,11 +189,12 @@ Household Owner · Standard User · Admin/Moderator.
 Allergies with severity (required) · diet and faith · banned ingredients · E-numbers ·
 nutrient limits · health presets.
 
-## Database (14 tables)
+## Database (16 tables)
 
 `households` · `users` · `diet_profiles` · `profile_rules` · `scans` · `categories` ·
 `products` · `nutrition_facts` · `product_ingredients` · `ingredients` · `allergens` ·
-`chat_conversations` · `chat_messages` · `saved_products`.
+`chat_conversations` · `chat_messages` · `saved_products` · `stores` ·
+`product_stores`.
 
 `profile_rules` is deliberately generic — `type`, `target`, `operator`, `threshold` — so a
 new rule category needs no migration. Keep it that way.
