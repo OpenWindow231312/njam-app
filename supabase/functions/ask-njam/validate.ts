@@ -154,7 +154,11 @@ function cleanBlock(raw: unknown, knownProductIds: Set<string>): AskBlock | null
           .slice(0, MAX_STEPS)
       : [];
     // A recipe without a title, ingredients or steps is not a recipe.
-    if (!title || ingredients.length === 0 || steps.length === 0) return null;
+    if (!title || ingredients.length === 0 || steps.length === 0) {
+      // Logged so a missing recipe can be traced in the function logs.
+      console.warn('ask-njam dropped a recipe', { title: Boolean(title), ingredients: ingredients.length, steps: steps.length });
+      return null;
+    }
     return { type: 'recipe', title, ingredients, steps };
   }
 
