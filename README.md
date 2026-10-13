@@ -119,7 +119,7 @@ src/
   lib/                 Shared clients, e.g. the Supabase client
 supabase/
   migrations/          SQL schema, Row Level Security on from the first migration
-docs/                  Structure, Git workflow, and design-system notes
+docs/                  Structure, workflow, design system, scope, API, AI, testing, risks, plan
 ```
 
 Full explanation and the reasoning behind it: [`docs/STRUCTURE.md`](docs/STRUCTURE.md).
@@ -142,10 +142,25 @@ code, size, spacing or radius. How the artifact and the code stay linked:
 
 ## Git workflow
 
-`main` always holds the latest working code. Each feature or screen is built on a
-short-lived branch (`feat/scanner`, `fix/verdict-cap`, ...) and merged into `main`
-through a Pull Request. Commit history frequency and quality are directly
-assessed. Conventions and the full workflow: [`docs/GIT-WORKFLOW.md`](docs/GIT-WORKFLOW.md).
+`main` always holds the latest working code. Each feature is built on its own
+branch (`anika/scanner`, `anika/ask-njam`, ...) and merged into `main` with
+`git merge --no-ff` once it works, so a merge commit groups the feature's
+commits. There are no Pull Requests. Commit history frequency and quality are
+directly assessed. Conventions and the full workflow:
+[`docs/GIT-WORKFLOW.md`](docs/GIT-WORKFLOW.md).
+
+---
+
+## Project documents
+
+| Document | What it covers |
+| --- | --- |
+| [`docs/SCOPE.md`](docs/SCOPE.md) | The frozen MVP (Must, Nice, Future) and changes since the pitch |
+| [`docs/API.md`](docs/API.md) | Every route the app calls, with request and response examples |
+| [`docs/AI-PROMPTS.md`](docs/AI-PROMPTS.md) | Both Gemini prompts, output validation, loading and error states |
+| [`docs/TESTING.md`](docs/TESTING.md) | Core flow checklist, bug log, usability tests |
+| [`docs/RISKS.md`](docs/RISKS.md) | Technical risks from the pitch and how each was handled |
+| [`docs/PLAN.md`](docs/PLAN.md) | Sprints 3 and 4 through to the final hand-in |
 
 ---
 
@@ -154,6 +169,11 @@ assessed. Conventions and the full workflow: [`docs/GIT-WORKFLOW.md`](docs/GIT-W
 Auth · Onboarding · Home/Search · Scanner · Verdict · Alternatives · Add a
 product · Profile & filters · Household · Admin review queue. The brief requires
 a minimum of five; ten are planned.
+
+Built so far (13 Oct 2026): Auth, Home and Search, Scanner, Verdict, History,
+Profile (rules read-only), Admin review queue, and Ask Njam, the AI assistant.
+Still to build: Onboarding with rule editing, Alternatives, Add a product and
+Household. Priorities are in [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Roles
 
