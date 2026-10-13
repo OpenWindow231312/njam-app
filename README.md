@@ -179,14 +179,15 @@ Household. Priorities are in [`docs/PLAN.md`](docs/PLAN.md).
 
 Household Owner · Standard User · Admin/Moderator.
 
-## Database (13 tables)
+## Database (14 tables)
 
 `households` · `users` · `diet_profiles` · `profile_rules` · `scans` ·
 `categories` · `products` · `nutrition_facts` · `product_ingredients` ·
-`ingredients` · `allergens` · `chat_conversations` · `chat_messages`.
+`ingredients` · `allergens` · `chat_conversations` · `chat_messages` · `saved_products`.
 Row Level Security is on for every table from the migration that creates it.
 The two chat tables hold saved Ask Njam conversations, each private to the
-person who had it.
+person who had it. `saved_products` holds the products a household
+bookmarked, shared by everyone in it.
 
 ---
 
