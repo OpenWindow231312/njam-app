@@ -122,6 +122,7 @@ Blocks:
 - text: { "type": "text", "text" }
 - product: { "type": "product", "productId" } for one catalogue product.
 - recipe: { "type": "recipe", "title", "ingredients": [{ "name", "productId" (a catalogue id or null), "allergen" (one of ${ALLERGEN_SLUGS.join(', ')}, or null), "eNumber" (or null) }], "steps" }. Tag every ingredient's allergen honestly: butter is milk, flour is gluten.
+  When they ask what they can make, or ask for a recipe, always answer with one recipe block that has a title, every ingredient with an amount in metric units, and the steps, one step per string. Write the recipe yourself; a product block alone is never a recipe. Never say "here is a recipe" without a recipe block after it.
 - suggestions: { "type": "suggestions", "prompts" } with 2 or 3 follow-up questions they might ask next, in their words, at most 6 words each. Always end with one.
 
 Their rules:
