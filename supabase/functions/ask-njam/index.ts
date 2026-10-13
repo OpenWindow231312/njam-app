@@ -32,8 +32,14 @@ import {
 } from './context.ts';
 import { ALLERGEN_SLUGS, MAX_COMPLETION_LENGTH, validateBlocks, validateCompletion, type AskBlock } from './validate.ts';
 
-const MODEL = 'gemini-flash-lite-latest';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+// Two models. Chat uses the stronger Flash: Flash-Lite often left recipes
+// without ingredients or steps, or repeated itself until the reply was cut
+// off mid-JSON (bug 11). Ghost text has to be fast and short, so it keeps
+// Flash-Lite.
+const CHAT_MODEL = 'gemini-flash-latest';
+const COMPLETE_MODEL = 'gemini-flash-lite-latest';
+const geminiUrl = (model: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
 /** A chat answer may take a moment; ghost text that arrives late is useless. */
 const CHAT_TIMEOUT_MS = 20_000;
@@ -165,14 +171,14 @@ async function askGemini(
   instruction: string,
   turns: GeminiTurn[],
   schema: unknown,
-  options: { temperature: number; maxOutputTokens: number; timeoutMs: number; signal?: AbortSignal },
+  options: { model: string; temperature: number; maxOutputTokens: number; timeoutMs: number; signal?: AbortSignal },
 ): Promise<unknown> {
   // Stop when we time out, or when the app gives up on a ghost-text request.
   const signal = options.signal
     ? AbortSignal.any([options.signal, AbortSignal.timeout(options.timeoutMs)])
     : AbortSignal.timeout(options.timeoutMs);
 
-  const response = await fetch(GEMINI_URL, {
+  const response = await fetch(geminiUrl(options.model), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     signal,
@@ -200,7 +206,18 @@ async function askGemini(
     console.error('Gemini returned no text', JSON.stringify(result).slice(0, 500));
     throw new Error('The AI returned no answer.');
   }
-  return JSON.parse(jsonText);
+  try {
+    return JSON.parse(jsonText);
+  } catch (error) {
+    // Usually the reply ran out of room (finishReason MAX_TOKENS) and was cut
+    // off mid-string. Log enough to tell, not the whole reply.
+    console.error('Gemini JSON did not parse', {
+      finishReason: result?.candidates?.[0]?.finishReason,
+      length: jsonText.length,
+      end: jsonText.slice(-200),
+    });
+    throw error;
+  }
 }
 
 /** An earlier message as plain text for Gemini. A product is named by its id, a recipe by its title. */
@@ -249,8 +266,10 @@ async function chat(req: Request, body: Record<string, unknown>, apiKey: string)
 
   // A little warmth in the wording; the facts come from the context above.
   const raw = await askGemini(apiKey, instruction, turns, BLOCKS_SCHEMA, {
+    model: CHAT_MODEL,
     temperature: 0.4,
-    maxOutputTokens: 2_048,
+    // A recipe with its JSON around it can pass 2,000 tokens.
+    maxOutputTokens: 8_192,
     timeoutMs: CHAT_TIMEOUT_MS,
   });
   const blocks = validateBlocks(raw, new Set(catalogue.map((product) => product.id)));
@@ -270,6 +289,7 @@ async function complete(req: Request, body: Record<string, unknown>, apiKey: str
     [{ role: 'user', parts: [{ text: `Typed so far: ${JSON.stringify(text)}` }] }],
     COMPLETION_SCHEMA,
     {
+      model: COMPLETE_MODEL,
       temperature: 0.2,
       // A few tokens more than MAX_COMPLETION_LENGTH needs, for the JSON around it.
       maxOutputTokens: Math.ceil(MAX_COMPLETION_LENGTH / 2) + 16,
