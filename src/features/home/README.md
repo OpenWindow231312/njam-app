@@ -13,7 +13,9 @@ product catalogue, and a two-column grid of products, each with its verdict.
   verdict as one segmented control (All, Safe only, Hide Not safe) and the
   stores as pills with their logos (`StoreLogo`), ending with Other. While a
   filter is on, a line under the search bar names it, with "Clear filters".
-  The aisle chips (All, Saved, then the `categories` rows) switch straight away.
+  The aisle bubbles (`CategoryBubble`: All, Saved, then the `categories`
+  rows, each with its icon from `AISLE_ICONS` in `categories.ts`) switch
+  straight away.
 - Saved products live in `saved_products`, shared by the household. The
   bookmark on a card saves at once on screen and puts it back if the save
   fails.
