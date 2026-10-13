@@ -615,6 +615,8 @@ export const layout = {
   productTileWidth: 150,
   /** ProductTile image well height. */
   productTileImageHeight: 130,
+  /** The product photo at the top of the Verdict screen, full width (approved 13 Oct 2026). */
+  productPhotoHeight: 240,
   /** Thumbnail in a ProductCard row. */
   thumbSm: 56,
   /** Thumbnail in the ProductCard identity block and PhotoStepCard. */
