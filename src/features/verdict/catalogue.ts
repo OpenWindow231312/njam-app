@@ -26,13 +26,18 @@ export type CatalogueProduct = {
   imageUrl: string | null;
   /** The ingredient list photo it was read from, for the review queue. */
   labelImageUrl: string | null;
+  /** The aisle it sits in, for the category chips on Home. */
+  categoryId: string | null;
+  /** The stores that sell it, for the Store filter on Home. */
+  storeIds: string[];
 };
 
 // "allergen:allergen_id(slug)" means: follow the allergen_id foreign key and
 // call the result "allergen". canonical_id points back at ingredients itself.
 const PRODUCT_COLUMNS = `
   id, barcode, name, brand, serving_size, serving_unit, verified, source,
-  may_contain, image_url, label_image_url,
+  may_contain, image_url, label_image_url, category_id,
+  product_stores ( store_id ),
   product_ingredients (
     position,
     ingredients (
@@ -62,6 +67,8 @@ type ProductRow = {
   may_contain: string[];
   image_url: string | null;
   label_image_url: string | null;
+  category_id: string | null;
+  product_stores: { store_id: string }[];
   product_ingredients: { position: number; ingredients: IngredientRow | null }[];
 };
 
@@ -91,6 +98,8 @@ function toProduct(row: ProductRow): CatalogueProduct {
     mayContain: row.may_contain,
     imageUrl: row.image_url,
     labelImageUrl: row.label_image_url,
+    categoryId: row.category_id,
+    storeIds: row.product_stores.map((link) => link.store_id),
   };
 }
 
@@ -108,6 +117,17 @@ export async function fetchProductByBarcode(barcode: string): Promise<CatalogueP
     .maybeSingle();
   if (error) throw error;
   return data ? toProduct(data as unknown as ProductRow) : null;
+}
+
+/**
+ * The whole catalogue, A to Z, for the grid on Home. It holds a few dozen
+ * products for now, so Home loads them all once and filters on the phone.
+ * When the catalogue grows past a few hundred, this needs paging.
+ */
+export async function fetchCatalogue(): Promise<CatalogueProduct[]> {
+  const { data, error } = await supabase.from('products').select(PRODUCT_COLUMNS).order('name');
+  if (error) throw error;
+  return (data as unknown as ProductRow[]).map(toProduct);
 }
 
 /** "Clover · 1000 ml": the brand and pack size, for ProductCard. */
