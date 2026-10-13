@@ -1,10 +1,12 @@
 /**
- * StoreLogo: a shop's logo in a round white badge, in the filter sheet and
- * under "Where to buy it".
+ * StoreLogo: a shop's logo in a round badge, in the filter sheet and under
+ * "Where to buy it".
  *
- * The logo is the shop's own artwork, drawn as an image, so it keeps its own
- * colours. A store with no logo uploaded yet, and "Other", show the
- * storefront icon instead, so the badge never looks broken.
+ * The logo is the shop's own square artwork (its app icon, often a coloured
+ * tile with the wordmark), drawn as an image that fills the whole circle, so
+ * it keeps its own colours. The files are cropped so the mark sits inside
+ * the circle. A store with no logo uploaded yet, and "Other", show the
+ * storefront icon on white instead, so the badge never looks broken.
  *
  * It always sits on a white surface (a sheet or a list), so it needs no
  * shadow. Decorative: the store's name always sits beside it in words.
@@ -13,7 +15,7 @@ import { useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
-import { layout, radius, space } from '@/theme/tokens';
+import { layout, radius } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type StoreLogoProps = {
@@ -34,7 +36,7 @@ export function StoreLogo({ logoUrl }: StoreLogoProps) {
         <Image
           source={{ uri: logoUrl }}
           style={styles.logo}
-          resizeMode="contain"
+          resizeMode="cover"
           onError={() => setFailed(true)}
           accessibilityIgnoresInvertColors
         />
@@ -54,9 +56,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  // Inset so a square logo sits inside the circle rather than being cut off.
+  // The whole circle; the badge's overflow: hidden rounds the square off.
   logo: {
-    width: layout.iconBadgeSize - space.s2 * 2,
-    height: layout.iconBadgeSize - space.s2 * 2,
+    width: layout.iconBadgeSize,
+    height: layout.iconBadgeSize,
   },
 });
