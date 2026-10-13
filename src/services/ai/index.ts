@@ -68,6 +68,40 @@ export async function readLabel(input: LabelInput): Promise<LabelRead> {
   return data.data;
 }
 
+/** The front of a pack, read for its name. Mirrors FrontRead in scan-label/validate.ts. */
+export type FrontRead = {
+  readable: boolean;
+  /** Without the brand: "Fresh full cream milk 2 l". */
+  name: string | null;
+  brand: string | null;
+  /** When readable is false: what was wrong. */
+  problem: string | null;
+};
+
+type FrontReply =
+  | { ok: true; data: FrontRead }
+  | { ok: false; error: { code: string; message: string } };
+
+/** Reads the product name and brand off a photo of the front of the pack. */
+export async function readFront(photo: { imageBase64: string; mimeType: 'image/jpeg' }): Promise<FrontRead> {
+  const { data, error } = await supabase.functions.invoke<FrontReply>('scan-label', {
+    body: { mode: 'front', ...photo },
+  });
+
+  if (error) {
+    if (error instanceof FunctionsHttpError) {
+      const body = (await error.context.json().catch(() => null)) as FrontReply | null;
+      if (body && !body.ok) throw new LabelReadError(body.error.message);
+    }
+    throw new LabelReadError('We could not reach the label reader. Check your connection and try again.');
+  }
+
+  if (!data || !data.ok) {
+    throw new LabelReadError(data?.ok === false ? data.error.message : 'The label reader sent back nothing.');
+  }
+  return data.data;
+}
+
 /* ------------------------------------------------------------------ */
 /* Ask Njam                                                            */
 /* ------------------------------------------------------------------ */
