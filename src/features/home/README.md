@@ -9,9 +9,11 @@ product catalogue, and a two-column grid of products, each with its verdict.
 - Each card's verdict comes from the verdict engine with the household's
   default profile, the one a scan is recorded against. The deck names it.
   The card shows the verdict as its mark; tapping opens the full verdict.
-- Filters: the filter button and the two dropdown chips ("Every verdict",
-  "Any store") all open `FilterSheet`. The aisle chips (All, Saved, then the
-  `categories` rows) switch straight away.
+- Filters: the filter button beside the search bar opens `FilterSheet`: the
+  verdict as one segmented control (All, Safe only, Hide Not safe) and the
+  stores as pills with their logos (`StoreLogo`), ending with Other. While a
+  filter is on, a line under the search bar names it, with "Clear filters".
+  The aisle chips (All, Saved, then the `categories` rows) switch straight away.
 - Saved products live in `saved_products`, shared by the household. The
   bookmark on a card saves at once on screen and puts it back if the save
   fails.

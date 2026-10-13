@@ -1,36 +1,42 @@
 /**
- * FilterSheet: narrows the product grid on Home by verdict and by store.
+ * FilterSheet: narrows the product grid by verdict and by store.
  *
- * Opened three ways: the filter button beside the search bar, and the two
- * dropdown chips under it ("Every verdict", "Any store"). They all open this
- * one sheet, so there is one place to see and change every filter.
+ * Opened by the filter button beside the search bar. It is kept short enough
+ * to take in at a glance: the verdict is one segmented control, and the
+ * stores are small pills with their logos that wrap onto a few lines,
+ * rather than a long list to scroll through.
  *
- * Choosing a row applies it straight away; the grid behind updates. The
- * button at the bottom closes the sheet and says how many products are left.
+ * Choosing applies straight away; the grid behind updates. The button at the
+ * bottom closes the sheet and says how many products are left.
  *
  * Built as a modal, the same way as ProfilePicker on the Verdict screen.
  */
-import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Button, IconButton, ListGroup, ListRow } from '@/components/design-system';
+import { Button, IconButton, SegmentedControl, StoreLogo } from '@/components/design-system';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import type { Store } from '@/features/home/stores';
 import { layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 /**
- * all      - every product.
- * safe     - only products that are Safe for you.
+ * all       - every product.
+ * safe      - only products that are Safe for you.
  * notUnsafe - Safe and Caution, so nothing you cannot eat.
  */
 export type VerdictFilter = 'all' | 'safe' | 'notUnsafe';
 
-export const VERDICT_FILTER_WORDS: Record<VerdictFilter, { title: string; supporting: string }> = {
-  all: { title: 'Every verdict', supporting: 'Safe, Caution and Not safe' },
-  safe: { title: 'Safe only', supporting: 'Nothing in them breaks your rules' },
-  notUnsafe: { title: 'Hide Not safe', supporting: 'Safe, and the ones to check' },
+/** How each verdict filter reads, on its segment and in the "Filtered by" line on Home. */
+export const VERDICT_FILTER_WORDS: Record<VerdictFilter, string> = {
+  all: 'All',
+  safe: 'Safe only',
+  notUnsafe: 'Hide Not safe',
 };
 
-const VERDICT_FILTERS: VerdictFilter[] = ['all', 'safe', 'notUnsafe'];
+const VERDICT_SEGMENTS = (['all', 'safe', 'notUnsafe'] as const).map((value) => ({
+  value,
+  label: VERDICT_FILTER_WORDS[value],
+}));
 
 type FilterSheetProps = {
   visible: boolean;
@@ -56,8 +62,7 @@ export function FilterSheet({
   onClose,
 }: FilterSheetProps) {
   const { colors, shadows } = useNjamTheme();
-  // A long store list scrolls inside the card rather than running off screen.
-  const { height } = useWindowDimensions();
+  const filtered = verdictFilter !== 'all' || storeId !== null;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -67,11 +72,7 @@ export function FilterSheet({
         <View
           accessibilityViewIsModal
           accessibilityLabel="Filter products"
-          style={[
-            styles.card,
-            { backgroundColor: colors.surfaceRaised, maxHeight: height * layout.sheetMaxHeight },
-            shadows.modal,
-          ]}>
+          style={[styles.card, { backgroundColor: colors.surfaceRaised }, shadows.modal]}>
           <View style={styles.header}>
             <Text accessibilityRole="header" style={[typography.displayS, styles.title, { color: colors.ink }]}>
               Filter products
@@ -79,59 +80,87 @@ export function FilterSheet({
             <IconButton icon="close" accessibilityLabel="Close" onPress={onClose} />
           </View>
 
-          <ScrollView contentContainerStyle={styles.sections}>
-            <View style={styles.section}>
-              <Text accessibilityRole="header" style={[typography.overline, { color: colors.inkMuted }]}>
-                Verdict
-              </Text>
-              <ListGroup>
-                {VERDICT_FILTERS.map((filter) => (
-                  <ListRow
-                    key={filter}
-                    title={VERDICT_FILTER_WORDS[filter].title}
-                    supporting={VERDICT_FILTER_WORDS[filter].supporting}
-                    value={filter === verdictFilter ? 'Chosen' : undefined}
-                    trailing="none"
-                    onPress={() => onVerdictFilter(filter)}
-                  />
-                ))}
-              </ListGroup>
-            </View>
+          <View style={styles.section}>
+            <Text accessibilityRole="header" style={[typography.overline, { color: colors.inkMuted }]}>
+              Verdict
+            </Text>
+            <SegmentedControl segments={VERDICT_SEGMENTS} value={verdictFilter} onChange={onVerdictFilter} />
+          </View>
 
-            <View style={styles.section}>
-              <Text accessibilityRole="header" style={[typography.overline, { color: colors.inkMuted }]}>
-                Store
-              </Text>
-              <ListGroup>
-                <ListRow
-                  title="Any store"
-                  icon="storefront"
-                  value={storeId === null ? 'Chosen' : undefined}
-                  trailing="none"
-                  onPress={() => onStore(null)}
+          <View style={styles.section}>
+            <Text accessibilityRole="header" style={[typography.overline, { color: colors.inkMuted }]}>
+              Store
+            </Text>
+            <View accessibilityRole="radiogroup" style={styles.stores}>
+              <StoreOption name="Any store" logoUrl={null} selected={storeId === null} onPress={() => onStore(null)} />
+              {stores.map((store) => (
+                <StoreOption
+                  key={store.id}
+                  name={store.name}
+                  logoUrl={store.logoUrl}
+                  selected={store.id === storeId}
+                  onPress={() => onStore(store.id)}
                 />
-                {stores.map((store) => (
-                  <ListRow
-                    key={store.id}
-                    title={store.name}
-                    icon="storefront"
-                    value={store.id === storeId ? 'Chosen' : undefined}
-                    trailing="none"
-                    onPress={() => onStore(store.id)}
-                  />
-                ))}
-              </ListGroup>
+              ))}
             </View>
-          </ScrollView>
+          </View>
 
-          <Button
-            label={`Show ${resultCount} ${resultCount === 1 ? 'product' : 'products'}`}
-            fullWidth
-            onPress={onClose}
-          />
+          <View style={styles.actions}>
+            <Button
+              label={`Show ${resultCount} ${resultCount === 1 ? 'product' : 'products'}`}
+              fullWidth
+              onPress={onClose}
+            />
+            {filtered && (
+              <Button
+                label="Clear filters"
+                variant="text"
+                fullWidth
+                onPress={() => {
+                  onVerdictFilter('all');
+                  onStore(null);
+                }}
+              />
+            )}
+          </View>
         </View>
       </View>
     </Modal>
+  );
+}
+
+/**
+ * One store as a pill: its logo, then its name. Drawn like OptionButton
+ * (white with the ambient shadow, forest when chosen) but sized to its name,
+ * so several share a line.
+ */
+function StoreOption({
+  name,
+  logoUrl,
+  selected,
+  onPress,
+}: {
+  name: string;
+  logoUrl: string | null;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const { colors, shadows } = useNjamTheme();
+  return (
+    <PressableSurface
+      onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+      accessibilityLabel={name}
+      radius={radius.pill}
+      style={[
+        styles.storeOption,
+        { backgroundColor: selected ? colors.selected : colors.surfaceRaised },
+        !selected && shadows.ambient,
+      ]}>
+      <StoreLogo logoUrl={logoUrl} />
+      <Text style={[typography.label, { color: selected ? colors.onSelected : colors.ink }]}>{name}</Text>
+    </PressableSurface>
   );
 }
 
@@ -145,7 +174,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
     maxWidth: layout.contentMaxWidth,
-    gap: space.s4,
+    gap: space.s6,
     padding: space.s6,
     borderRadius: radius.xl,
   },
@@ -156,10 +185,25 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
   },
-  sections: {
-    gap: space.s6,
-  },
   section: {
+    gap: space.s3,
+  },
+  stores: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: space.s2,
+  },
+  // 48 tall: the 40 logo badge with space.s1 around it.
+  storeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s2,
+    minHeight: layout.touchTargetMin,
+    padding: space.s1,
+    paddingRight: space.s4,
+    borderRadius: radius.pill,
+  },
+  actions: {
+    gap: space.s1,
   },
 });
