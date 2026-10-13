@@ -38,3 +38,52 @@ export async function verifyProduct(productId: string): Promise<void> {
   if (error) throw error;
   if (!data || data.length === 0) throw new Error('Only an admin can verify a product.');
 }
+
+/** Another product in the catalogue that looks like the same one. */
+export type PossibleDuplicate = {
+  id: string;
+  name: string;
+  brand: string | null;
+  barcode: string;
+};
+
+// Pack sizes, so "2 l" and "1 L" packs of the same milk still match.
+const PACK_SIZE = /\b\d+([.,]\d+)?\s*(g|kg|ml|l|lt|litre|litres)\b/g;
+
+/**
+ * Brand and name reduced to what identifies the product: lower case, pack
+ * size and punctuation removed. "Clover Fresh Full Cream Milk 2 L" and
+ * "clover fresh full cream milk 1l" both become "clover fresh full cream milk".
+ */
+export function sameProductKey(brand: string | null, name: string): string {
+  return `${brand ?? ''} ${name}`
+    .toLowerCase()
+    .replace(PACK_SIZE, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+/**
+ * For each product in the queue, the other products with the same brand and
+ * name. The barcode is unique, so the same barcode can never be saved twice;
+ * this catches the same product saved under another barcode (a different
+ * pack size, or a misread barcode) for an admin to look at.
+ */
+export async function fetchPossibleDuplicates(
+  queue: CatalogueProduct[],
+): Promise<Map<string, PossibleDuplicate[]>> {
+  // The whole catalogue is small (25 products today), so read it once and
+  // compare here, rather than asking the database once per product.
+  const { data, error } = await supabase.from('products').select('id, name, brand, barcode');
+  if (error) throw error;
+
+  const duplicates = new Map<string, PossibleDuplicate[]>();
+  for (const product of queue) {
+    const key = sameProductKey(product.brand, product.name);
+    const matches = (data as PossibleDuplicate[]).filter(
+      (other) => other.id !== product.id && sameProductKey(other.brand, other.name) === key,
+    );
+    if (matches.length > 0) duplicates.set(product.id, matches);
+  }
+  return duplicates;
+}
