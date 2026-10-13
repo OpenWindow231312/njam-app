@@ -6,8 +6,9 @@
  *   member  - that person's row in public.users (name, role, household).
  *
  * The root layout reads `session` to decide whether to show the Auth screen
- * or the tabs. Screens read `member` for the person's name, role and
- * household. Nothing else in the app talks to supabase.auth directly.
+ * or the tabs, and `onboarded` to decide whether to show onboarding first.
+ * Screens read `member` for the person's name, role and household. Nothing
+ * else in the app talks to supabase.auth directly.
  */
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
@@ -28,11 +29,15 @@ type SignUpResult = 'signed-in' | 'check-email';
 type AuthContextValue = {
   session: Session | null;
   member: Member | null;
+  /** True once this person has set their rules in onboarding. */
+  onboarded: boolean;
   /** True until the saved session has been read from the phone. */
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<SignUpResult>;
   signOut: () => Promise<void>;
+  /** Marks onboarding as done, so the app opens on the tabs from now on. */
+  finishOnboarding: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -116,8 +121,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // sign-in, sign-out and token refresh after that.
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
-      // A token refresh is the same person; their row has not changed.
-      if (event === 'TOKEN_REFRESHED') return;
+      // A token refresh is the same person; their row has not changed. A user
+      // update (finishOnboarding) only changes the session's metadata.
+      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
       if (!nextSession) {
         setMember(null);
         setLoading(false);
@@ -157,8 +163,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   }
 
+  async function finishOnboarding() {
+    // Kept in the auth user's metadata rather than a new column, so no
+    // migration is needed. It only decides which screen opens first; it
+    // grants nothing, so it does not matter that a person can change it.
+    const { error } = await supabase.auth.updateUser({ data: { onboarded: true } });
+    if (error) throw error;
+  }
+
+  // A person can finish onboarding with no rules at all (no allergies, nothing
+  // avoided), so "has rules" cannot stand in for "has been through onboarding".
+  const onboarded = session?.user.user_metadata?.onboarded === true;
+
   return (
-    <AuthContext.Provider value={{ session, member, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{ session, member, onboarded, loading, signIn, signUp, signOut, finishOnboarding }}>
       {children}
     </AuthContext.Provider>
   );
