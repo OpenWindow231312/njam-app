@@ -49,6 +49,15 @@ function checkFields(mode: Mode, name: string, email: string, password: string):
 /** Turns Supabase's message into one sentence a person can act on. */
 function explain(error: unknown): string {
   const message = error instanceof Error ? error.message : '';
+  // Supabase Auth errors also carry a code, which is steadier than the wording.
+  const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : '';
+  if (code === 'email_address_invalid') {
+    return 'That email address was not accepted. Use an address you can open on this phone.';
+  }
+  // Supabase's built-in email sender only sends a few emails an hour.
+  if (code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit') {
+    return 'Too many sign-ups in a short time. Try again in an hour.';
+  }
   if (message.includes('Invalid login credentials')) {
     return 'That email and password do not match an account. Check both and try again.';
   }
