@@ -24,9 +24,13 @@ SplashScreen.preventAutoHideAsync();
  * Stack.Protected removes the screens inside it while its guard is false, so
  * a signed-out person cannot reach the tabs even by a deep link, and a
  * signed-in person is moved off the Auth screen as soon as the session lands.
+ *
+ * Onboarding works the same way. A signed-in person who has not set their
+ * rules yet can reach only onboarding, and is moved to the tabs the moment
+ * they finish it. Changing rules later uses a separate route, edit-rules.
  */
 function RootNavigator() {
-  const { session, loading } = useAuth();
+  const { session, onboarded, loading } = useAuth();
   const { colors } = useNjamTheme();
   const signedIn = session !== null;
 
@@ -37,12 +41,16 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surface } }}>
-      <Stack.Protected guard={signedIn}>
+      <Stack.Protected guard={signedIn && onboarded}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="edit-rules" />
         <Stack.Screen name="verdict" />
         <Stack.Screen name="ask" />
         <Stack.Screen name="admin-review" />
         <Stack.Screen name="explore" />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn && !onboarded}>
+        <Stack.Screen name="onboarding" />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="sign-in" />
