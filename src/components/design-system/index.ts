@@ -35,4 +35,5 @@ export { ScopePill } from './ScopePill';
 export { Slider } from './Slider';
 export { Snackbar } from './Snackbar';
 export { StepProgress } from './StepProgress';
+export { StoreLogo } from './StoreLogo';
 export { FrostedStrip } from './FrostedStrip';

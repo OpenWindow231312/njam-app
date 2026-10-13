@@ -38,15 +38,15 @@ import {
   EmptyState,
   Icon,
   IconButton,
-  ListGroup,
-  ListRow,
   LoadingMark,
   SectionHeader,
   Snackbar,
+  StoreLogo,
   VerdictChip,
   VerdictMark,
   type VerdictReason,
 } from '@/components/design-system';
+import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { AskNjamButton } from '@/features/ask-njam/AskNjamHeader';
 import { useAuth, type Member } from '@/features/auth/AuthProvider';
 import { fetchSavedProductIds, saveProduct, unsaveProduct } from '@/features/home/saved-products';
@@ -578,25 +578,51 @@ function NutritionTable({ nutrition }: { nutrition: Nutrition | null }) {
   );
 }
 
-/** The stores that sell it. Each row opens the product, or the store, on the store's website. */
+/**
+ * The stores that sell it, each with its logo. A row opens the product, or
+ * the store, on the store's website. "Other" has no website, so it is not
+ * tappable. Drawn here rather than with ListRow, which has no slot for a logo.
+ */
 function WhereToBuy({ stores }: { stores: StoreForProduct[] }) {
-  const { colors } = useNjamTheme();
+  const { colors, shadows } = useNjamTheme();
   return (
     <View style={styles.block}>
       <SectionHeader variant="simple" headline="Where to buy it" />
       {stores.length > 0 ? (
-        <ListGroup>
-          {stores.map((store) => (
-            <ListRow
-              key={store.id}
-              title={store.name}
-              icon="storefront"
-              supporting="Open the website"
-              trailing="chevron"
-              onPress={() => openBrowserAsync(store.link)}
-            />
-          ))}
-        </ListGroup>
+        <View style={[styles.table, { backgroundColor: colors.surfaceRaised }, shadows.ambient]}>
+          {stores.map((store, index) => {
+            const divider = index > 0 && { borderTopWidth: border.hairline, borderTopColor: colors.line };
+            const words = (
+              <>
+                <StoreLogo logoUrl={store.logoUrl} />
+                <View style={styles.flex}>
+                  <Text style={[typography.title, { color: colors.ink }]}>{store.name}</Text>
+                  <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
+                    {store.link ? 'Open the website' : 'Sold somewhere not on our list'}
+                  </Text>
+                </View>
+              </>
+            );
+            const link = store.link;
+            return link ? (
+              <PressableSurface
+                key={store.id}
+                onPress={() => openBrowserAsync(link)}
+                accessibilityRole="link"
+                accessibilityLabel={`${store.name}, open the website`}
+                radius={radius.none}
+                shrink={false}
+                style={[styles.storeRow, divider]}>
+                {words}
+                <Icon name="chevron_right" color={colors.inkMuted} />
+              </PressableSurface>
+            ) : (
+              <View key={store.id} accessible style={[styles.storeRow, divider]}>
+                {words}
+              </View>
+            );
+          })}
+        </View>
       ) : (
         <Text style={[typography.body, { color: colors.inkMuted }]}>
           We do not know which stores sell this product yet.
@@ -789,6 +815,14 @@ const styles = StyleSheet.create({
   table: {
     borderRadius: radius.lg,
     paddingHorizontal: space.s4,
+  },
+  // At least the 48 touch target, like a ListRow.
+  storeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s3,
+    minHeight: layout.touchTargetMin,
+    paddingVertical: space.s3,
   },
   tableRow: {
     flexDirection: 'row',
