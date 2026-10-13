@@ -126,3 +126,38 @@ export function validateLabelRead(raw: unknown): LabelRead {
     problem: readable ? null : (cleanText(data.problem) ?? 'We could not read an ingredient list.'),
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* Front of the pack                                                  */
+/* ------------------------------------------------------------------ */
+
+export type FrontRead = {
+  /** False when no product name could be read off the photo. */
+  readable: boolean;
+  /** As printed, without the brand: "Fresh full cream milk 2 l". */
+  name: string | null;
+  /** "Clover", or null when no brand is printed. */
+  brand: string | null;
+  /** When readable is false: what was wrong, in one short sentence. */
+  problem: string | null;
+};
+
+/**
+ * Turns Gemini's reading of the front of a pack into a FrontRead.
+ * No name means nothing was read, whatever the model claimed.
+ */
+export function validateFrontRead(raw: unknown): FrontRead {
+  if (typeof raw !== 'object' || raw === null) {
+    throw new Error('The AI response was not an object.');
+  }
+  const data = raw as Record<string, unknown>;
+  const name = cleanText(data.name);
+  const readable = data.readable === true && name !== null;
+
+  return {
+    readable,
+    name: readable ? name : null,
+    brand: readable ? cleanText(data.brand) : null,
+    problem: readable ? null : (cleanText(data.problem) ?? 'We could not read the product name.'),
+  };
+}
