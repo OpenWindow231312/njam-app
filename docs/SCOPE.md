@@ -49,7 +49,7 @@ seeded rules, but a new person cannot add their own.
 | Change | Why |
 | --- | --- |
 | **Added Ask Njam**, the assistant | Explaining a verdict, swapping a product and cooking with what you scanned are the questions people ask after a verdict. The AI explains; the engine still decides. |
-| **Added Open Food Facts** before the label photo | Many South African barcodes are not in our catalogue. A public database answers most of them in under a second; the photo is the fallback. Anything from it is unverified, so capped at Caution. |
+| **Added Open Food Facts** before the label photo | Many South African barcodes are not in our catalogue. A public database can answer many of them without a photo; the photo is the fallback. Anything from it is unverified, so capped at Caution. |
 | **Dark mode paused** | Two themes doubled the checking on every screen. Paper only until the MVP is done. |
 | **Nutrient limits moved to Nice** | There is no reliable source of South African nutrition facts yet. Unchecked limits show as Caution, never Safe. |
 | **Workflow changed to one branch per feature** | Groups each feature's commits in the history with a merge commit. See `GIT-WORKFLOW.md`. |
