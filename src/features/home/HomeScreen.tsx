@@ -8,7 +8,8 @@
  *   - the search bar, and the filter button beside it, which opens
  *     FilterSheet (verdict and store). While a filter is on, a line under
  *     the search bar says which, with "Clear filters".
- *   - the aisle chips: All, Saved, then one per category.
+ *   - the aisle bubbles (round icons, like Sixty60's quick shops): All,
+ *     Saved, then one per category.
  *   - the products, two to a row.
  *
  * The catalogue is small (a few dozen products), so Home loads all of it once
@@ -28,8 +29,8 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import {
   Button,
+  CategoryBubble,
   EmptyState,
-  FilterChip,
   IconButton,
   LoadingMark,
   ProductGridCard,
@@ -234,18 +235,20 @@ export function HomeScreen() {
         </View>
       )}
 
-      {/* The aisle chips scroll sideways, edge to edge past the screen gutter. */}
-      <View>
+      {/* The aisle bubbles scroll sideways, edge to edge past the screen gutter. */}
+      <View style={styles.aisles}>
+        <SectionHeader variant="shelf" headline="Shop by aisle" />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.bleed}
-          contentContainerStyle={styles.chipRow}>
-          <FilterChip label="All" active={aisle === 'all'} onPress={() => setAisle('all')} />
-          <FilterChip label="Saved" active={aisle === 'saved'} onPress={() => setAisle('saved')} />
+          contentContainerStyle={styles.bubbleRow}>
+          <CategoryBubble icon="grid_view" label="All" active={aisle === 'all'} onPress={() => setAisle('all')} />
+          <CategoryBubble icon="bookmark" label="Saved" active={aisle === 'saved'} onPress={() => setAisle('saved')} />
           {loaded?.categories.map((category) => (
-            <FilterChip
+            <CategoryBubble
               key={category.id}
+              icon={category.icon}
               label={category.name}
               active={aisle === category.id}
               onPress={() => setAisle(category.id)}
@@ -352,12 +355,15 @@ const styles = StyleSheet.create({
   bleed: {
     marginHorizontal: -layout.screenGutter,
   },
-  // The vertical padding makes room for the chips' 48 hit areas, which a
-  // scroll view would otherwise clip on Android.
-  chipRow: {
+  aisles: {
+    gap: space.s3,
+  },
+  // Vertical padding leaves room for the bubbles' soft shadow, which the
+  // scroll view would otherwise clip.
+  bubbleRow: {
     gap: space.s2,
     paddingHorizontal: layout.screenGutter,
-    paddingVertical: (layout.touchTargetMin - layout.filterChipHeight) / 2,
+    paddingVertical: space.s2,
   },
   filteredRow: {
     flexDirection: 'row',

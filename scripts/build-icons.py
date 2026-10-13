@@ -42,6 +42,9 @@ ICONS = sorted({
     'nutrition', 'person', 'person_add', 'photo_camera', 'restaurant', 'rule', 'science',
     'search', 'sell', 'send', 'settings', 'share', 'storefront', 'swap_horiz', 'sync_problem',
     'task_alt', 'tune', 'verified', 'vibration', 'visibility', 'visibility_off', 'warning',
+    # The aisle bubbles on Home and Search (13 Oct 2026).
+    'bakery_dining', 'breakfast_dining', 'category', 'cookie', 'dinner_dining', 'egg', 'grain',
+    'grid_view', 'local_drink', 'soup_kitchen', 'tapas',
 })
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

@@ -13,7 +13,7 @@ Built so far (v1.5, 30 Sep 2026, from the "Njam UI v1.4" canvas):
 | Choices | `OptionButton`, `RuleChip`, `FilterChip`, `DropdownChip`, `SegmentedControl`, `Checkbox`, `Slider` |
 | Fields | `TextField` (outlined, search, numeric) |
 | Verdict | `VerdictMark` (fill and surface grounds), `VerdictChip` (filled, outlined), `VerdictBanner`, `MemberVerdict` |
-| Products | `ProductTile`, `ProductGridCard`, `ProductCard` (row, identity), `PhotoStepCard` |
+| Products | `CategoryBubble`, `ProductTile`, `ProductGridCard`, `ProductCard` (row, identity), `PhotoStepCard` |
 | People and scope | `Avatar`, `HouseholdBar`, `ScopePill` |
 | Stores | `StoreLogo` (a shop's logo in a round white badge, storefront icon until one is uploaded) |
 | Scanner | `ScanFrame` |
@@ -24,6 +24,10 @@ Built so far (v1.5, 30 Sep 2026, from the "Njam UI v1.4" canvas):
 `ProductGridCard` (13 Oct 2026, Home) is a white card for the two-column grid
 on Home: photo with the verdict mark and save button, then the name, brand and
 pack size. It stretches to its column; `ProductTile` keeps the shelf width.
+
+`CategoryBubble` (13 Oct 2026) is an aisle as a round icon with its name under
+it, like Sixty60's quick shops: white with the ambient shadow at rest, lime when
+it is the aisle on show. `layout.categoryBubbleSize` (64) sets the circle.
 
 Still to build: `BottomSheet` (the verdict sheet) and `NutrientMeter`, which the
 design system describes but the canvas did not draw yet.

@@ -26,6 +26,7 @@ export { EVERYONE, HouseholdBar, type HouseholdMember } from './HouseholdBar';
 export { MemberVerdict } from './MemberVerdict';
 export { AiAvatar, NjamMark } from './NjamMark';
 export { PhotoStepCard } from './PhotoStepCard';
+export { CategoryBubble } from './CategoryBubble';
 export { ProductCard } from './ProductCard';
 export { ProductGridCard } from './ProductGridCard';
 export { ProductTile } from './ProductTile';
