@@ -9,10 +9,13 @@
  *               default) or Open Food Facts, which also passes a `brand`.
  *   scanId    - a past scan from History, shown exactly as it was decided.
  *
- * Layout, top to bottom: the product photo, the name with the brand and
- * barcode smaller underneath, the verdict (mark, word, headline and reason
- * lines), then the ingredients. "Scan another product" stays pinned to the
- * bottom of the screen however short the content is.
+ * Layout, top to bottom: the product photo (with a save button for a
+ * catalogue product), the name with its verdict chip beside it, the brand,
+ * the pack size and barcode, the verdict (mark, word, headline and reason
+ * lines), the ingredients, then for a catalogue product its nutrition facts
+ * and the stores that sell it. "Scan another product" stays pinned to the
+ * bottom of the screen however short the content is. Ask Njam sits at the
+ * top right.
  *
  * "Viewing for" (top right) switches whose rules the verdict is shown for.
  * The engine decides again with that person's rules; nothing is saved. The
@@ -24,6 +27,7 @@
  * the engine caps anything read from a label at Caution.
  */
 import { router, useLocalSearchParams } from 'expo-router';
+import { openBrowserAsync } from 'expo-web-browser';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -34,19 +38,27 @@ import {
   EmptyState,
   Icon,
   IconButton,
+  ListGroup,
+  ListRow,
   LoadingMark,
   SectionHeader,
+  Snackbar,
+  VerdictChip,
   VerdictMark,
   type VerdictReason,
 } from '@/components/design-system';
+import { AskNjamButton } from '@/features/ask-njam/AskNjamHeader';
 import { useAuth, type Member } from '@/features/auth/AuthProvider';
+import { fetchSavedProductIds, saveProduct, unsaveProduct } from '@/features/home/saved-products';
+import { fetchStoresForProduct, type StoreForProduct } from '@/features/home/stores';
 import { fetchHouseholdProfiles, type ActiveProfile } from '@/features/profile/active-profile';
 import { fetchProductById } from '@/features/verdict/catalogue';
+import { fetchNutrition, type Nutrition } from '@/features/verdict/nutrition';
 import { ProfilePicker } from '@/features/verdict/ProfilePicker';
 import { fetchScan, recordScan } from '@/features/verdict/scans';
 import type { LabelRead } from '@/services/ai';
 import { decideVerdict, type VerdictProduct, type VerdictState } from '@/services/verdict';
-import { icon, layout, radius, space, typography } from '@/theme/tokens';
+import { border, icon, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type LabelSource = 'photo' | 'open-food-facts';
@@ -84,13 +96,27 @@ const STATE_WORDS: Record<VerdictState, string> = {
 /** What the screen shows about the product, whoever it is viewed for. */
 type Subject = {
   name: string;
-  /** "Clover · Barcode 6001…": smaller, under the name. */
+  /** Under the name, where a shop would put the price. */
+  brand: string | null;
+  /** "1000 ml · Barcode 6001…": smaller, under the brand. */
   detail: string;
   imageUrl: string | null;
   metaIcon: string;
   metaText: string;
   /** In label order. Empty for a past scan, which stores only its reasons. */
   ingredients: string[];
+};
+
+/**
+ * What only a catalogue product has: an id to save, a nutrition table and
+ * stores. A label read or a past scan has none of these.
+ */
+type CatalogueExtras = {
+  productId: string;
+  saved: boolean;
+  /** null when the label's nutrition table is not in the catalogue yet. */
+  nutrition: Nutrition | null;
+  stores: StoreForProduct[];
 };
 
 /** A product the engine can check against anyone in the household. */
@@ -102,6 +128,8 @@ type Live = {
   sourceNote: string | null;
   /** Default profile first. */
   profiles: ActiveProfile[];
+  /** null for a label read, or when the extras could not be loaded. */
+  extras: CatalogueExtras | null;
 };
 
 /** A past scan: the decision as it was made, for the person it was made for. */
@@ -130,14 +158,37 @@ function rulesNote(count: number, profileName: string): string {
   return `Checked against ${count} ${count === 1 ? 'rule' : 'rules'} in ${profileName}'s profile.`;
 }
 
-/** "Clover · Barcode 6009670531658". */
-function detailLine(brand: string | null | undefined, barcode: string | null | undefined): string {
-  return [brand, barcode ? `Barcode ${barcode}` : 'No barcode'].filter(Boolean).join(' · ');
+/** "1000 ml · Barcode 6009670531658". The size is left out when it is not known. */
+function detailLine(size: string | null, barcode: string | null | undefined): string {
+  return [size, barcode ? `Barcode ${barcode}` : 'No barcode'].filter(Boolean).join(' · ');
+}
+
+/** "1000 ml", or null. */
+function packSize(size: number | null, unit: string | null): string | null {
+  return size && unit ? `${size} ${unit}` : null;
+}
+
+/**
+ * The saved state, nutrition and stores for a catalogue product. These are
+ * extras: if any of them fails to load, the verdict still shows, without them.
+ */
+async function loadExtras(productId: string): Promise<CatalogueExtras | null> {
+  try {
+    const [saved, nutrition, stores] = await Promise.all([
+      fetchSavedProductIds(),
+      fetchNutrition(productId),
+      fetchStoresForProduct(productId),
+    ]);
+    return { productId, saved: saved.has(productId), nutrition, stores };
+  } catch (error) {
+    console.warn('Could not load the nutrition, stores or saved state', error);
+    return null;
+  }
 }
 
 /** A catalogue product: load it, and record the scan against the default profile. */
 async function loadProduct(productId: string, barcode: string | undefined, member: Member, profiles: ActiveProfile[]) {
-  const product = await fetchProductById(productId);
+  const [product, extras] = await Promise.all([fetchProductById(productId), loadExtras(productId)]);
   if (!product) throw new Error('Product not found');
 
   const checked: VerdictProduct = {
@@ -161,7 +212,8 @@ async function loadProduct(productId: string, barcode: string | undefined, membe
     kind: 'live',
     subject: {
       name: product.name,
-      detail: detailLine(product.brand, product.barcode),
+      brand: product.brand,
+      detail: detailLine(packSize(product.servingSize, product.servingUnit), product.barcode),
       imageUrl: product.imageUrl,
       metaIcon: product.verified ? 'verified' : 'info',
       metaText: product.verified
@@ -174,6 +226,7 @@ async function loadProduct(productId: string, barcode: string | undefined, membe
     product: checked,
     sourceNote: null,
     profiles,
+    extras,
   };
   return live;
 }
@@ -211,7 +264,8 @@ async function loadLabel(
     kind: 'live',
     subject: {
       name: read.productName ?? words.fallbackName,
-      detail: detailLine(brand, barcode),
+      brand: brand ?? null,
+      detail: detailLine(null, barcode),
       imageUrl: null,
       metaIcon: 'info',
       metaText: words.meta,
@@ -220,6 +274,7 @@ async function loadLabel(
     product: checked,
     sourceNote: words.note,
     profiles,
+    extras: null,
   };
   return live;
 }
@@ -232,7 +287,8 @@ async function loadPastScan(scanId: string) {
     kind: 'past',
     subject: {
       name: scan.productName ?? 'Product from a label photo',
-      detail: detailLine(scan.productBrand, scan.barcode),
+      brand: scan.productBrand,
+      detail: detailLine(null, scan.barcode),
       imageUrl: scan.productImageUrl,
       metaIcon: 'history',
       metaText: 'From your scan history',
@@ -356,6 +412,19 @@ function Shown({ shown }: { shown: Live | Past }) {
   // the one the scan was recorded against.
   const [viewingId, setViewingId] = useState<string | null>(shown.kind === 'live' ? shown.profiles[0].id : null);
   const [picking, setPicking] = useState(false);
+  const extras = shown.kind === 'live' ? shown.extras : null;
+  const [saved, setSaved] = useState(extras?.saved ?? false);
+  const [saveFailed, setSaveFailed] = useState(false);
+
+  /** Saves or unsaves at once on screen, and puts it back if the database says no. */
+  function toggleSave(productId: string) {
+    const wasSaved = saved;
+    setSaved(!wasSaved);
+    (wasSaved ? unsaveProduct(productId) : saveProduct(productId)).catch(() => {
+      setSaved(wasSaved);
+      setSaveFailed(true);
+    });
+  }
 
   // Decide for whoever is selected. For a past scan, use what was stored.
   let state: VerdictState;
@@ -393,23 +462,36 @@ function Shown({ shown }: { shown: Live | Past }) {
     <>
       <TopBar
         right={
-          picker && (
-            <DropdownChip
-              label={`For ${picker.name}`}
-              accessibilityLabel={`Viewing for ${picker.name}. Change who this is checked for.`}
-              onPress={() => setPicking(true)}
-            />
-          )
+          <View style={styles.topRight}>
+            {picker && (
+              <DropdownChip
+                label={`For ${picker.name}`}
+                accessibilityLabel={`Viewing for ${picker.name}. Change who this is checked for.`}
+                onPress={() => setPicking(true)}
+              />
+            )}
+            <AskNjamButton />
+          </View>
         }
       />
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <ProductPhoto imageUrl={subject.imageUrl} />
+        <ProductPhoto
+          imageUrl={subject.imageUrl}
+          name={subject.name}
+          saved={saved}
+          onToggleSave={extras ? () => toggleSave(extras.productId) : undefined}
+        />
 
         <View style={styles.identity}>
-          <Text accessibilityRole="header" style={[typography.displayM, { color: colors.ink }]}>
-            {subject.name}
-          </Text>
+          {/* The verdict chip sits where a shop puts the quantity counter. */}
+          <View style={styles.nameRow}>
+            <Text accessibilityRole="header" style={[typography.displayM, styles.flex, { color: colors.ink }]}>
+              {subject.name}
+            </Text>
+            <VerdictChip state={state} />
+          </View>
+          {subject.brand && <Text style={[typography.title, { color: colors.inkMuted }]}>{subject.brand}</Text>}
           <Text style={[typography.bodyS, { color: colors.inkMuted }]}>{subject.detail}</Text>
           <View style={styles.metaRow}>
             <Icon name={subject.metaIcon} size="xs" color={colors.inkMuted} />
@@ -425,6 +507,10 @@ function Shown({ shown }: { shown: Live | Past }) {
             <Text style={[typography.body, { color: colors.ink }]}>{subject.ingredients.join(', ')}</Text>
           </View>
         )}
+
+        {extras && <NutritionTable nutrition={extras.nutrition} />}
+
+        {extras && <WhereToBuy stores={extras.stores} />}
       </ScrollView>
 
       {/* Outside the scroll view, so it stays at the bottom however short the content is. */}
@@ -448,22 +534,117 @@ function Shown({ shown }: { shown: Live | Past }) {
           onClose={() => setPicking(false)}
         />
       )}
+
+      {saveFailed && (
+        <Snackbar
+          kind="failure"
+          message="We could not change your saved products. Check your connection."
+          onDismiss={() => setSaveFailed(false)}
+        />
+      )}
     </>
   );
 }
 
-/** The front of the pack, or an empty well when nobody has photographed it. */
-function ProductPhoto({ imageUrl }: { imageUrl: string | null }) {
+/** The label's nutrition table, one row per nutrient, or a line saying we do not have it. */
+function NutritionTable({ nutrition }: { nutrition: Nutrition | null }) {
+  const { colors, shadows } = useNjamTheme();
+  return (
+    <View style={styles.block}>
+      <SectionHeader variant="simple" headline="Nutrition" />
+      {nutrition && nutrition.lines.length > 0 ? (
+        <>
+          <Text style={[typography.overline, { color: colors.inkMuted }]}>{nutrition.basis}</Text>
+          {/* Drawn here rather than with ListRow, because these rows are read, not tapped. */}
+          <View style={[styles.table, { backgroundColor: colors.surfaceRaised }, shadows.ambient]}>
+            {nutrition.lines.map((line, index) => (
+              <View
+                key={line.name}
+                accessible
+                accessibilityLabel={`${line.name}, ${line.amount}`}
+                style={[styles.tableRow, index > 0 && { borderTopWidth: border.hairline, borderTopColor: colors.line }]}>
+                <Text style={[typography.body, styles.flex, { color: colors.ink }]}>{line.name}</Text>
+                <Text style={[typography.title, { color: colors.ink }]}>{line.amount}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : (
+        <Text style={[typography.body, { color: colors.inkMuted }]}>
+          We do not have the nutrition table for this product yet.
+        </Text>
+      )}
+    </View>
+  );
+}
+
+/** The stores that sell it. Each row opens the product, or the store, on the store's website. */
+function WhereToBuy({ stores }: { stores: StoreForProduct[] }) {
   const { colors } = useNjamTheme();
   return (
-    <View
-      style={[styles.photo, { backgroundColor: colors.surfaceMedia }]}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants">
-      {imageUrl ? (
-        <Image source={{ uri: imageUrl }} style={styles.photoImage} resizeMode="cover" accessibilityIgnoresInvertColors />
+    <View style={styles.block}>
+      <SectionHeader variant="simple" headline="Where to buy it" />
+      {stores.length > 0 ? (
+        <ListGroup>
+          {stores.map((store) => (
+            <ListRow
+              key={store.id}
+              title={store.name}
+              icon="storefront"
+              supporting="Open the website"
+              trailing="chevron"
+              onPress={() => openBrowserAsync(store.link)}
+            />
+          ))}
+        </ListGroup>
       ) : (
-        <Icon name="grocery" size="xl" color={colors.inkSubtle} />
+        <Text style={[typography.body, { color: colors.inkMuted }]}>
+          We do not know which stores sell this product yet.
+        </Text>
+      )}
+    </View>
+  );
+}
+
+/**
+ * The front of the pack, or an empty well when nobody has photographed it.
+ * A catalogue product gets a save button in the lower right, as on Home.
+ */
+function ProductPhoto({
+  imageUrl,
+  name,
+  saved,
+  onToggleSave,
+}: {
+  imageUrl: string | null;
+  name: string;
+  saved: boolean;
+  onToggleSave?: () => void;
+}) {
+  const { colors } = useNjamTheme();
+  return (
+    <View style={[styles.photo, { backgroundColor: colors.surfaceMedia }]}>
+      {/* The photo itself is decoration for a screen reader; the name says what it is. */}
+      <View
+        style={styles.photoFill}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants">
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.photoImage} resizeMode="cover" accessibilityIgnoresInvertColors />
+        ) : (
+          <Icon name="grocery" size="xl" color={colors.inkSubtle} />
+        )}
+      </View>
+
+      {onToggleSave && (
+        <View style={styles.save}>
+          <IconButton
+            icon="bookmark"
+            selected={saved}
+            accessibilityLabel={saved ? `Remove ${name} from saved` : `Save ${name}`}
+            onPress={onToggleSave}
+          />
+        </View>
       )}
     </View>
   );
@@ -549,12 +730,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  photoFill: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   photoImage: {
     width: '100%',
     height: '100%',
   },
+  save: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+  },
+  topRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s2,
+  },
   identity: {
     gap: space.s1,
+  },
+  // The chip stays at the top beside a name that wraps onto two lines.
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: space.s3,
   },
   metaRow: {
     flexDirection: 'row',
@@ -579,5 +785,15 @@ const styles = StyleSheet.create({
   },
   block: {
     gap: space.s3,
+  },
+  table: {
+    borderRadius: radius.lg,
+    paddingHorizontal: space.s4,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s3,
+    paddingVertical: space.s3,
   },
 });
