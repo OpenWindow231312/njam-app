@@ -28,3 +28,18 @@ export async function fetchActiveProfile(householdId: string): Promise<ActivePro
   if (!data) return null;
   return { id: data.id, name: data.name, rules: data.profile_rules as ProfileRule[] };
 }
+
+/**
+ * Every profile in the household, the default first, for "Viewing for" on
+ * the Verdict screen. RLS limits it to your own household.
+ */
+export async function fetchHouseholdProfiles(householdId: string): Promise<ActiveProfile[]> {
+  const { data, error } = await supabase
+    .from('diet_profiles')
+    .select('id, name, profile_rules ( type, target, operator, threshold, unit, severity )')
+    .eq('household_id', householdId)
+    .order('is_default', { ascending: false })
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data.map((row) => ({ id: row.id, name: row.name, rules: row.profile_rules as ProfileRule[] }));
+}
