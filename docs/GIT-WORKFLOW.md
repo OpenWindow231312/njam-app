@@ -2,40 +2,55 @@
 
 Your commit history and version-control practice are directly assessed in DV300,
 so the workflow is part of the deliverable, not an afterthought. This is a solo
-project, so the model is deliberately light: small commits straight to `main`.
+project, so the model is deliberately light: one short branch per feature,
+merged into `main` when it works.
 
 ## The model
 
-This is a solo project, so all work is committed straight to **`main`** in
-small steps. There are no feature branches or Pull Requests.
+`main` always holds the latest working code. Each feature is built on its own
+branch, named `anika/<feature>` in lower-case kebab case (`anika/scanner`,
+`anika/ask-njam`). A feature that spans several days keeps adding commits to
+the same branch. There are no Pull Requests.
 
 ```
-main ──●──●──●──●──●──●──●──▶  one small, working step per commit
+main ──●────────────●──────────────●──▶
+        \          /  \            /
+         ●──●──●──●    ●──●──●──●──●      anika/<feature>
 ```
 
-- **`main` must always run.** Commit a step only once the app still starts.
-  If `main` is broken during a live review, that is visible.
-- **Small commits carry the story.** Because there are no branches to group
-  work, each commit message has to say clearly what changed and why.
+- **`main` must always run.** Merge a branch only once the feature works on the
+  phone. Never commit half-finished work to `main`.
+- **The merge commit groups the feature.** Merging with `--no-ff` keeps a merge
+  commit even when Git could fast-forward, so the history shows which commits
+  made up each feature.
 - **Pull before you start.** Work may have been pushed from another machine
   or session.
 
 ## Everyday commands
 
 ```bash
-git pull origin main
+git checkout main && git pull origin main
+git checkout -b anika/<feature>
 # make one small change
 git add <files>
 git commit -m "feat: add scan frame with scope pill"
+git push -u origin anika/<feature>
+
+# when the feature works on the phone
+git checkout main && git pull origin main
+git merge --no-ff anika/<feature>
 git push origin main
+git branch -d anika/<feature>
+git push origin --delete anika/<feature>
 ```
 
 If a pull brings in a changed `package.json`, run `npm install` before
 `npx expo start`.
 
-> Earlier in the project (up to PR #3) work went through feature branches and
-> Pull Requests. The switch to committing on `main` was a deliberate choice to
-> keep a solo workflow simple.
+> How this changed: up to PR #3 work went through `feat/` and `fix/` branches
+> and Pull Requests. For a while after that, commits went straight to `main`.
+> Since 12 Oct 2026 each feature has its own `anika/` branch and a `--no-ff`
+> merge, which keeps `main` working and groups each feature in the history.
 
 ## Commits
 
