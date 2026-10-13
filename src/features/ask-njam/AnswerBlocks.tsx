@@ -54,7 +54,7 @@ function useCatalogueVerdict(productId: string, rules: ProfileRule[]): Checked {
           return;
         }
         const verdict = decideVerdict(
-          { verified: product.verified, readFromLabel: false, ingredients: product.ingredients, mayContain: [] },
+          { verified: product.verified, readFromLabel: false, ingredients: product.ingredients, mayContain: product.mayContain },
           rules,
         );
         setChecked({ kind: 'shown', product, verdict });
