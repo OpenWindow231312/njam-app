@@ -24,3 +24,12 @@ to the bottom.
 household with their own verdict for this product. Switching decides again
 with that person's rules and saves nothing; the scan is recorded once, against
 the default profile. A past scan from History has no switch.
+
+Product page additions (13 Oct 2026): the verdict chip sits beside the name,
+where a shop shows the quantity counter, and the brand has its own line under
+the name. A catalogue product also shows a save button on its photo (the same
+`saved_products` as Home), a Nutrition table from `nutrition_facts`, and
+"Where to buy it" from `stores` and `product_stores`; each store opens its
+website in the in-app browser. Ask Njam sits at the top right beside
+"Viewing for". A label read or a past scan has no product id, so none of
+these extras show for it.
