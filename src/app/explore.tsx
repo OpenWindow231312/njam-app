@@ -30,6 +30,7 @@ import {
   MemberVerdict,
   OptionButton,
   PhotoStepCard,
+  CategoryBubble,
   ProductCard,
   ProductGridCard,
   ProductTile,
@@ -380,6 +381,13 @@ export default function ComponentPreviewScreen() {
             <View style={styles.row}>
               <ProductTile name="Ouma Rusks Buttermilk" verdict="unsafe" saved={saved} onPress={() => {}} onToggleSave={() => setSaved(!saved)} />
               <ProductTile name="[PRODUCT NAME]" verdict="caution" onPress={() => {}} onToggleSave={() => {}} />
+            </View>
+          </State>
+          <State label="Category bubbles: active and at rest">
+            <View style={styles.row}>
+              <CategoryBubble icon="grid_view" label="All" active onPress={() => {}} />
+              <CategoryBubble icon="egg" label="Dairy and eggs" onPress={() => {}} />
+              <CategoryBubble icon="cookie" label="Biscuits and rusks" onPress={() => {}} />
             </View>
           </State>
           <State label="Product grid cards: saved and not saved">
