@@ -31,6 +31,7 @@ import {
   OptionButton,
   PhotoStepCard,
   ProductCard,
+  ProductGridCard,
   ProductTile,
   RuleChip,
   ScanFrame,
@@ -381,6 +382,12 @@ export default function ComponentPreviewScreen() {
               <ProductTile name="[PRODUCT NAME]" verdict="caution" onPress={() => {}} onToggleSave={() => {}} />
             </View>
           </State>
+          <State label="Product grid cards: saved and not saved">
+            <View style={styles.gridRow}>
+              <ProductGridCard name="Buttermilk Rusks" detail="Ouma · 500 g" verdict="unsafe" saved={saved} onPress={() => {}} onToggleSave={() => setSaved(!saved)} />
+              <ProductGridCard name="[PRODUCT NAME]" detail="[BRAND · 1 L]" verdict="caution" onPress={() => {}} onToggleSave={() => {}} />
+            </View>
+          </State>
           <State label="Product card: row">
             <ProductCard name="[OAT MILK]" detail="[BRAND · 1 L]" verdict="safe" onPress={() => {}} />
           </State>
@@ -495,6 +502,11 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: space.s2,
+  },
+  // Two ProductGridCards share the row, as on Home.
+  gridRow: {
+    flexDirection: 'row',
+    gap: space.s4,
   },
   chat: {
     gap: space.s3,
