@@ -125,17 +125,6 @@ export function ProfileScreen() {
         </ListGroup>
       )}
 
-      <ListGroup>
-        <ListRow
-          title="Component preview"
-          supporting="Every design system component on one screen"
-          icon="checklist"
-          iconBadge="soft"
-          trailing="chevron"
-          onPress={() => router.push('/explore')}
-        />
-      </ListGroup>
-
       <Button
         label="Log out"
         icon="logout"
