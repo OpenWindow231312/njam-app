@@ -15,7 +15,7 @@ Built so far (v1.5, 30 Sep 2026, from the "Njam UI v1.4" canvas):
 | Verdict | `VerdictMark` (fill and surface grounds), `VerdictChip` (filled, outlined), `VerdictBanner`, `MemberVerdict` |
 | Products | `CategoryBubble`, `ProductTile`, `ProductGridCard`, `ProductCard` (row, identity), `PhotoStepCard` |
 | People and scope | `Avatar`, `HouseholdBar`, `ScopePill` |
-| Stores | `StoreLogo` (a shop's logo in a round white badge, storefront icon until one is uploaded) |
+| Stores | `StoreLogo` (a shop's square logo filling a round badge, storefront icon until one is uploaded) |
 | Scanner | `ScanFrame` |
 | Structure | `SectionHeader` (full, simple, shelf), `ListGroup` + `ListRow`, `StepProgress`, `TabBar`, `FrostedStrip` (v1.9: the frosted fade behind the status bar and the TabBar) |
 | Feedback | `Snackbar`, `EmptyState`, `ConfirmDialog`, `LoadingMark` |
