@@ -313,7 +313,7 @@ export function ScannerScreen() {
               <Button label="Photograph the front" icon="photo_camera" onPress={photographFront} />
               <Button
                 label="Show the verdict without it"
-                variant="text"
+                variant="outlined"
                 size="small"
                 onPress={() => {
                   setNotice(null);
