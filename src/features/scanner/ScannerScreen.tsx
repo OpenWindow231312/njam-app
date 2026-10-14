@@ -16,8 +16,8 @@
  * pack. The AI reads the name off it, the product is added to the catalogue
  * (unverified) with the photos, and its Verdict screen opens with the photo,
  * like any other product. The next person who scans it finds it straight
- * away. Skipping the photo shows the verdict from the ingredient list alone,
- * and saves nothing.
+ * away. It stays out of the feed until an admin adds it. Skipping the photo
+ * shows the verdict from the ingredient list alone, and saves nothing.
  *
  * The scope pill is mandatory: it says whose rules the scan runs against.
  * The camera does not start scanning until that profile has loaded, so a

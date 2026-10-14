@@ -4,7 +4,8 @@
  *
  * Anyone signed in can add one, whatever their role. It goes in unverified
  * (the database refuses anything else), so the verdict engine caps it at
- * Caution until an admin verifies it in the review queue.
+ * Caution and it stays out of the feed until an admin adds it from the
+ * review queue.
  *
  * The ingredient list comes from a label photo, or from Open Food Facts,
  * which has no label photo to keep.

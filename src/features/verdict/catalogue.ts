@@ -142,12 +142,18 @@ export async function fetchProductByBarcode(barcode: string): Promise<CatalogueP
 }
 
 /**
- * The whole catalogue, A to Z, for the grid on Home. It holds a few dozen
+ * The verified catalogue, A to Z, for the grid on Home. It holds a few dozen
  * products for now, so Home loads them all once and filters on the phone.
  * When the catalogue grows past a few hundred, this needs paging.
  */
 export async function fetchCatalogue(): Promise<CatalogueProduct[]> {
-  const { data, error } = await supabase.from('products').select(PRODUCT_COLUMNS).order('name');
+  // Verified only: a product someone just added is not in the feed until an
+  // admin adds it from the review queue. Its scanner still finds it by barcode.
+  const { data, error } = await supabase
+    .from('products')
+    .select(PRODUCT_COLUMNS)
+    .eq('verified', true)
+    .order('name');
   if (error) throw error;
   return (data as unknown as ProductRow[]).map(toProduct);
 }

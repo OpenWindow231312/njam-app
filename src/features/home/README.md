@@ -3,9 +3,11 @@
 The landing screen after auth: "Hi Anika, check your food", a search over the
 product catalogue, and a two-column grid of products, each with its verdict.
 
-- Loads the whole catalogue once (`fetchCatalogue`) with each product's
+- Loads the verified catalogue once (`fetchCatalogue`) with each product's
   ingredients, aisle and stores, and searches and filters on the phone. The
   catalogue holds a few dozen products; past a few hundred this needs paging.
+  A product a shopper just scanned in is not here until an admin adds it to
+  the feed from the review queue.
 - Each card's verdict comes from the verdict engine with the household's
   default profile, the one a scan is recorded against. The deck names it.
   The card shows the verdict as its mark; tapping opens the full verdict.

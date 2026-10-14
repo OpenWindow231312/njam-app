@@ -1,8 +1,9 @@
 /**
- * Admin review queue: where an admin verifies products that shoppers added or
- * Njam read from a label. Until a product is verified here, the verdict
- * engine caps it at Caution, so this screen is the human half of "no false
- * Safe".
+ * Admin review queue: where an admin adds the products shoppers scanned in to
+ * the feed. A product saves straight away when someone scans it, photo and
+ * all, but it stays out of Home and Search, and the verdict engine caps it at
+ * Caution, until it is added here. "Add to feed" verifies it, so this screen
+ * is the human half of "no false Safe".
  *
  * Roles, at two levels:
  *   - The app: only an admin sees the way in (on Profile), and anyone else
@@ -10,7 +11,7 @@
  *   - The database: products_update allows the change only for an admin
  *     (RLS), so hiding the button is a courtesy, not the protection.
  *
- * Verifying asks first, because it lets the product be Safe for everyone.
+ * Adding asks first, because it lets the product be Safe for everyone.
  *
  * Each product shows the photos it was added with (the front on the card,
  * the ingredient list one tap away) and a "Possible duplicate" flag when
@@ -89,10 +90,10 @@ export function AdminReviewScreen() {
     setConfirming(null);
     try {
       await verifyProduct(product.id);
-      setMessage({ kind: 'neutral', text: `${product.name} is verified.` });
+      setMessage({ kind: 'neutral', text: `${product.name} is in the feed.` });
       load();
     } catch {
-      setMessage({ kind: 'failure', text: `We could not verify ${product.name}.` });
+      setMessage({ kind: 'failure', text: `We could not add ${product.name} to the feed.` });
     }
   }
 
@@ -104,14 +105,14 @@ export function AdminReviewScreen() {
 
       <SectionHeader
         headline="Review queue"
-        deck="Products shoppers added or Njam read from a label. None of them can be Safe until you verify them."
+        deck="Products shoppers scanned in. They stay out of the feed, and none of them can be Safe, until you add them."
       />
 
       {!isAdmin && (
         <EmptyState
           icon="lock"
           headline="Only admins can review products"
-          body="Verifying a product changes verdicts for every household, so it is kept to admins."
+          body="Adding a product to the feed changes verdicts for every household, so it is kept to admins."
         />
       )}
 
@@ -136,7 +137,7 @@ export function AdminReviewScreen() {
         <EmptyState
           icon="verified"
           headline="Nothing to review"
-          body="Every product in the catalogue has been verified."
+          body="Every product in the catalogue is in the feed."
         />
       )}
 
@@ -180,7 +181,7 @@ export function AdminReviewScreen() {
               />
             )}
             <Button
-              label="Verify this product"
+              label="Add to feed"
               icon="verified"
               variant="secondary"
               fullWidth
@@ -192,10 +193,10 @@ export function AdminReviewScreen() {
       <ConfirmDialog
         visible={confirming !== null}
         icon="verified"
-        title={`Verify ${confirming?.name ?? 'this product'}?`}
-        body="Check the ingredient list against the pack first. Once verified, it can be Safe for anyone whose rules it passes."
+        title={`Add ${confirming?.name ?? 'this product'} to the feed?`}
+        body="Check the ingredient list against the pack first. Everyone will see it on Home and in Search, and it can be Safe for anyone whose rules it passes."
         cancelLabel="Not yet"
-        confirmLabel="Verify"
+        confirmLabel="Add to feed"
         destructive={false}
         onCancel={() => setConfirming(null)}
         onConfirm={() => confirming && verify(confirming)}
