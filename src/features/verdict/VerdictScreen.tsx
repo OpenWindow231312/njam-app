@@ -338,39 +338,39 @@ export function VerdictScreen() {
   }, [member, params.productId, params.label, params.barcode, params.source, params.brand, params.scanId, attempt]);
 
   return (
-    <Screen scroll={false}>
-      {status.kind === 'shown' ? (
-        <Shown shown={status.shown} />
-      ) : (
-        <>
-          <TopBar />
-          <ScrollView contentContainerStyle={styles.content}>
-            {status.kind === 'loading' && <Loading />}
+    // The result fills the whole screen edge to edge, so it skips Screen's
+    // gutter and top and bottom room and lays itself out (see Shown).
+    status.kind === 'shown' ? (
+      <Shown shown={status.shown} />
+    ) : (
+      <Screen scroll={false}>
+        <TopBar />
+        <ScrollView contentContainerStyle={styles.content}>
+          {status.kind === 'loading' && <Loading />}
 
-            {status.kind === 'failed' && (
-              <EmptyState
-                icon="cloud_off"
-                headline="We could not check this product"
-                body="Check your connection and try again."
-                actionLabel="Try again"
-                onAction={() => setAttempt((count) => count + 1)}
-              />
-            )}
+          {status.kind === 'failed' && (
+            <EmptyState
+              icon="cloud_off"
+              headline="We could not check this product"
+              body="Check your connection and try again."
+              actionLabel="Try again"
+              onAction={() => setAttempt((count) => count + 1)}
+            />
+          )}
 
-            {status.kind === 'unreadable' && (
-              <EmptyState
-                icon="photo_camera"
-                headline="We could not read this label"
-                body={`${status.problem} Take the photo again, flat and in focus.`}
-                actionLabel="Retake the photo"
-                actionIcon="photo_camera"
-                onAction={() => router.back()}
-              />
-            )}
-          </ScrollView>
-        </>
-      )}
-    </Screen>
+          {status.kind === 'unreadable' && (
+            <EmptyState
+              icon="photo_camera"
+              headline="We could not read this label"
+              body={`${status.problem} Take the photo again, flat and in focus.`}
+              actionLabel="Retake the photo"
+              actionIcon="photo_camera"
+              onAction={() => router.back()}
+            />
+          )}
+        </ScrollView>
+      </Screen>
+    )
   );
 }
 
