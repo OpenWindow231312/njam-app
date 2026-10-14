@@ -20,11 +20,11 @@ incomplete. **To build** is planned for weeks 3 and 4 (see `PLAN.md`).
 | Search the catalogue | Built | `features/home` |
 | Ask Njam: AI assistant using your rules, with verdict chips from the engine | Built | `features/ask-njam`, `ask-njam` |
 | Admin review queue: verify products so they can be Safe | Built | `features/admin-review` |
-| **Set and edit your rules** (allergies with severity at minimum) | **To build** | `features/onboarding`, `features/profile` |
-| Profile showing your rules | Built (read-only) | `features/profile` |
+| Set and edit your rules (allergies with severity, diets, ingredients and E-numbers) | Built | `features/onboarding`, `app/edit-rules.tsx` |
+| Profile showing your rules, with a way to edit them | Built | `features/profile` |
 
-Setting rules is the most important gap: today the two test accounts have
-seeded rules, but a new person cannot add their own.
+Every Must is built as of 14 Oct 2026. Sprint 3 is about proving it
+(regression suite, real barcodes) rather than adding features.
 
 ## Nice to have (only if Must is done)
 
@@ -33,8 +33,8 @@ seeded rules, but a new person cannot add their own.
 | Alternatives: safer products in the same category | To build | Category data exists |
 | Add a product (photo plus ingredient list) into the review queue | Built | `features/add-product`, migration `20261013204726`; duplicates flagged in the review queue |
 | Household screen: switch profile, add a child or guest profile | To build | Schema supports it |
-| Nutrient limits checked against nutrition facts | Partly | Rules exist; `nutrition_facts` is empty, so they come back Caution |
-| Full onboarding across all six profile layers | To build | Allergies first, the rest after |
+| Nutrient limits checked against nutrition facts | Partly | 20 seeded products have nutrition facts from Open Food Facts; any product without them still comes back Caution |
+| Full onboarding across all six profile layers | Partly | Allergies, diets, ingredients and E-numbers are in onboarding; nutrient limits and health presets are not |
 
 ## Future (after hand-in)
 

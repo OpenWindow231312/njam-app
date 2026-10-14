@@ -11,7 +11,7 @@ the phone. The board mirrors this list.
 
 | Priority | Item | Done when |
 | --- | --- | --- |
-| 1 | **Set and edit your rules**: onboarding for allergies with severity, and editing on Profile | A new account can add milk (severe) and get a Not safe on Ouma rusks |
+| 1 | Recheck set and edit your rules (built 13 Oct) on the phone | A new account can add milk (severe) and get a Not safe on Ouma rusks |
 | 2 | Regression suite: the verdict engine against known products | Runs with one command; zero false Safe |
 | 3 | Real barcodes for the products used in the demo | Scanning the real pack opens the right product |
 | 4 | Ask Njam: hide product chips until your rules have loaded (bug 8) | No chip appears before the rules |

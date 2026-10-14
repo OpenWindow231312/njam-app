@@ -17,7 +17,7 @@ Run before every merge into `main`. Mark each with the date and pass or fail.
 
 | # | Step | Expected | Last run |
 | --- | --- | --- | --- |
-| 1 | Sign up with a new email | Lands on Home; Profile shows you as Household owner | 13 Oct, fail (bug 10) |
+| 1 | Sign up with a new email | Lands on Home; Profile shows you as Household owner | 13 Oct, fail (bug 10). Rerun after the fix |
 | 2 | Log out, log in as owner@njam.test | Home, with your name on Profile | 13 Oct, pass |
 | 3 | Search "rusk", open Ouma Buttermilk Rusks | Not safe: contains buttermilk powder, you marked milk as severe | 13 Oct, pass |
 | 4 | Open one of the 3 unverified seed products | Caution at best, with "Nobody has checked this ingredient list yet" | |
@@ -49,14 +49,14 @@ transaction that is rolled back) proved on 13 Oct 2026:
 | 2 | 12 Oct | First deploy of `ask-njam` went up with an incomplete file | High (broken) | Fixed 12 Oct | Redeployed within minutes; live files checked against the repo |
 | 3 | 12 Oct | Ask Njam suggestion chips sat far above the composer, leaving a large empty band | Medium (layout) | Fixed 12 Oct | A horizontal ScrollView grows by default; set `flexGrow: 0` |
 | 4 | 12 Oct | Extra gap above the keyboard in Ask Njam | Low (layout) | Fixed 12 Oct | Drop the home-indicator padding while the keyboard is open |
-| 5 | 12 Oct | Nutrient limit rules always come back as Caution | Medium | Open | `nutrition_facts` has no data yet; correct (never Safe) but unhelpful |
+| 5 | 12 Oct | Nutrient limit rules always come back as Caution | Medium | Partly fixed 13 Oct | 20 seeded products now have nutrition facts from Open Food Facts; the rest still come back Caution |
 | 6 | 12 Oct | Seed barcodes are placeholders (prefix 200), so real packs do not match | Medium (demo) | Open | Replace with real barcodes before the final demo |
-| 7 | 13 Oct | A new person cannot add or edit their rules in the app | High (MVP gap) | Open | Onboarding and rule editing, sprint 3 |
+| 7 | 13 Oct | A new person cannot add or edit their rules in the app | High (MVP gap) | Fixed 13 Oct, to recheck on the phone | Branch `anika/onboarding`: onboarding for new accounts, and Edit rules from Profile |
 | 8 | 12 Oct | If your rules fail to load, Ask Njam draws product chips against no rules (Caution, never Safe) | Low | Open | Hide product chips until the rules have loaded |
 | 9 | 12 Oct | Ghost text alignment not yet checked on Android | Low | Open | Test on an Android phone |
 | 10 | 13 Oct | Sign-up with a new email showed "We could not reach Njam". Supabase had refused the address (`email_address_invalid`), then blocked the retries because its built-in email sender only sends a few emails an hour (`over_email_send_rate_limit`) | High (blocks new people) | Fixed 13 Oct | Branch `anika/sign-up-errors`: the app names both errors. Turn off "Confirm email" in Supabase Auth while testing |
 | 11 | 13 Oct | Ask Njam "What can I make with oats?" promised a recipe but showed only the Jungle Oats card | Medium | Fixed 13 Oct, to recheck on the phone | Branch `anika/ask-njam-recipe`: the prompt asks for a full recipe block, and a dropped recipe is logged |
-| 12 | 13 Oct | A scan read from a label photo shows as "Product from a label photo" in History, not the product's name | Medium | Open | Add a product: ask for a front photo, read the name from it, save the product |
+| 12 | 13 Oct | A scan read from a label photo shows as "Product from a label photo" in History, not the product's name | Medium | Fixed in code 13 Oct, to recheck on the phone | The scanner asks for a front photo and `scan-label` reads the name from it (`mode: "front"`) |
 
 Add a row for anything that goes wrong, even if you fix it straight away.
 The log is evidence of testing.

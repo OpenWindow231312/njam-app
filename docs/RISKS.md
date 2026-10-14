@@ -1,7 +1,7 @@
 # Risks and technical challenges
 
 The technical challenges named at the pitch, revisited at the milestone
-(13 Oct 2026): which happened, how they were handled, and which remain.
+(updated 14 Oct 2026): which happened, how they were handled, and which remain.
 
 | Risk | Happened? | How it was handled | Still open |
 | --- | --- | --- | --- |
@@ -12,6 +12,6 @@ The technical challenges named at the pitch, revisited at the milestone
 | **South African barcodes missing from any database** | Yes | Three-step lookup: our catalogue, then Open Food Facts, then a label photo read by Gemini. | Seed barcodes are placeholders until replaced with real ones. |
 | **Speed: a verdict in under 3 seconds** | Partly | Catalogue lookups are fast. A label photo goes through Gemini and can take several seconds; the loading state says what is happening. | Measure and record real timings; consider a smaller photo. |
 | **Gemini rate limits or outages** | Possible on the free tier | A 429 answers "busy, try again in a minute"; every AI failure has a message and a retry. | None beyond the free-tier limit. |
-| **No nutrition data** | Yes | Nutrient limits are reported as "could not check", which is Caution, never Safe. | Source nutrition facts, or keep nutrient limits a Nice to have. |
+| **No nutrition data** | Yes | Nutrient limits are reported as "could not check", which is Caution, never Safe. | 20 seeded products now have nutrition facts from Open Food Facts. Products without them still show Caution. |
 | **Testing the camera** | Yes: the simulator cannot scan | All scanner testing on a physical phone through Expo Go. | None |
-| **Scope: ten screens in four weeks** | Partly | Scope frozen in `SCOPE.md`: Must first, Nice only if there is time. | Onboarding and rule editing are the biggest remaining Must. |
+| **Scope: ten screens in four weeks** | Partly | Scope frozen in `SCOPE.md`: Must first, Nice only if there is time. | Every Must is built. What remains is proving it: the regression suite and real barcodes. |
