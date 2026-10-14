@@ -10,5 +10,8 @@ only truly works on a physical phone through Expo Go.
 - On a read: look up the barcode in `products`; if missing, try Open Food Facts,
   then a label photo, and ask for the front of the pack to add the product
   (see `src/features/add-product`).
+- A barcode scans by itself, with no tap. Every photo (label or front) is
+  checked before it is used: the shutter buzzes and freezes the photo on the
+  panel, with "Retake" and "Use this photo".
 - Hands the product and active profile to `src/services/verdict`, then routes to
   the verdict screen.
