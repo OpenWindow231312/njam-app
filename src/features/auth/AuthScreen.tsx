@@ -15,7 +15,7 @@
  * shown in a failure Snackbar.
  */
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -24,6 +24,17 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+  ReduceMotion,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -35,7 +46,7 @@ import {
   TextField,
 } from '@/components/design-system';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { layout, radius, space } from '@/theme/tokens';
+import { layout, motion, radius, space } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type Mode = 'login' | 'signup';
@@ -47,10 +58,22 @@ type Mode = 'login' | 'signup';
  * every phone. Geometry of one decorative shape, not layout spacing.
  */
 const FIGMA_FRAME_WIDTH = 390;
-const MARK_PLACEMENT: Record<Mode, { size: number; left: number; top: number }> = {
-  login: { size: 614, left: -180, top: 13 },
-  signup: { size: 614, left: -158, top: -41 },
+const MARK_SIZE = 614;
+const MARK_POSITION: Record<Mode, { left: number; top: number }> = {
+  login: { left: -180, top: 13 },
+  signup: { left: -158, top: -41 },
 };
+
+/**
+ * Switching between Log in and Sign up animates like Figma's smart animate:
+ * the sheet grows or shrinks, the fields glide to their new places and the
+ * mark glides behind. Same duration (motion.sheet) and the same curve as the
+ * SegmentedControl's sliding highlight, so everything moves as one.
+ */
+const EASE = Easing.bezier(0.2, 0, 0, 1);
+const glide = LinearTransition.duration(motion.sheet).easing(EASE).reduceMotion(ReduceMotion.System);
+const fadeIn = FadeIn.duration(motion.stateChange).reduceMotion(ReduceMotion.System);
+const fadeOut = FadeOut.duration(motion.stateChange).reduceMotion(ReduceMotion.System);
 
 /** Supabase's minimum, unless the project raises it. */
 const MIN_PASSWORD_LENGTH = 6;
@@ -139,20 +162,34 @@ export function AuthScreen() {
 
   const isLogin = mode === 'login';
 
+  // The mark's position is animated: when the mode changes, it glides from
+  // the old frame's position to the new one. With reduce motion on, it jumps.
+  const reduceMotion = useReducedMotion();
+  const markLeft = useSharedValue(MARK_POSITION[mode].left);
+  const markTop = useSharedValue(MARK_POSITION[mode].top);
+
+  useEffect(() => {
+    const target = MARK_POSITION[mode];
+    const timing = { duration: motion.sheet, easing: EASE };
+    markLeft.value = reduceMotion ? target.left : withTiming(target.left, timing);
+    markTop.value = reduceMotion ? target.top : withTiming(target.top, timing);
+  }, [mode, reduceMotion, markLeft, markTop]);
+
   // Scale the Figma placement to this phone's width.
   const scale = screenWidth / FIGMA_FRAME_WIDTH;
-  const mark = MARK_PLACEMENT[mode];
+  const markStyle = useAnimatedStyle(() => ({
+    left: markLeft.value * scale,
+    top: markTop.value * scale,
+  }));
 
   return (
     <View style={[styles.page, { backgroundColor: colors.brandForest }]}>
       {/* Light status bar icons, because the top of this screen is forest. */}
       <StatusBar style="light" />
 
-      <View
-        pointerEvents="none"
-        style={[styles.mark, { left: mark.left * scale, top: mark.top * scale }]}>
-        <NjamMark size={mark.size * scale} color={colors.brandLime} />
-      </View>
+      <Animated.View pointerEvents="none" style={[styles.mark, markStyle]}>
+        <NjamMark size={MARK_SIZE * scale} color={colors.brandLime} />
+      </Animated.View>
 
       <KeyboardAvoidingView
         style={styles.page}
@@ -163,7 +200,8 @@ export function AuthScreen() {
           keyboardShouldPersistTaps="handled"
           bounces={false}
           contentContainerStyle={styles.scrollContent}>
-          <View
+          <Animated.View
+            layout={glide}
             style={[
               styles.sheet,
               shadows.sheet,
@@ -171,7 +209,10 @@ export function AuthScreen() {
             ]}>
             <View style={styles.column}>
               <View style={styles.form}>
-                <SectionHeader headline={isLogin ? 'Log in to Njam' : 'Create your account'} />
+                {/* Keyed by mode, so the new headline fades in instead of snapping. */}
+                <Animated.View key={mode} entering={fadeIn}>
+                  <SectionHeader headline={isLogin ? 'Log in to Njam' : 'Create your account'} />
+                </Animated.View>
 
                 <SegmentedControl<Mode>
                   segments={[
@@ -188,47 +229,55 @@ export function AuthScreen() {
 
                 <View style={styles.fields}>
                   {!isLogin && (
-                    <TextField
-                      label="Your name"
-                      value={name}
-                      onChangeText={setName}
-                      leadingIcon="person"
-                      autoCapitalize="words"
-                      placeholder="Anika"
-                      error={errors.name}
-                    />
+                    <Animated.View entering={fadeIn} exiting={fadeOut}>
+                      <TextField
+                        label="Your name"
+                        value={name}
+                        onChangeText={setName}
+                        leadingIcon="person"
+                        autoCapitalize="words"
+                        placeholder="Your name"
+                        error={errors.name}
+                      />
+                    </Animated.View>
                   )}
-                  <TextField
-                    label="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    leadingIcon="mail"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    placeholder="you@example.com"
-                    error={errors.email}
-                  />
-                  <TextField
-                    label="Password"
-                    value={password}
-                    onChangeText={setPassword}
-                    leadingIcon="lock"
-                    secureTextEntry
-                    autoCapitalize="none"
-                    helper={isLogin ? undefined : `At least ${MIN_PASSWORD_LENGTH} characters.`}
-                    error={errors.password}
-                  />
+                  <Animated.View layout={glide}>
+                    <TextField
+                      label="Email"
+                      value={email}
+                      onChangeText={setEmail}
+                      leadingIcon="mail"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      placeholder="you@example.com"
+                      error={errors.email}
+                    />
+                  </Animated.View>
+                  <Animated.View layout={glide}>
+                    <TextField
+                      label="Password"
+                      value={password}
+                      onChangeText={setPassword}
+                      leadingIcon="lock"
+                      secureTextEntry
+                      autoCapitalize="none"
+                      helper={isLogin ? undefined : `At least ${MIN_PASSWORD_LENGTH} characters.`}
+                      error={errors.password}
+                    />
+                  </Animated.View>
                 </View>
               </View>
 
-              <Button
-                label={isLogin ? 'Log in' : 'Create account'}
-                loadingLabel={isLogin ? 'Logging you in' : 'Creating your account'}
-                loading={busy}
-                onPress={submit}
-                size="large"
-                fullWidth
-              />
+              <Animated.View layout={glide}>
+                <Button
+                  label={isLogin ? 'Log in' : 'Create account'}
+                  loadingLabel={isLogin ? 'Logging you in' : 'Creating your account'}
+                  loading={busy}
+                  onPress={submit}
+                  size="large"
+                  fullWidth
+                />
+              </Animated.View>
 
               {notice && (
                 <Snackbar
@@ -240,7 +289,7 @@ export function AuthScreen() {
                 />
               )}
             </View>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
