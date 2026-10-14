@@ -63,6 +63,23 @@ export type Verdict = {
   reasons: VerdictReason[];
   /** How many rules were checked, for "Checked against 3 rules in your profile." */
   rulesChecked: number;
+  /** One per rule, in profile order, for the rules card on the Verdict screen. */
+  checks: RuleCheck[];
+};
+
+/**
+ * One rule and what the label showed. This only describes the decision above
+ * it: the state is still decided from the reasons, never from these.
+ */
+export type RuleCheck = {
+  /** The rule in a few words: "Wheat · severe", "Sodium up to 400 mg". */
+  label: string;
+  /** met: kept. broken: the label breaks it. unchecked: we could not tell. */
+  outcome: 'met' | 'broken' | 'unchecked';
+  /** What the label showed: "Contains whole wheat", "Not listed". */
+  detail: string;
+  /** The ingredients, as printed, that broke the rule, so the screen can highlight them. */
+  matched: string[];
 };
 
 const MAX_REASONS = 5;
@@ -92,39 +109,81 @@ function same(a: string | null, b: string): boolean {
   return a !== null && a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
-type RuleOutcome = { broken: VerdictReason | null; unchecked: VerdictReason | null };
+/**
+ * How one rule came out. broken and unchecked are the reason lines, as before;
+ * detail and matched only describe it for the rules card.
+ */
+type RuleOutcome = {
+  broken: VerdictReason | null;
+  unchecked: VerdictReason | null;
+  detail: string;
+  matched: string[];
+};
 
-const PASSED: RuleOutcome = { broken: null, unchecked: null };
+const PASSED: RuleOutcome = { broken: null, unchecked: null, detail: 'Not listed', matched: [] };
+
+function capitalise(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** The rule in a few words, as the rules card titles it: "Milk · severe". */
+function ruleLabel(rule: ProfileRule): string {
+  if (rule.type === 'allergen') {
+    const word = capitalise(allergenWord(rule.target));
+    return rule.severity ? `${word} · ${rule.severity}` : word;
+  }
+  if (rule.type === 'e_number') return rule.target.toUpperCase();
+  if (rule.type === 'nutrient' && rule.threshold !== null) {
+    const limit = rule.unit ? `${rule.threshold} ${rule.unit}` : `${rule.threshold}`;
+    if (rule.operator === 'lte') return `${capitalise(rule.target)} up to ${limit}`;
+    if (rule.operator === 'gte') return `${capitalise(rule.target)} at least ${limit}`;
+  }
+  return capitalise(rule.target);
+}
 
 function checkAllergen(rule: ProfileRule, product: VerdictProduct): RuleOutcome {
   const word = allergenWord(rule.target);
-  const hit = product.ingredients.find((item) => item.allergen === rule.target);
-  if (hit) {
-    return { broken: { icon: 'no_food', text: `Contains ${hit.name}. ${yourRule(word, rule.severity)}` }, unchecked: null };
+  const hits = product.ingredients.filter((item) => item.allergen === rule.target);
+  if (hits.length > 0) {
+    return {
+      broken: { icon: 'no_food', text: `Contains ${hits[0].name}. ${yourRule(word, rule.severity)}` },
+      unchecked: null,
+      detail: `Contains ${hits[0].name}`,
+      matched: hits.map((item) => item.name),
+    };
   }
   if (product.mayContain.includes(rule.target)) {
     return {
       broken: null,
       unchecked: { icon: 'no_food', text: `The label says it may contain ${word}. ${yourRule(word, rule.severity)}` },
+      detail: `The label says it may contain ${word}`,
+      matched: [],
     };
   }
   return PASSED;
 }
 
 function checkIngredient(rule: ProfileRule, product: VerdictProduct): RuleOutcome {
-  const hit = product.ingredients.find(
+  const hits = product.ingredients.filter(
     (item) => same(item.name, rule.target) || same(item.canonicalName, rule.target),
   );
-  if (!hit) return PASSED;
-  return { broken: { icon: 'no_food', text: `Contains ${hit.name}, which you avoid.` }, unchecked: null };
+  if (hits.length === 0) return PASSED;
+  return {
+    broken: { icon: 'no_food', text: `Contains ${hits[0].name}, which you avoid.` },
+    unchecked: null,
+    detail: `Contains ${hits[0].name}`,
+    matched: hits.map((item) => item.name),
+  };
 }
 
 function checkENumber(rule: ProfileRule, product: VerdictProduct): RuleOutcome {
-  const hit = product.ingredients.find((item) => same(item.eNumber, rule.target));
-  if (!hit) return PASSED;
+  const hits = product.ingredients.filter((item) => same(item.eNumber, rule.target));
+  if (hits.length === 0) return PASSED;
   return {
-    broken: { icon: 'science', text: `Contains ${rule.target.toUpperCase()} (${hit.name}), which you avoid.` },
+    broken: { icon: 'science', text: `Contains ${rule.target.toUpperCase()} (${hits[0].name}), which you avoid.` },
     unchecked: null,
+    detail: `Contains ${hits[0].name}`,
+    matched: hits.map((item) => item.name),
   };
 }
 
@@ -145,18 +204,23 @@ function checkRule(rule: ProfileRule, product: VerdictProduct): RuleOutcome {
         icon: 'nutrition',
         text: `We have no nutrition facts for this product, so we could not check your ${rule.target} limit.`,
       },
+      detail: 'We have no nutrition facts to check it against',
+      matched: [],
     };
   }
 
   return {
     broken: null,
     unchecked: { icon: 'restaurant', text: `We cannot check your ${rule.target} rule yet.` },
+    detail: 'We cannot check this kind of rule yet',
+    matched: [],
   };
 }
 
 export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Verdict {
   const broken: VerdictReason[] = [];
   const unchecked: VerdictReason[] = [];
+  const checks: RuleCheck[] = [];
 
   if (product.ingredients.length === 0) {
     // Nothing to check against. Every rule is unknown, not passed.
@@ -164,11 +228,20 @@ export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Ve
       icon: 'info',
       text: 'We have no ingredient list for this product, so we could not check your rules.',
     });
+    for (const rule of rules) {
+      checks.push({ label: ruleLabel(rule), outcome: 'unchecked', detail: 'We have no ingredient list', matched: [] });
+    }
   } else {
     for (const rule of rules) {
       const outcome = checkRule(rule, product);
       if (outcome.broken) broken.push(outcome.broken);
       if (outcome.unchecked) unchecked.push(outcome.unchecked);
+      checks.push({
+        label: ruleLabel(rule),
+        outcome: outcome.broken ? 'broken' : outcome.unchecked ? 'unchecked' : 'met',
+        detail: outcome.detail,
+        matched: outcome.matched,
+      });
     }
   }
 
@@ -195,5 +268,5 @@ export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Ve
       ? [{ icon: 'task_alt', text: 'None of your rules matched the ingredient list.' }]
       : [...broken, ...unchecked].slice(0, MAX_REASONS);
 
-  return { state, reasons, rulesChecked: rules.length };
+  return { state, reasons, rulesChecked: rules.length, checks };
 }
