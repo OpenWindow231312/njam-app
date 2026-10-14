@@ -2,6 +2,9 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.11 (14 Oct 2026): the Results screens. icon.markXl for the verdict mark
+ * beside a product's name, layout.storeColumnWidth and
+ * layout.nutritionColumnWidth, and productPhotoHeight 240 to 200.
  * v1.10 (12 Oct 2026): shadow.floating, a soft shadow centred on the TabBar so its
  * top edge has depth too, not only its bottom.
  * v1.9 (12 Oct 2026): the frosted strip fades in instead of starting with a hard
@@ -543,6 +546,8 @@ export const icon = {
   markMd: 28,
   /** Verdict mark at the head of a verdict card. */
   markLg: 36,
+  /** Verdict mark beside the product name on the Verdict screen (v1.11). */
+  markXl: 40,
 
   /** wght axis at rest, including inactive tabs. */
   weight: 400,
@@ -617,8 +622,12 @@ export const layout = {
   productTileImageHeight: 130,
   /** The round aisle bubble on Home and Search, Sixty60's "quick shops" (approved 13 Oct 2026). */
   categoryBubbleSize: 64,
-  /** The product photo at the top of the Verdict screen, full width (approved 13 Oct 2026). */
-  productPhotoHeight: 240,
+  /** The product photo (packshot) on the Verdict screen, full width (v1.11: 240 to 200). */
+  productPhotoHeight: 200,
+  /** One store, logo over name, in the sideways "Available at" row (v1.11). */
+  storeColumnWidth: 72,
+  /** The amount column in the Nutrition table, right aligned (v1.11). */
+  nutritionColumnWidth: 88,
   /** Thumbnail in a ProductCard row. */
   thumbSm: 56,
   /** Thumbnail in the ProductCard identity block and PhotoStepCard. */
