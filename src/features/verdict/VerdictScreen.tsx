@@ -450,8 +450,9 @@ function Shown({ shown }: { shown: Live | Past }) {
   const { subject } = shown;
   const rulesTitle = `${profileName}'s rules`;
   const summary = shown.kind === 'live' ? rulesSummary(checks, state) : shown.sourceNote;
-  // The ingredients that broke a rule, to pick out in the list.
+  // The ingredients that broke a rule, or may break one, to pick out in the list.
   const highlighted = checks.filter((check) => check.outcome === 'broken').flatMap((check) => check.matched);
+  const cautioned = checks.filter((check) => check.outcome === 'unchecked').flatMap((check) => check.matched);
 
   // "See alternatives" opens the product's aisle, showing only Safe products.
   // The aisle checks products against the default profile, so it is only
@@ -479,7 +480,12 @@ function Shown({ shown }: { shown: Live | Past }) {
   const stores = extras ? <AvailableAt stores={extras.stores} edgeInset={space.s6} /> : null;
   const ingredients =
     subject.ingredients.length > 0 ? (
-      <IngredientsCard ingredients={subject.ingredients} highlighted={highlighted} note={subject.note} />
+      <IngredientsCard
+        ingredients={subject.ingredients}
+        highlighted={highlighted}
+        cautioned={cautioned}
+        note={subject.note}
+      />
     ) : null;
 
   return (

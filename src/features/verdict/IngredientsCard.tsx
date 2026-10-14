@@ -2,8 +2,10 @@
  * IngredientsCard: the full ingredient list, in label order.
  *
  * An ingredient that broke one of the rules is set in bold and in the
- * not-safe ink, so you can find it in the list. Bold as well as colour, so it
- * does not rely on colour alone, and the rules card says the same in words.
+ * not-safe ink, so you can find it in the list. One that may break a rule
+ * (cocoa, for someone avoiding caffeine) is bold in the caution ink. Bold as
+ * well as colour, so it does not rely on colour alone, and the rules card
+ * says the same in words.
  *
  * The note at the bottom says where the list came from when nobody has
  * verified it: "Read from the label photo, not yet verified."
@@ -20,11 +22,21 @@ type IngredientsCardProps = {
   ingredients: string[];
   /** The ones that broke a rule, as printed. */
   highlighted: string[];
+  /** The ones that may break a rule, as printed. */
+  cautioned?: string[];
   note: string | null;
 };
 
-export function IngredientsCard({ ingredients, highlighted, note }: IngredientsCardProps) {
+export function IngredientsCard({ ingredients, highlighted, cautioned = [], note }: IngredientsCardProps) {
   const { colors, shadows } = useNjamTheme();
+
+  /** Bold in the verdict's ink if it broke, or may break, a rule. */
+  function emphasis(name: string) {
+    if (highlighted.includes(name)) return { fontFamily: fontFamilies.textBold, color: colors.verdictUnsafeInk };
+    if (cautioned.includes(name)) return { fontFamily: fontFamilies.textBold, color: colors.verdictCautionInk };
+    return null;
+  }
+
   return (
     <View style={[styles.card, shadows.ambient, { backgroundColor: colors.surfaceRaised }]}>
       <Text accessibilityRole="header" style={[typography.title, { color: colors.ink }]}>
@@ -37,9 +49,7 @@ export function IngredientsCard({ ingredients, highlighted, note }: IngredientsC
         {ingredients.map((name, index) => (
           <Fragment key={`${index}-${name}`}>
             {index > 0 && ', '}
-            <Text style={highlighted.includes(name) && { fontFamily: fontFamilies.textBold, color: colors.verdictUnsafeInk }}>
-              {name}
-            </Text>
+            <Text style={emphasis(name)}>{name}</Text>
           </Fragment>
         ))}
       </Text>
