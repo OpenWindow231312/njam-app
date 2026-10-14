@@ -1,17 +1,21 @@
 /**
- * Onboarding: set the rules every scan is checked against, in three steps.
+ * Onboarding: set the rules every scan is checked against, in two steps,
+ * then a screen that shows what was saved.
  *
- *   1. Allergies, with how strict each one is. Required: you either pick
- *      some or say you have none.
- *   2. Ingredients you avoid.
- *   3. E-numbers you avoid.
+ *   1. Allergies and diets. Required: you either pick some or tap "None of
+ *      these". Each allergy gets a level: Avoid, Moderate or Severe.
+ *   2. Anything else you avoid: ingredients and E-numbers. Optional.
+ *   Ready: your rules as a list, and the way into the app.
  *
- * These are the three rule types the verdict engine can check against an
- * ingredient list today. Diets and nutrient limits come later, because a
- * rule the engine cannot check would turn every scan into Caution.
+ * A diet here is a shortcut for the allergens it rules out: dairy-free is
+ * "avoid milk", gluten-free is "avoid gluten". It is saved as those allergen
+ * rules, which the verdict engine already checks, aliases and all. Diets the
+ * engine cannot check yet (vegetarian, halal) are left out on purpose: a rule
+ * it cannot check would turn every scan into Caution.
  *
- * The same screen edits your rules later from Profile ("edit" mode). Nothing
- * is saved until the last step, so backing out part way changes nothing.
+ * The same screen edits your rules later from Profile ("edit" mode, no ready
+ * screen). Nothing is saved until the end of step 2, so backing out part way
+ * changes nothing.
  */
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -31,17 +35,33 @@ import {
   type Severity,
 } from '@/components/design-system';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { loadMyRules, saveMyRules, type AllergySeverity, type MyRules } from '@/features/onboarding/my-rules';
+import {
+  loadMyRules,
+  saveMyRules,
+  toRows,
+  type AllergySeverity,
+  type MyRules,
+} from '@/features/onboarding/my-rules';
+import { RuleGroups } from '@/features/profile/RuleGroups';
 import { allergenWord } from '@/services/verdict';
 import { icon, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type Mode = 'first-run' | 'edit';
+type Step = 1 | 2 | 'ready';
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 2;
 
 /** The eight allergens R146 makes a label declare, as seeded in the allergens table. */
 const ALLERGENS = ['milk', 'egg', 'peanut', 'tree-nut', 'soy', 'gluten', 'fish', 'crustacean-mollusc'];
+
+/** Each diet and the allergens it rules out. Only diets the engine can fully check belong here. */
+const DIETS: { label: string; allergens: string[] }[] = [
+  { label: 'Gluten-free', allergens: ['gluten'] },
+  { label: 'Dairy-free', allergens: ['milk'] },
+  { label: 'Egg-free', allergens: ['egg'] },
+  { label: 'Nut-free', allergens: ['peanut', 'tree-nut'] },
+];
 
 /**
  * Suggestions are ingredients the catalogue already knows by these names,
@@ -87,16 +107,21 @@ function withChosen(suggestions: string[], chosen: string[]): string[] {
   return [...suggestions, ...chosen.filter((item) => !suggestions.includes(item))];
 }
 
+/** A diet is on when every allergen it rules out is already on your list. */
+function dietIsOn(diet: (typeof DIETS)[number], allergies: MyRules['allergies']): boolean {
+  return diet.allergens.every((slug) => slug in allergies);
+}
+
 export function OnboardingScreen({ mode }: { mode: Mode }) {
   const { colors } = useNjamTheme();
   const { member, finishOnboarding } = useAuth();
 
   const [rules, setRules] = useState<MyRules | null>(null);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<Step>(1);
   const [typedIngredient, setTypedIngredient] = useState('');
   const [typedENumber, setTypedENumber] = useState('');
   const [eNumberError, setENumberError] = useState<string | undefined>();
-  const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
@@ -145,6 +170,24 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
     });
   }
 
+  /**
+   * Turning a diet on adds the allergens it rules out, as "Avoid", and keeps
+   * the level of any you had already picked. Turning it off removes them, and
+   * their chips above switch off too, so the change is always visible.
+   */
+  function toggleDiet(diet: (typeof DIETS)[number]) {
+    setRules((current) => {
+      if (!current) return current;
+      const allergies = { ...current.allergies };
+      if (dietIsOn(diet, allergies)) {
+        for (const slug of diet.allergens) delete allergies[slug];
+      } else {
+        for (const slug of diet.allergens) if (!(slug in allergies)) allergies[slug] = null;
+      }
+      return { ...current, allergies };
+    });
+  }
+
   function setSeverity(slug: string, severity: AllergySeverity) {
     setRules((current) => current && { ...current, allergies: { ...current.allergies, [slug]: severity } });
   }
@@ -176,58 +219,89 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
   }
 
   function goBack() {
-    if (step > 1) setStep(step - 1);
+    if (step === 2) setStep(1);
     else router.back();
   }
 
   async function save() {
     if (!rules) return;
-    setSaving(true);
+    setBusy(true);
     setFailure(null);
     try {
       setRules(await saveMyRules(rules));
-      if (mode === 'first-run') {
-        // The root layout sees onboarded turn true and opens the tabs.
-        await finishOnboarding();
-      } else {
-        router.back();
-      }
+      if (mode === 'first-run') setStep('ready');
+      else router.back();
     } catch {
       setFailure('We could not save your rules. Check your connection.');
-      setSaving(false);
+    } finally {
+      setBusy(false);
     }
   }
 
-  // The back arrow is hidden on the very first step of first-run, because
-  // there is nothing behind it to go back to.
-  const showBack = step > 1 || mode === 'edit';
+  async function goHome() {
+    setBusy(true);
+    setFailure(null);
+    try {
+      // The root layout sees onboarded turn true and opens the tabs on Home.
+      await finishOnboarding();
+    } catch {
+      setFailure('We could not reach Njam. Check your connection.');
+      setBusy(false);
+    }
+  }
+
+  // There is nothing behind the first step of first-run to go back to.
+  const showBack = step === 2 || (step === 1 && mode === 'edit');
 
   return (
     <Screen>
-      <View style={styles.topBar}>
-        {showBack && <IconButton icon="arrow_back" accessibilityLabel="Go back" onPress={goBack} />}
-        <StepProgress step={step} total={TOTAL_STEPS} />
-      </View>
+      {step !== 'ready' && (
+        <View style={styles.topBar}>
+          {showBack && <IconButton icon="arrow_back" accessibilityLabel="Go back" onPress={goBack} />}
+          <StepProgress step={step} total={TOTAL_STEPS} />
+        </View>
+      )}
 
       {step === 1 && (
         <>
           <SectionHeader
-            headline="Do you have any food allergies?"
-            deck="Tap each one you react to. A product that contains it comes back Not safe."
+            headline="What can you not eat?"
+            deck="Tap everything that applies. A product that contains it comes back Not safe."
             step={1}
             totalSteps={TOTAL_STEPS}
-            tag="Allergies"
+            tag="Allergies and diets"
           />
-          <View style={styles.chips}>
-            {ALLERGENS.map((slug) => (
-              <RuleChip
-                key={slug}
-                label={capitalise(allergenWord(slug))}
-                selected={slug in rules.allergies}
-                severity={slug in rules.allergies ? chipSeverity(rules.allergies[slug]) : undefined}
-                onToggle={() => toggleAllergen(slug)}
-              />
-            ))}
+
+          <View style={styles.block}>
+            <Text style={[typography.overline, { color: colors.inkMuted }]}>Allergies</Text>
+            <View style={styles.chips}>
+              {ALLERGENS.map((slug) => (
+                <RuleChip
+                  key={slug}
+                  label={capitalise(allergenWord(slug))}
+                  selected={slug in rules.allergies}
+                  severity={slug in rules.allergies ? chipSeverity(rules.allergies[slug]) : undefined}
+                  onToggle={() => toggleAllergen(slug)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.block}>
+            <Text style={[typography.overline, { color: colors.inkMuted }]}>Diets</Text>
+            <View style={styles.chips}>
+              {DIETS.map((diet) => (
+                <RuleChip
+                  key={diet.label}
+                  label={diet.label}
+                  selected={dietIsOn(diet, rules.allergies)}
+                  onToggle={() => toggleDiet(diet)}
+                />
+              ))}
+            </View>
+            <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
+              A diet marks what it rules out, so dairy-free adds milk to your list.
+            </Text>
           </View>
 
           {chosenAllergens.length > 0 && (
@@ -255,7 +329,7 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
           )}
 
           <Button
-            label={chosenAllergens.length > 0 ? 'Next: ingredients you avoid' : 'I have no food allergies'}
+            label={chosenAllergens.length > 0 ? 'Next: anything else you avoid' : 'None of these'}
             onPress={() => setStep(2)}
             size="large"
             fullWidth
@@ -267,77 +341,73 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
         <>
           <SectionHeader
             headline="Is there anything else you avoid?"
-            deck="Pick an ingredient or type your own. We flag any product whose label lists it."
+            deck="Pick from the lists or type your own. We flag any product whose label lists it."
             step={2}
             totalSteps={TOTAL_STEPS}
-            tag="Ingredients"
+            tag="Ingredients and additives"
           />
-          <View style={styles.chips}>
-            {withChosen(SUGGESTED_INGREDIENTS, rules.ingredients).map((name) => (
-              <RuleChip
-                key={name}
-                label={capitalise(name)}
-                selected={rules.ingredients.includes(name)}
-                onToggle={() => toggleIngredient(name)}
-              />
-            ))}
-          </View>
-          <TextField
-            label="Add an ingredient"
-            value={typedIngredient}
-            onChangeText={setTypedIngredient}
-            placeholder="Gelatine"
-            helper="Spell it the way a label would."
-            trailingIcon="add"
-            trailingLabel="Add this ingredient"
-            onTrailingPress={addTypedIngredient}
-          />
-          <Button label="Next: E-numbers you avoid" onPress={() => setStep(3)} size="large" fullWidth />
-        </>
-      )}
 
-      {step === 3 && (
-        <>
-          <SectionHeader
-            headline="Are there additives you avoid?"
-            deck="Labels list additives by their E-number. Pick any you stay away from."
-            step={3}
-            totalSteps={TOTAL_STEPS}
-            tag="E-numbers"
-          />
-          <View style={styles.chips}>
-            {withChosen(
-              SUGGESTED_E_NUMBERS.map((item) => item.code),
-              rules.eNumbers,
-            ).map((code) => {
-              const name = SUGGESTED_E_NUMBERS.find((item) => item.code === code)?.name;
-              return (
+          <View style={styles.block}>
+            <Text style={[typography.overline, { color: colors.inkMuted }]}>Ingredients</Text>
+            <View style={styles.chips}>
+              {withChosen(SUGGESTED_INGREDIENTS, rules.ingredients).map((name) => (
                 <RuleChip
-                  key={code}
-                  label={name ? `${code}, ${name}` : code}
-                  selected={rules.eNumbers.includes(code)}
-                  onToggle={() => toggleENumber(code)}
+                  key={name}
+                  label={capitalise(name)}
+                  selected={rules.ingredients.includes(name)}
+                  onToggle={() => toggleIngredient(name)}
                 />
-              );
-            })}
+              ))}
+            </View>
+            <TextField
+              label="Add an ingredient"
+              value={typedIngredient}
+              onChangeText={setTypedIngredient}
+              placeholder="Gelatine"
+              helper="Spell it the way a label would."
+              trailingIcon="add"
+              trailingLabel="Add this ingredient"
+              onTrailingPress={addTypedIngredient}
+            />
           </View>
-          <TextField
-            label="Add an E-number"
-            value={typedENumber}
-            onChangeText={(text) => {
-              setTypedENumber(text);
-              setENumberError(undefined);
-            }}
-            placeholder="E220"
-            autoCapitalize="characters"
-            error={eNumberError}
-            trailingIcon="add"
-            trailingLabel="Add this E-number"
-            onTrailingPress={addTypedENumber}
-          />
+
+          <View style={styles.block}>
+            <Text style={[typography.overline, { color: colors.inkMuted }]}>Additives (E-numbers)</Text>
+            <View style={styles.chips}>
+              {withChosen(
+                SUGGESTED_E_NUMBERS.map((item) => item.code),
+                rules.eNumbers,
+              ).map((code) => {
+                const name = SUGGESTED_E_NUMBERS.find((item) => item.code === code)?.name;
+                return (
+                  <RuleChip
+                    key={code}
+                    label={name ? `${code}, ${name}` : code}
+                    selected={rules.eNumbers.includes(code)}
+                    onToggle={() => toggleENumber(code)}
+                  />
+                );
+              })}
+            </View>
+            <TextField
+              label="Add an E-number"
+              value={typedENumber}
+              onChangeText={(text) => {
+                setTypedENumber(text);
+                setENumberError(undefined);
+              }}
+              placeholder="E220"
+              autoCapitalize="characters"
+              error={eNumberError}
+              trailingIcon="add"
+              trailingLabel="Add this E-number"
+              onTrailingPress={addTypedENumber}
+            />
+          </View>
+
           <Button
-            label={mode === 'first-run' ? 'Save and start scanning' : 'Save my rules'}
-            loading={saving}
+            label="Save my rules"
+            loading={busy}
             loadingLabel="Saving your rules"
             onPress={save}
             size="large"
@@ -346,12 +416,38 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
         </>
       )}
 
+      {step === 'ready' && (
+        <>
+          <SectionHeader
+            headline="Your profile is ready"
+            deck={
+              toRows(rules).length > 0
+                ? 'Every scan now checks these rules. You can change any of them on Profile.'
+                : 'You have no rules yet, so every scan comes back as Caution. You can add rules on Profile.'
+            }
+          />
+          <RuleGroups rules={toRows(rules)} />
+          <View style={styles.block}>
+            <Button
+              label="Go to Home"
+              loading={busy}
+              loadingLabel="Opening Njam"
+              onPress={goHome}
+              size="large"
+              fullWidth
+            />
+            {/* Your rules are saved, so changing them now replaces them. */}
+            <Button label="Change my rules" variant="text" onPress={() => setStep(1)} fullWidth />
+          </View>
+        </>
+      )}
+
       {failure && (
         <Snackbar
           kind="failure"
           message={failure}
           actionLabel="Retry"
-          onAction={save}
+          onAction={step === 'ready' ? goHome : save}
           onDismiss={() => setFailure(null)}
         />
       )}

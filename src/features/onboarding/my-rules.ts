@@ -78,8 +78,8 @@ export async function loadMyRules(userId: string, householdId: string, name: str
   return rules;
 }
 
-/** The rows to write, in the shape of profile_rules. */
-function toRows(rules: MyRules): (ProfileRule & { diet_profile_id: string })[] {
+/** The rows to write, in the shape of profile_rules. Also what the ready screen lists. */
+export function toRows(rules: MyRules): (ProfileRule & { diet_profile_id: string })[] {
   const base = { diet_profile_id: rules.profileId, operator: 'excludes' as const, threshold: null, unit: null };
   return [
     ...Object.entries(rules.allergies).map(([slug, severity]) => ({

@@ -15,7 +15,7 @@ import { Avatar, Button, ListGroup, ListRow, SectionHeader, Snackbar } from '@/c
 import { AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
 import { useAuth, type Role } from '@/features/auth/AuthProvider';
 import { fetchActiveProfile, type ActiveProfile } from '@/features/profile/active-profile';
-import { allergenWord, type ProfileRule } from '@/services/verdict';
+import { RuleGroups } from '@/features/profile/RuleGroups';
 import { space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -24,50 +24,6 @@ const ROLE_LABELS: Record<Role, string> = {
   standard: 'Standard user',
   admin: 'Admin and moderator',
 };
-
-const RULE_ICONS: Record<string, string> = {
-  allergen: 'no_food',
-  ingredient: 'block',
-  e_number: 'science',
-  nutrient: 'nutrition',
-  diet: 'restaurant',
-};
-
-/** The groups the rules are shown in, in this order. Any other type falls into "Other rules". */
-const RULE_GROUPS: { title: string; types: string[] }[] = [
-  { title: 'Allergies', types: ['allergen'] },
-  { title: 'Ingredients you avoid', types: ['ingredient'] },
-  { title: 'E-numbers you avoid', types: ['e_number'] },
-];
-const GROUPED_TYPES = RULE_GROUPS.flatMap((group) => group.types);
-
-/** One rule as a row title and supporting line. */
-function describeRule(rule: ProfileRule): { title: string; supporting: string } {
-  if (rule.type === 'allergen') {
-    const word = allergenWord(rule.target);
-    return {
-      title: word.charAt(0).toUpperCase() + word.slice(1),
-      supporting: rule.severity ? `Allergy, marked ${rule.severity}` : 'Allergy you avoid',
-    };
-  }
-  if (rule.type === 'e_number') return { title: rule.target.toUpperCase(), supporting: 'E-number you avoid' };
-  if (rule.type === 'ingredient') return { title: rule.target, supporting: 'Ingredient you avoid' };
-  if (rule.threshold !== null) {
-    const comparison = rule.operator === 'gte' ? 'at least' : 'at most';
-    return { title: rule.target, supporting: `${comparison} ${rule.threshold} ${rule.unit ?? ''}`.trim() };
-  }
-  return { title: rule.target, supporting: rule.type };
-}
-
-/** The non-empty groups, each with its rules. */
-function groupRules(rules: ProfileRule[]): { title: string; rules: ProfileRule[] }[] {
-  const groups = RULE_GROUPS.map((group) => ({
-    title: group.title,
-    rules: rules.filter((rule) => group.types.includes(rule.type)),
-  }));
-  groups.push({ title: 'Other rules', rules: rules.filter((rule) => !GROUPED_TYPES.includes(rule.type)) });
-  return groups.filter((group) => group.rules.length > 0);
-}
 
 /** "Every scan is checked against 4 rules." */
 function rulesSummary(count: number): string {
@@ -128,29 +84,7 @@ export function ProfileScreen() {
         {profile && profile.rules.length > 0 && (
           <Text style={[typography.body, { color: colors.inkMuted }]}>{rulesSummary(profile.rules.length)}</Text>
         )}
-        {profile &&
-          groupRules(profile.rules).map((group) => (
-            <View key={group.title} style={styles.group}>
-              <Text accessibilityRole="header" style={[typography.overline, { color: colors.inkMuted }]}>
-                {group.title}
-              </Text>
-              <ListGroup>
-                {group.rules.map((rule) => {
-                  const { title, supporting } = describeRule(rule);
-                  return (
-                    <ListRow
-                      key={`${rule.type}-${rule.target}`}
-                      title={title}
-                      supporting={supporting}
-                      icon={RULE_ICONS[rule.type] ?? 'rule'}
-                      iconBadge="soft"
-                      trailing="none"
-                    />
-                  );
-                })}
-              </ListGroup>
-            </View>
-          ))}
+        {profile && <RuleGroups rules={profile.rules} />}
       </View>
 
       {/* Only an admin sees the way in. The database still refuses a
@@ -195,8 +129,5 @@ const styles = StyleSheet.create({
   },
   block: {
     gap: space.s3,
-  },
-  group: {
-    gap: space.s2,
   },
 });
