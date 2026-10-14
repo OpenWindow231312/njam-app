@@ -166,13 +166,11 @@ Full explanation and the reasoning behind it: [`docs/STRUCTURE.md`](docs/STRUCTU
 The high-fidelity screens are in Figma (view only):
 <https://www.figma.com/design/SPM3c4yMgs3bW2BVRIoafz/Njam-App?node-id=1-8>
 
-The source of truth is the Njam Design System artifact:
+The source of truth is the Njam Design System artifact, open to anyone with the link:
 <https://claude.ai/artifact/3gFmougXCaYTd2YWEP8VYy>
 
-The artifact is private to the author's Claude account and cannot be opened from
-this repo. Its values are mirrored into
-[`src/theme/tokens.ts`](src/theme/tokens.ts), which is the source of truth for
-code. Screens and components import from `tokens.ts` and never type a raw hex
+Its values are mirrored into [`src/theme/tokens.ts`](src/theme/tokens.ts), which
+is the source of truth for code. Screens and components import from `tokens.ts` and never type a raw hex
 code, size, spacing or radius. How the artifact and the code stay linked:
 [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md).
 
