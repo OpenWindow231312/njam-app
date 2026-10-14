@@ -17,8 +17,12 @@ export type CatalogueProduct = {
   servingSize: number | null;
   servingUnit: string | null;
   verified: boolean;
-  source: 'user' | 'ai_label_read' | 'seed' | 'admin';
-  /** In label order. */
+  source: 'user' | 'ai_label_read' | 'open_food_facts' | 'seed' | 'admin';
+  /**
+   * In label order. An ingredient the label tagged differently from the
+   * catalogue appears twice, once with each set of tags, so the engine
+   * checks both and the stricter one counts.
+   */
   ingredients: VerdictIngredient[];
   /** Allergen slugs from the label's "may contain" line. */
   mayContain: string[];
@@ -39,7 +43,8 @@ const PRODUCT_COLUMNS = `
   may_contain, image_url, label_image_url, category_id,
   product_stores ( store_id ),
   product_ingredients (
-    position,
+    position, label_e_number,
+    label_allergen:label_allergen_id ( slug ),
     ingredients (
       name, e_number,
       allergen:allergen_id ( slug ),
@@ -69,21 +74,38 @@ type ProductRow = {
   label_image_url: string | null;
   category_id: string | null;
   product_stores: { store_id: string }[];
-  product_ingredients: { position: number; ingredients: IngredientRow | null }[];
+  product_ingredients: {
+    position: number;
+    label_e_number: string | null;
+    label_allergen: Slug;
+    ingredients: IngredientRow | null;
+  }[];
 };
 
 function toProduct(row: ProductRow): CatalogueProduct {
   const ingredients = [...row.product_ingredients]
     .sort((a, b) => a.position - b.position)
-    .flatMap((link) => (link.ingredients ? [link.ingredients] : []))
-    .map((item) => ({
-      name: item.name,
-      canonicalName: item.canonical?.name ?? null,
-      // The alias carries its own allergen, but fall back to the canonical
-      // one so a missing link on the alias can never hide an allergen.
-      allergen: item.allergen?.slug ?? item.canonical?.allergen?.slug ?? null,
-      eNumber: item.e_number,
-    }));
+    .flatMap((link) => {
+      const item = link.ingredients;
+      if (!item) return [];
+      const catalogue: VerdictIngredient = {
+        name: item.name,
+        canonicalName: item.canonical?.name ?? null,
+        // The alias carries its own allergen, but fall back to the canonical
+        // one so a missing link on the alias can never hide an allergen.
+        allergen: item.allergen?.slug ?? item.canonical?.allergen?.slug ?? null,
+        eNumber: item.e_number,
+      };
+      // The label tagged it differently when it was added: check the label's
+      // tags as well, so saving the product never made its verdict laxer.
+      if (!link.label_allergen && !link.label_e_number) return [catalogue];
+      const label: VerdictIngredient = {
+        ...catalogue,
+        allergen: link.label_allergen?.slug ?? catalogue.allergen,
+        eNumber: link.label_e_number ?? catalogue.eNumber,
+      };
+      return [catalogue, label];
+    });
 
   return {
     id: row.id,
@@ -128,6 +150,14 @@ export async function fetchCatalogue(): Promise<CatalogueProduct[]> {
   const { data, error } = await supabase.from('products').select(PRODUCT_COLUMNS).order('name');
   if (error) throw error;
   return (data as unknown as ProductRow[]).map(toProduct);
+}
+
+/**
+ * The ingredient names to show, in label order, each once. An ingredient
+ * with label tags appears twice in `ingredients` (see above), never on screen.
+ */
+export function ingredientNames(product: { ingredients: VerdictIngredient[] }): string[] {
+  return [...new Set(product.ingredients.map((item) => item.name))];
 }
 
 /** "Clover · 1000 ml": the brand and pack size, for ProductCard. */

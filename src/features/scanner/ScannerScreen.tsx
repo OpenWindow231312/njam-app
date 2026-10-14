@@ -30,7 +30,7 @@ import { Linking, StyleSheet, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
 import { Button, EmptyState, ScanFrame, ScopePill, Snackbar } from '@/components/design-system';
-import { IngredientConflictError, ProductExistsError, addProduct } from '@/features/add-product/add-product';
+import { ProductExistsError, addProduct } from '@/features/add-product/add-product';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { fetchActiveProfile, type ActiveProfile } from '@/features/profile/active-profile';
 import { fetchFromOpenFoodFacts, readOpenFoodFactsProduct } from '@/features/scanner/open-food-facts';
@@ -253,11 +253,9 @@ export function ScannerScreen() {
       }
       console.warn('Could not add the product', error);
       setNotice(
-        error instanceof IngredientConflictError
-          ? 'An admin needs to check one of these ingredients first, so we could not add this product. Show the verdict to see what the label says.'
-          : error instanceof LabelReadError
-            ? error.message
-            : 'We could not add this product. Try again, or show the verdict without it.',
+        error instanceof LabelReadError
+          ? error.message
+          : 'We could not add this product. Try again, or show the verdict without it.',
       );
       setMode({ kind: 'front', barcode, read });
     }

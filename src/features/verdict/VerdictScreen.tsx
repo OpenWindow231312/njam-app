@@ -53,7 +53,7 @@ import { useAuth, type Member } from '@/features/auth/AuthProvider';
 import { fetchSavedProductIds, saveProduct, unsaveProduct } from '@/features/home/saved-products';
 import { fetchStoresForProduct, type StoreForProduct } from '@/features/home/stores';
 import { fetchHouseholdProfiles, type ActiveProfile } from '@/features/profile/active-profile';
-import { fetchProductById } from '@/features/verdict/catalogue';
+import { fetchProductById, ingredientNames } from '@/features/verdict/catalogue';
 import { AvailableAt } from '@/features/verdict/AvailableAt';
 import { IngredientsCard } from '@/features/verdict/IngredientsCard';
 import { fetchNutrition, type Nutrition } from '@/features/verdict/nutrition';
@@ -209,7 +209,7 @@ async function loadProduct(productId: string, barcode: string | undefined, membe
       size: packSize(product.servingSize, product.servingUnit),
       barcode: product.barcode,
       imageUrl: product.imageUrl,
-      ingredients: product.ingredients.map((item) => item.name),
+      ingredients: ingredientNames(product),
       note: product.verified
         ? null
         : product.source === 'ai_label_read'

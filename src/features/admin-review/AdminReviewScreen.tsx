@@ -39,7 +39,7 @@ import {
   type PossibleDuplicate,
 } from '@/features/admin-review/review-queue';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { productDetail, type CatalogueProduct } from '@/features/verdict/catalogue';
+import { ingredientNames, productDetail, type CatalogueProduct } from '@/features/verdict/catalogue';
 import { allergenWord } from '@/services/verdict';
 import { icon, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
@@ -161,7 +161,7 @@ export function AdminReviewScreen() {
             )}
             <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
               {product.ingredients.length > 0
-                ? product.ingredients.map((item) => item.name).join(', ')
+                ? ingredientNames(product).join(', ')
                 : 'No ingredient list yet.'}
             </Text>
             {product.mayContain.length > 0 && (

@@ -23,9 +23,11 @@ Rules it keeps:
   anything else, so it is capped at Caution until an admin verifies it.
 - The label's "may contain" line is saved (`products.may_contain`), so the saved
   product is never less strict than the scan that created it.
-- An ingredient already in the catalogue is reused only if the catalogue tags it
-  at least as strictly as the label read did. Otherwise nothing is saved and
-  the person is told an admin needs to check it.
+- An ingredient already in the catalogue is always reused. If the label tags it
+  differently (another allergen, another E-number), the label's tags are kept
+  on this product's link (`product_ingredients.label_allergen_id`,
+  `label_e_number`), and `catalogue.ts` hands the engine both, so the stricter
+  one counts. The catalogue row itself is left for an admin.
 - The barcode is unique, so the same product cannot be saved twice. If two
   people save it at the same moment, the second opens the first one's product.
   The same product under another barcode (another pack size) is flagged as a

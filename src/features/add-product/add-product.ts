@@ -21,12 +21,6 @@ const BUCKET = 'product-photos';
 /** Someone else saved this barcode first, maybe a moment ago. */
 export class ProductExistsError extends Error {}
 
-/**
- * The catalogue tags one of these ingredients more leniently than this label
- * did, so saving would have dropped an allergen or E-number. Nothing is saved.
- */
-export class IngredientConflictError extends Error {}
-
 /** The camera's base64 as bytes, for Storage. atob is built into React Native. */
 function toBytes(base64: string): ArrayBuffer {
   const binary = atob(base64);
@@ -76,7 +70,6 @@ export async function addProduct(input: {
     if (error.code === '23505' && error.message.includes('products_barcode_key')) {
       throw new ProductExistsError('Someone added this product already.');
     }
-    if (error.hint === 'ingredient_conflict') throw new IngredientConflictError(error.message);
     throw error;
   }
   return data as string;
