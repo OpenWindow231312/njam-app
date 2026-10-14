@@ -6,8 +6,11 @@
  * (the database refuses anything else), so the verdict engine caps it at
  * Caution until an admin verifies it in the review queue.
  *
+ * The ingredient list comes from a label photo, or from Open Food Facts,
+ * which has no label photo to keep.
+ *
  * Two steps:
- *   1. Both photos go to Storage, in a folder named after you. The Storage
+ *   1. The photos go to Storage, in a folder named after you. The Storage
  *      policy refuses any other folder.
  *   2. add_product (a database function) saves the product, its ingredients
  *      and their order in one transaction, so a product can never be saved
@@ -45,14 +48,18 @@ export async function addProduct(input: {
   barcode: string;
   front: FrontRead & { name: string };
   label: LabelRead;
+  /** Where the ingredient list came from. */
+  source: 'ai_label_read' | 'open_food_facts';
   frontPhotoBase64: string;
-  labelPhotoBase64: string;
+  /** null when the ingredients came from Open Food Facts. */
+  labelPhotoBase64: string | null;
 }): Promise<string> {
   // The time keeps each upload's name new, so a photo is never overwritten.
   const prefix = `${input.userId}/${input.barcode}-${Date.now()}`;
+  const labelPhoto = input.labelPhotoBase64;
   const [imageUrl, labelImageUrl] = await Promise.all([
     uploadPhoto(`${prefix}-front.jpg`, input.frontPhotoBase64),
-    uploadPhoto(`${prefix}-label.jpg`, input.labelPhotoBase64),
+    labelPhoto ? uploadPhoto(`${prefix}-label.jpg`, labelPhoto) : Promise.resolve(null),
   ]);
 
   const { data, error } = await supabase.rpc('add_product', {
@@ -63,6 +70,7 @@ export async function addProduct(input: {
     p_label_image_url: labelImageUrl,
     p_may_contain: input.label.mayContain,
     p_ingredients: input.label.ingredients,
+    p_source: input.source,
   });
 
   if (error) {

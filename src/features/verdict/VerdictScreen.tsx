@@ -214,7 +214,9 @@ async function loadProduct(productId: string, barcode: string | undefined, membe
         ? null
         : product.source === 'ai_label_read'
           ? 'Read from a label photo, not yet verified.'
-          : 'Added by a shopper, not yet verified.',
+          : product.source === 'open_food_facts'
+            ? SOURCE_WORDS['open-food-facts'].note
+            : 'Added by a shopper, not yet verified.',
     },
     product: checked,
     profiles,

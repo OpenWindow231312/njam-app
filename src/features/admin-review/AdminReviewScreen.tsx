@@ -57,6 +57,7 @@ function duplicateText(matches: PossibleDuplicate[]): string {
 
 function sourceText(product: CatalogueProduct): string {
   if (product.source === 'ai_label_read') return 'Read from a label photo';
+  if (product.source === 'open_food_facts') return 'Ingredients from Open Food Facts';
   if (product.source === 'user') return 'Added by a shopper';
   return 'Not yet verified';
 }
