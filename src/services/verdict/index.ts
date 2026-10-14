@@ -317,8 +317,8 @@ export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Ve
     unchecked.push({
       icon: 'info',
       text: product.readFromLabel
-        ? 'We read this from the label, and nobody has checked it yet.'
-        : 'Nobody has checked this ingredient list yet.',
+        ? 'We read this list from your photo, and our team has not checked it yet.'
+        : 'Our team has not checked this ingredient list yet.',
     });
   }
 

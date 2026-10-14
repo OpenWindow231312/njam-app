@@ -30,7 +30,7 @@ type VerdictTabProps = {
   state: VerdictState;
   /** "Not safe for Thabo". */
   label: string;
-  /** Read out after the label, e.g. "1 of 5 rules not met". */
+  /** Read out after the label, e.g. "Breaks 1 of your 5 rules". */
   summary: string;
 };
 

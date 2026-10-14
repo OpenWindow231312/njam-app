@@ -4,7 +4,7 @@
  * has more to show, a chevron. The whole row toggles the card and is at
  * least the 48 touch target.
  *
- * The summary can take a verdict ink ("1 of 5 rules not met" in the
+ * The summary can take a verdict ink ("Breaks 1 of your 5 rules" in the
  * not-safe ink), or stay muted for a neutral card.
  */
 import { StyleSheet, Text, View } from 'react-native';

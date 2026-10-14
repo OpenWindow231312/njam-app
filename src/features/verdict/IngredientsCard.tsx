@@ -7,8 +7,8 @@
  * well as colour, so it does not rely on colour alone, and the rules card
  * says the same in words.
  *
- * The note at the bottom says where the list came from when nobody has
- * verified it: "Read from the label photo, not yet verified."
+ * The note at the bottom says where the list came from when our team has not
+ * checked it: "Read from your photo. Not yet checked by our team."
  */
 import { Fragment } from 'react';
 import { StyleSheet, Text, View } from 'react-native';

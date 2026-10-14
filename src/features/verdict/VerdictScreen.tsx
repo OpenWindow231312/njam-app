@@ -82,11 +82,11 @@ type Params = {
 /** How each label source is named on screen. Neither is ever verified. */
 const SOURCE_WORDS: Record<LabelSource, { note: string; fallbackName: string }> = {
   photo: {
-    note: 'Read from the label photo, not yet verified.',
+    note: 'Read from your photo. Not yet checked by our team.',
     fallbackName: 'Product from a label photo',
   },
   'open-food-facts': {
-    note: 'Found in Open Food Facts, a public database anyone can edit. Not yet verified.',
+    note: 'Found in Open Food Facts, a public database anyone can edit. Not yet checked by our team.',
     fallbackName: 'Product from Open Food Facts',
   },
 };
@@ -213,10 +213,10 @@ async function loadProduct(productId: string, barcode: string | undefined, membe
       note: product.verified
         ? null
         : product.source === 'ai_label_read'
-          ? 'Read from a label photo, not yet verified.'
+          ? 'Read from a label photo. Not yet checked by our team.'
           : product.source === 'open_food_facts'
             ? SOURCE_WORDS['open-food-facts'].note
-            : 'Added by a shopper, not yet verified.',
+            : 'Added by a shopper. Not yet checked by our team.',
     },
     product: checked,
     profiles,

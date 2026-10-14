@@ -7,6 +7,10 @@
  *   unchecked - the caution triangle and what we could not tell.
  *   met       - a plain tick, the rule, and "Not listed". Never the word safe.
  *
+ * The summary under the title says it in plain words ("Breaks 1 of your 3
+ * rules"), never "2 of 2 rules met", which a person in our user test read as
+ * a contradiction next to a Caution verdict.
+ *
  * Closed, the card shows only the rules that were broken or could not be
  * checked, so the reason for the verdict is visible without a tap. Open, it
  * also lists every rule that was kept. When every rule was a problem there
@@ -24,13 +28,16 @@ import type { RuleCheck, VerdictState } from '@/services/verdict';
 import { border, icon, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
-function rulesWord(count: number): string {
-  return count === 1 ? 'rule' : 'rules';
+/** "your rule" for one, "1 of your 3 rules" otherwise. */
+function ofYourRules(count: number, total: number): string {
+  return total === 1 ? 'your rule' : `${count} of your ${total} rules`;
 }
 
 /**
  * The line under the title, which also goes on the verdict tab for a screen
- * reader. A caution line says what is unknown.
+ * reader. Plain words, from the person's side: what broke, what we could not
+ * tell, and why a list with nothing you avoid can still be Caution. A
+ * caution line says what is unknown.
  */
 export function rulesSummary(checks: RuleCheck[], state: VerdictState): string {
   const total = checks.length;
@@ -38,11 +45,12 @@ export function rulesSummary(checks: RuleCheck[], state: VerdictState): string {
   const unchecked = checks.filter((check) => check.outcome === 'unchecked').length;
 
   if (total === 0) return 'Your profile has no rules yet, so there was nothing to check';
-  if (broken > 0) return `${broken} of ${total} ${rulesWord(total)} not met`;
-  if (unchecked > 0) return `${unchecked} of ${total} ${rulesWord(total)} could not be checked`;
-  // Every rule kept, but the engine still said Caution: nobody has verified the list.
-  if (state !== 'safe') return `${total} of ${total} ${rulesWord(total)} met, but nobody has verified this list`;
-  return `${total} of ${total} ${rulesWord(total)} met`;
+  if (broken > 0) return `Breaks ${ofYourRules(broken, total)}`;
+  if (unchecked > 0) return `We could not check ${ofYourRules(unchecked, total)}`;
+  // Every rule kept, but the engine still said Caution: our team has not
+  // checked the ingredient list, so it cannot be Safe yet.
+  if (state !== 'safe') return 'Nothing you avoid is listed, but our team has not checked this list yet';
+  return 'Nothing you avoid is listed';
 }
 
 /** Broken first, then the ones we could not check, then the kept ones, as in the profile. */

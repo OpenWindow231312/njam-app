@@ -20,7 +20,7 @@ Run before every merge into `main`. Mark each with the date and pass or fail.
 | 1 | Sign up with a new email | Lands on Home; Profile shows you as Household owner | 13 Oct, fail (bug 10). Rerun after the fix |
 | 2 | Log out, log in as owner@njam.test | Home, with your name on Profile | 13 Oct, pass |
 | 3 | Search "rusk", open Ouma Buttermilk Rusks | Not safe: contains buttermilk powder, you marked milk as severe | 13 Oct, pass |
-| 4 | Open one of the 3 unverified seed products | Caution at best, with "Nobody has checked this ingredient list yet" | |
+| 4 | Open one of the 3 unverified seed products | Caution at best, with "Our team has not checked this ingredient list yet" | |
 | 5 | Scan a real barcode not in the catalogue | Open Food Facts verdict marked "not yet verified", or a request for a label photo | 13 Oct, pass (label photo asked for) |
 | 6 | Photograph a clear label | Ingredient list read; verdict capped at Caution | 13 Oct, pass |
 | 7 | Photograph a blurry label | "We could not read this label", never a guessed list | |
