@@ -7,6 +7,8 @@
  *               with the barcode it was scanned under if there was one.
  *               `source` says where the text came from: a label photo (the
  *               default) or Open Food Facts, which also passes a `brand`.
+ *               `photo` is the photo just taken (a file on the phone), shown
+ *               in place of a packshot, since a label read is not saved.
  *   scanId    - a past scan from History, shown exactly as it was decided.
  *
  * Layout (the Results screens in Figma, 14 Oct 2026): back and "For Thabo"
@@ -76,6 +78,7 @@ type Params = {
   barcode?: string;
   source?: LabelSource;
   brand?: string;
+  photo?: string;
   scanId?: string;
 };
 
@@ -231,6 +234,7 @@ async function loadLabel(
   source: LabelSource,
   brand: string | undefined,
   barcode: string | undefined,
+  photoUri: string | undefined,
   member: Member,
   profiles: ActiveProfile[],
 ) {
@@ -261,7 +265,7 @@ async function loadLabel(
       brand: brand ?? null,
       size: null,
       barcode: barcode ?? null,
-      imageUrl: null,
+      imageUrl: photoUri ?? null,
       ingredients: read.ingredients.map((item) => item.name),
       note: words.note,
     },
@@ -320,7 +324,15 @@ export function VerdictScreen() {
         if (!read.readable) {
           return { kind: 'unreadable', problem: read.problem ?? 'We could not read an ingredient list.' };
         }
-        const live = await loadLabel(read, params.source ?? 'photo', params.brand, params.barcode, current, profiles);
+        const live = await loadLabel(
+          read,
+          params.source ?? 'photo',
+          params.brand,
+          params.barcode,
+          params.photo,
+          current,
+          profiles,
+        );
         return { kind: 'shown', shown: live };
       }
 
@@ -337,7 +349,7 @@ export function VerdictScreen() {
         console.warn('Could not show the verdict', error);
         setStatus({ kind: 'failed' });
       });
-  }, [member, params.productId, params.label, params.barcode, params.source, params.brand, params.scanId, attempt]);
+  }, [member, params.productId, params.label, params.barcode, params.source, params.brand, params.photo, params.scanId, attempt]);
 
   return (
     // The result fills the whole screen edge to edge, so it skips Screen's
