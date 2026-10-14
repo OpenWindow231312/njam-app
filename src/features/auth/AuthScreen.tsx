@@ -5,14 +5,27 @@
  * fields are almost the same and a person who picked the wrong one can
  * switch without losing what they typed.
  *
+ * Layout, from the "🔵 Log in" and "🔵 Sign up" frames in Figma: a forest
+ * page with one large lime Njam mark, and a paper sheet rising from the
+ * bottom that holds the form. This is the one screen that is not on the
+ * surface ground: it is the brand's front door, like the splash.
+ *
  * Field errors say what to do, not what went wrong ("Enter the email you
  * signed up with", never "Invalid email"). Anything the server refuses is
  * shown in a failure Snackbar.
  */
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Screen } from '@/components/Screen';
 import {
   Button,
   NjamMark,
@@ -22,10 +35,22 @@ import {
   TextField,
 } from '@/components/design-system';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { icon, space } from '@/theme/tokens';
+import { layout, radius, space } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type Mode = 'login' | 'signup';
+
+/**
+ * Where the big mark sits behind the sheet, copied from the Figma frames.
+ * The frames are drawn on a phone 390 wide, so these are in those units and
+ * get scaled to the real screen width: the mark lands in the same place on
+ * every phone. Geometry of one decorative shape, not layout spacing.
+ */
+const FIGMA_FRAME_WIDTH = 390;
+const MARK_PLACEMENT: Record<Mode, { size: number; left: number; top: number }> = {
+  login: { size: 614, left: -180, top: 13 },
+  signup: { size: 614, left: -158, top: -41 },
+};
 
 /** Supabase's minimum, unless the project raises it. */
 const MIN_PASSWORD_LENGTH = 6;
@@ -74,8 +99,10 @@ function explain(error: unknown): string {
 }
 
 export function AuthScreen() {
-  const { colors } = useNjamTheme();
+  const { colors, shadows } = useNjamTheme();
   const { signIn, signUp } = useAuth();
+  const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
 
   const [mode, setMode] = useState<Mode>('login');
   const [name, setName] = useState('');
@@ -112,93 +139,141 @@ export function AuthScreen() {
 
   const isLogin = mode === 'login';
 
+  // Scale the Figma placement to this phone's width.
+  const scale = screenWidth / FIGMA_FRAME_WIDTH;
+  const mark = MARK_PLACEMENT[mode];
+
   return (
-    <Screen>
-      <View style={styles.mark}>
-        <NjamMark size={icon.sizeXl} color={colors.brandForest} />
+    <View style={[styles.page, { backgroundColor: colors.brandForest }]}>
+      {/* Light status bar icons, because the top of this screen is forest. */}
+      <StatusBar style="light" />
+
+      <View
+        pointerEvents="none"
+        style={[styles.mark, { left: mark.left * scale, top: mark.top * scale }]}>
+        <NjamMark size={mark.size * scale} color={colors.brandLime} />
       </View>
 
-      <SectionHeader
-        headline={isLogin ? 'Log in to Njam' : 'Create your account'}
-        deck={
-          isLogin
-            ? 'Your rules and your household are saved to your account.'
-            : 'You set your food rules once. Every scan is checked against them.'
-        }
-      />
+      <KeyboardAvoidingView
+        style={styles.page}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* The scroll view only matters on short phones or with the keyboard
+            open. flexGrow plus flex-end keeps the sheet on the bottom edge. */}
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+          contentContainerStyle={styles.scrollContent}>
+          <View
+            style={[
+              styles.sheet,
+              shadows.sheet,
+              { backgroundColor: colors.brandPaper, paddingBottom: space.s8 + insets.bottom },
+            ]}>
+            <View style={styles.column}>
+              <View style={styles.form}>
+                <SectionHeader headline={isLogin ? 'Log in to Njam' : 'Create your account'} />
 
-      <SegmentedControl<Mode>
-        segments={[
-          { value: 'login', label: 'Log in' },
-          { value: 'signup', label: 'Sign up' },
-        ]}
-        value={mode}
-        onChange={(next) => {
-          setMode(next);
-          setErrors({});
-          setNotice(null);
-        }}
-      />
+                <SegmentedControl<Mode>
+                  segments={[
+                    { value: 'login', label: 'Log in' },
+                    { value: 'signup', label: 'Sign up' },
+                  ]}
+                  value={mode}
+                  onChange={(next) => {
+                    setMode(next);
+                    setErrors({});
+                    setNotice(null);
+                  }}
+                />
 
-      <View style={styles.fields}>
-        {!isLogin && (
-          <TextField
-            label="Your name"
-            value={name}
-            onChangeText={setName}
-            leadingIcon="person"
-            autoCapitalize="words"
-            placeholder="Anika"
-            error={errors.name}
-          />
-        )}
-        <TextField
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          leadingIcon="mail"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholder="you@example.com"
-          error={errors.email}
-        />
-        <TextField
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          leadingIcon="lock"
-          secureTextEntry
-          autoCapitalize="none"
-          helper={isLogin ? undefined : `At least ${MIN_PASSWORD_LENGTH} characters.`}
-          error={errors.password}
-        />
-      </View>
+                <View style={styles.fields}>
+                  {!isLogin && (
+                    <TextField
+                      label="Your name"
+                      value={name}
+                      onChangeText={setName}
+                      leadingIcon="person"
+                      autoCapitalize="words"
+                      placeholder="Anika"
+                      error={errors.name}
+                    />
+                  )}
+                  <TextField
+                    label="Email"
+                    value={email}
+                    onChangeText={setEmail}
+                    leadingIcon="mail"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    placeholder="you@example.com"
+                    error={errors.email}
+                  />
+                  <TextField
+                    label="Password"
+                    value={password}
+                    onChangeText={setPassword}
+                    leadingIcon="lock"
+                    secureTextEntry
+                    autoCapitalize="none"
+                    helper={isLogin ? undefined : `At least ${MIN_PASSWORD_LENGTH} characters.`}
+                    error={errors.password}
+                  />
+                </View>
+              </View>
 
-      <Button
-        label={isLogin ? 'Log in' : 'Create my account'}
-        loadingLabel={isLogin ? 'Logging you in' : 'Creating your account'}
-        loading={busy}
-        onPress={submit}
-        size="large"
-        fullWidth
-      />
+              <Button
+                label={isLogin ? 'Log in' : 'Create account'}
+                loadingLabel={isLogin ? 'Logging you in' : 'Creating your account'}
+                loading={busy}
+                onPress={submit}
+                size="large"
+                fullWidth
+              />
 
-      {notice && (
-        <Snackbar
-          kind={notice.kind}
-          message={notice.message}
-          actionLabel={notice.kind === 'failure' ? 'Retry' : undefined}
-          onAction={notice.kind === 'failure' ? submit : undefined}
-          onDismiss={() => setNotice(null)}
-        />
-      )}
-    </Screen>
+              {notice && (
+                <Snackbar
+                  kind={notice.kind}
+                  message={notice.message}
+                  actionLabel={notice.kind === 'failure' ? 'Retry' : undefined}
+                  onAction={notice.kind === 'failure' ? submit : undefined}
+                  onDismiss={() => setNotice(null)}
+                />
+              )}
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  page: {
+    flex: 1,
+  },
   mark: {
-    paddingTop: space.s6,
+    position: 'absolute',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-end',
+  },
+  // The paper sheet: xl corners on top only, like every sheet (rule 5).
+  sheet: {
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    paddingTop: space.s12,
+    paddingHorizontal: layout.screenGutter,
+  },
+  // Caps the form on tablets; the sheet itself stays full width.
+  column: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    gap: space.s10,
+  },
+  form: {
+    gap: space.s6,
   },
   fields: {
     gap: space.s4,
