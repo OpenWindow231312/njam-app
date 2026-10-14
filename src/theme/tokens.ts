@@ -718,6 +718,8 @@ export const motion = {
   sheet: 240,
   /** The splash screen fading away once the app is ready (approved 14 Oct 2026). */
   splashFade: 240,
+  /** One bite of the munching mark on the splash; it takes three (approved 14 Oct 2026). */
+  splashBite: 220,
   /** One full turn of the rotating Njam mark, the only loading indicator. Linear. */
   loadingTurn: 1200,
 } as const;
