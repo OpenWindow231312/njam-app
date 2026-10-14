@@ -15,7 +15,8 @@
  * at the top, then the verdict tab ("Not safe for Thabo") with a paper
  * drawer over it. The drawer holds the product heading, the packshot, the
  * rules card, Nutrition, "Available at" and the ingredients. For a Caution
- * or Not safe verdict the rules come first, followed by "See alternatives";
+ * or Not safe verdict the rules come first, followed by "See alternatives"
+ * (Safe products of the same kind, see src/features/alternatives);
  * for Safe the stores come first.
  *
  * Scrolling: the drawer is the content of a scroll view whose window starts
@@ -122,7 +123,7 @@ type Subject = {
  */
 type CatalogueExtras = {
   productId: string;
-  /** Its aisle, where "See alternatives" looks. null when it has none. */
+  /** Its aisle, which "See alternatives" falls back to. null when it has none. */
   categoryId: string | null;
   saved: boolean;
   /** null when the label's nutrition table is not in the catalogue yet. */
@@ -466,11 +467,10 @@ function Shown({ shown }: { shown: Live | Past }) {
   const highlighted = checks.filter((check) => check.outcome === 'broken').flatMap((check) => check.matched);
   const cautioned = checks.filter((check) => check.outcome === 'unchecked').flatMap((check) => check.matched);
 
-  // "See alternatives" opens the product's aisle, showing only Safe products.
-  // The aisle checks products against the default profile, so it is only
-  // offered while viewing that profile: for anyone else it would show the
-  // wrong person's verdicts.
-  const alternativesAisle = state !== 'safe' && viewingDefault ? (extras?.categoryId ?? null) : null;
+  // "See alternatives" opens Safe products of the same kind. They are checked
+  // against the default profile, so it is only offered while viewing that
+  // profile: for anyone else it would show the wrong person's verdicts.
+  const offerAlternatives = state !== 'safe' && viewingDefault && extras !== null;
 
   const rules =
     shown.kind === 'live' ? (
@@ -478,16 +478,26 @@ function Shown({ shown }: { shown: Live | Past }) {
     ) : (
       <PastRulesCard title={rulesTitle} summary={shown.sourceNote} reasons={shown.reasons} state={state} />
     );
-  const alternatives = alternativesAisle ? (
-    <Button
-      label="See alternatives"
-      icon="swap_horiz"
-      variant="secondary"
-      size="large"
-      fullWidth
-      onPress={() => router.push({ pathname: '/aisle', params: { aisle: alternativesAisle, verdict: 'safe' } })}
-    />
-  ) : null;
+  const alternatives =
+    offerAlternatives && extras ? (
+      <Button
+        label="See alternatives"
+        icon="swap_horiz"
+        variant="secondary"
+        size="large"
+        fullWidth
+        onPress={() =>
+          router.push({
+            pathname: '/alternatives',
+            params: {
+              productId: extras.productId,
+              name: subject.name,
+              ...(extras.categoryId ? { categoryId: extras.categoryId } : {}),
+            },
+          })
+        }
+      />
+    ) : null;
   const nutrition = extras ? <NutritionCard nutrition={extras.nutrition} /> : null;
   const stores = extras ? <AvailableAt stores={extras.stores} edgeInset={space.s6} /> : null;
   const ingredients =

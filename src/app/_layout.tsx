@@ -46,6 +46,7 @@ function RootNavigator() {
         <Stack.Screen name="edit-rules" />
         <Stack.Screen name="verdict" />
         <Stack.Screen name="aisle" />
+        <Stack.Screen name="alternatives" />
         <Stack.Screen name="ask" />
         <Stack.Screen name="admin-review" />
         <Stack.Screen name="explore" />
