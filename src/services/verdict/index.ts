@@ -3,7 +3,12 @@
  *
  * Deterministic on purpose. No network, no AI, no imports from the app: the
  * same product and the same rules always give the same verdict, so it can be
- * tested on its own against the regression suite.
+ * tested on its own against the regression suite. Its one import is
+ * aliases.ts, the other names an ingredient goes by ("black tea" has
+ * caffeine), which lives beside it under the same rules.
+ *
+ * The ".ts" on that import lets Node's test runner load this file as it is
+ * (npm test); the app's bundler reads it the same either way.
  *
  * How it decides:
  *   1. Every rule that the ingredient list breaks is a Not safe reason.
@@ -16,6 +21,8 @@
  * When unsure, it says Caution. A false Caution is a nuisance; a false Safe
  * is a health incident.
  */
+
+import { aliasGroupFor, matchIngredient, mentions, type AliasGroup } from './aliases.ts';
 
 export type VerdictState = 'safe' | 'caution' | 'unsafe';
 
@@ -78,7 +85,10 @@ export type RuleCheck = {
   outcome: 'met' | 'broken' | 'unchecked';
   /** What the label showed: "Contains whole wheat", "Not listed". */
   detail: string;
-  /** The ingredients, as printed, that broke the rule, so the screen can highlight them. */
+  /**
+   * The ingredients, as printed, that broke the rule (or, for an unchecked
+   * rule, may break it), so the screen can highlight them.
+   */
   matched: string[];
 };
 
@@ -141,15 +151,32 @@ function ruleLabel(rule: ProfileRule): string {
   return capitalise(rule.target);
 }
 
+/** The ingredients an alias group finds, split by how strongly. */
+function aliasHits(product: VerdictProduct, group: AliasGroup | null) {
+  if (!group) return { contains: [], traces: [] };
+  return {
+    contains: product.ingredients.filter((item) => matchIngredient(item, group) === 'contains'),
+    traces: product.ingredients.filter((item) => matchIngredient(item, group) === 'traces'),
+  };
+}
+
+/** The names, as printed, each once. */
+function names(items: VerdictIngredient[]): string[] {
+  return [...new Set(items.map((item) => item.name))];
+}
+
 function checkAllergen(rule: ProfileRule, product: VerdictProduct): RuleOutcome {
   const word = allergenWord(rule.target);
-  const hits = product.ingredients.filter((item) => item.allergen === rule.target);
+  // Tagged with the allergen in the catalogue or by the label read, or named
+  // by one of its aliases ("arachis oil" is peanut), whichever finds it.
+  const aliases = aliasHits(product, aliasGroupFor(rule.target));
+  const hits = product.ingredients.filter((item) => item.allergen === rule.target || aliases.contains.includes(item));
   if (hits.length > 0) {
     return {
       broken: { icon: 'no_food', text: `Contains ${hits[0].name}. ${yourRule(word, rule.severity)}` },
       unchecked: null,
       detail: `Contains ${hits[0].name}`,
-      matched: hits.map((item) => item.name),
+      matched: names(hits),
     };
   }
   if (product.mayContain.includes(rule.target)) {
@@ -160,20 +187,57 @@ function checkAllergen(rule: ProfileRule, product: VerdictProduct): RuleOutcome 
       matched: [],
     };
   }
+  if (aliases.traces.length > 0) {
+    const name = aliases.traces[0].name;
+    return {
+      broken: null,
+      unchecked: { icon: 'no_food', text: `Contains ${name}, which can have ${word} in it. ${yourRule(word, rule.severity)}` },
+      detail: `Contains ${name}, which can have ${word} in it`,
+      matched: names(aliases.traces),
+    };
+  }
   return PASSED;
 }
 
 function checkIngredient(rule: ProfileRule, product: VerdictProduct): RuleOutcome {
+  const group = aliasGroupFor(rule.target);
+  const word = group?.word ?? rule.target;
+  const aliases = aliasHits(product, group);
+  // The name itself, the alias chain, and then either the group of other
+  // names it goes by ("black tea" has caffeine) or, with no group, the word
+  // anywhere in the name ("brown sugar" names sugar). A group has its own
+  // exceptions ("coconut milk" is not milk), so the plain word is not used then.
+  const named = (text: string | null) => text !== null && mentions(text, rule.target);
   const hits = product.ingredients.filter(
-    (item) => same(item.name, rule.target) || same(item.canonicalName, rule.target),
+    (item) =>
+      same(item.name, rule.target) ||
+      same(item.canonicalName, rule.target) ||
+      (group ? aliases.contains.includes(item) : named(item.name) || named(item.canonicalName)),
   );
-  if (hits.length === 0) return PASSED;
-  return {
-    broken: { icon: 'no_food', text: `Contains ${hits[0].name}, which you avoid.` },
-    unchecked: null,
-    detail: `Contains ${hits[0].name}`,
-    matched: hits.map((item) => item.name),
-  };
+  if (hits.length > 0) {
+    const name = hits[0].name;
+    // "Contains brown sugar" says it all; "Contains black tea" needs the reason.
+    const saysIt = mentions(name, word);
+    return {
+      broken: {
+        icon: 'no_food',
+        text: saysIt ? `Contains ${name}, which you avoid.` : `Contains ${name}, which has ${word}. You avoid ${word}.`,
+      },
+      unchecked: null,
+      detail: saysIt ? `Contains ${name}` : `Contains ${name}, which has ${word}`,
+      matched: names(hits),
+    };
+  }
+  if (aliases.traces.length > 0) {
+    const name = aliases.traces[0].name;
+    return {
+      broken: null,
+      unchecked: { icon: 'no_food', text: `Contains ${name}, which can have ${word} in it. You avoid ${word}.` },
+      detail: `Contains ${name}, which can have ${word} in it`,
+      matched: names(aliases.traces),
+    };
+  }
+  return PASSED;
 }
 
 function checkENumber(rule: ProfileRule, product: VerdictProduct): RuleOutcome {

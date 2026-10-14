@@ -16,6 +16,11 @@ The rules:
   false Safe is a health incident. Zero false Safe verdicts is the project target.
 - **Follow the alias chain** (`ingredients.canonical_id`) before checking a rule,
   so "milk solids", "whey powder" and "casein" all resolve to milk.
+- **Then check the other names** in `aliases.ts`. A label read from a photo has
+  no alias chain, and "black tea" never says caffeine. Each group lists what
+  contains it (Not safe), what may hold a little (Caution, e.g. cocoa for
+  caffeine) and look-alikes that do not count ("rooibos tea", "coconut").
+  Tests: `npm test` (Node's own test runner, no extra dependency).
 - Target: a verdict in under 3 seconds.
 
 Output shape mirrors the `scans.verdict` and `scans.reasons` columns, so a past
