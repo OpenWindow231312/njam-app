@@ -42,7 +42,7 @@ export function AvailableAt({ stores, edgeInset }: AvailableAtProps) {
           {stores.map((store) => {
             const words = (
               <>
-                <StoreLogo logoUrl={store.logoUrl} />
+                <StoreLogo logoUrl={store.logoUrl} size={layout.storeLogoLarge} />
                 <Text numberOfLines={1} style={[typography.caption, styles.name, { color: colors.ink }]}>
                   {store.name}
                 </Text>

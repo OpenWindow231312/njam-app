@@ -3,8 +3,9 @@
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
  * v1.11 (14 Oct 2026): the Results screens. icon.markXl for the verdict mark
- * beside a product's name, layout.storeColumnWidth and
- * layout.nutritionColumnWidth, and productPhotoHeight 240 to 200.
+ * beside a product's name, layout.storeColumnWidth,
+ * layout.nutritionColumnWidth and layout.storeLogoLarge, and
+ * productPhotoHeight 240 to 200.
  * v1.10 (12 Oct 2026): shadow.floating, a soft shadow centred on the TabBar so its
  * top edge has depth too, not only its bottom.
  * v1.9 (12 Oct 2026): the frosted strip fades in instead of starting with a hard
@@ -628,6 +629,8 @@ export const layout = {
   storeColumnWidth: 72,
   /** The amount column in the Nutrition table, right aligned (v1.11). */
   nutritionColumnWidth: 88,
+  /** A store's logo in the "Available at" row, larger than the 40 badge in the filter sheet (v1.11). */
+  storeLogoLarge: 56,
   /** Thumbnail in a ProductCard row. */
   thumbSm: 56,
   /** Thumbnail in the ProductCard identity block and PhotoStepCard. */

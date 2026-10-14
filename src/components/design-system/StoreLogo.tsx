@@ -20,9 +20,11 @@ import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type StoreLogoProps = {
   logoUrl: string | null;
+  /** Diameter. Defaults to layout.iconBadgeSize (40); "Available at" uses layout.storeLogoLarge. */
+  size?: number;
 };
 
-export function StoreLogo({ logoUrl }: StoreLogoProps) {
+export function StoreLogo({ logoUrl, size = layout.iconBadgeSize }: StoreLogoProps) {
   const { colors } = useNjamTheme();
   // A logo that fails to load (deleted, or no connection) falls back to the icon.
   const [failed, setFailed] = useState(false);
@@ -31,11 +33,12 @@ export function StoreLogo({ logoUrl }: StoreLogoProps) {
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={[styles.badge, { backgroundColor: colors.surfaceRaised }]}>
+      style={[styles.badge, { width: size, height: size, backgroundColor: colors.surfaceRaised }]}>
       {logoUrl && !failed ? (
+        // The whole circle; the badge's overflow: hidden rounds the square off.
         <Image
           source={{ uri: logoUrl }}
-          style={styles.logo}
+          style={{ width: size, height: size }}
           resizeMode="cover"
           onError={() => setFailed(true)}
           accessibilityIgnoresInvertColors
@@ -49,16 +52,9 @@ export function StoreLogo({ logoUrl }: StoreLogoProps) {
 
 const styles = StyleSheet.create({
   badge: {
-    width: layout.iconBadgeSize,
-    height: layout.iconBadgeSize,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-  },
-  // The whole circle; the badge's overflow: hidden rounds the square off.
-  logo: {
-    width: layout.iconBadgeSize,
-    height: layout.iconBadgeSize,
   },
 });
