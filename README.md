@@ -1,6 +1,8 @@
 <div align="center">
 
-<img src="docs/readme/logo.svg" width="112" alt="Njam logo: a lime circle with a bite out of it, on forest green" />
+<img src="docs/readme/cover.png" width="100%" alt="Njam. Scan it. Know it. Eat it. Beside it, pills reading Allergies, Halal, E-numbers and Carbs on forest green." />
+
+<img src="docs/readme/logo.svg" width="72" alt="Njam logo: a lime circle with a bite out of it, on forest green" />
 
 # Njam
 
