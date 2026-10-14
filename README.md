@@ -132,6 +132,9 @@ Full explanation and the reasoning behind it: [`docs/STRUCTURE.md`](docs/STRUCTU
 
 ## Design system
 
+The high-fidelity screens are in Figma (view only):
+<https://www.figma.com/design/SPM3c4yMgs3bW2BVRIoafz/Njam-App?node-id=1-8>
+
 The source of truth is the Njam Design System artifact:
 <https://claude.ai/artifact/3gFmougXCaYTd2YWEP8VYy>
 
