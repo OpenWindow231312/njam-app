@@ -631,6 +631,8 @@ export const layout = {
   verdictBadgeSize: 26,
   /** The Njam mark circle at the head of the assistant chat. */
   aiAvatarSize: 52,
+  /** The Njam mark on the splash screen (approved 14 Oct 2026). */
+  splashMarkSize: 96,
   /** Soft circle behind the icon in an EmptyState. */
   emptyIconSize: 64,
   /** Soft circle behind the icon in a ConfirmDialog. */
@@ -714,6 +716,8 @@ export const motion = {
   /** Snackbar in and out. */
   snackbar: 200,
   sheet: 240,
+  /** The splash screen fading away once the app is ready (approved 14 Oct 2026). */
+  splashFade: 240,
   /** One full turn of the rotating Njam mark, the only loading indicator. Linear. */
   loadingTurn: 1200,
 } as const;
