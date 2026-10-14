@@ -12,7 +12,7 @@ import { useFonts } from 'expo-font';
 import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { SplashOverlay } from '@/components/SplashOverlay';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -36,7 +36,7 @@ function RootNavigator() {
 
   // Render nothing until we know whether someone is signed in, so the Auth
   // screen never flashes for a person who already is. The splash overlay
-  // covers the screen meanwhile.
+  // covers the screen meanwhile (see StartupSplash).
   if (loading) return null;
 
   return (
@@ -60,6 +60,12 @@ function RootNavigator() {
   );
 }
 
+/** Keeps the splash up until we know whether someone is signed in. */
+function StartupSplash() {
+  const { loading } = useAuth();
+  return <SplashOverlay ready={!loading} />;
+}
+
 export default function RootLayout() {
   // Every font the design system names, loaded once here. Keys must match
   // fontFamilies in src/theme/tokens.ts, because that is how components ask for them.
@@ -74,8 +80,8 @@ export default function RootLayout() {
   // Icons are SVG paths now (see Icon.tsx), so the Material Symbols font no
   // longer needs loading here.
 
-  // Render nothing until fonts are ready. The splash screen is still showing,
-  // and without this text would briefly flash in the system font.
+  // Render nothing until fonts are ready. The native splash is still showing,
+  // and without this the wordmark would briefly flash in the system font.
   if (!fontsLoaded) {
     return null;
   }
@@ -84,8 +90,9 @@ export default function RootLayout() {
     // Always the light navigation theme while dark mode is paused (see use-njam-theme.ts).
     <ThemeProvider value={DefaultTheme}>
       <AuthProvider>
-        <AnimatedSplashOverlay />
         <RootNavigator />
+        {/* After the navigator, so it draws on top. */}
+        <StartupSplash />
       </AuthProvider>
     </ThemeProvider>
   );
