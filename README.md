@@ -1,9 +1,29 @@
+<div align="center">
+
+<img src="docs/readme/logo.svg" width="112" alt="Njam logo: a lime circle with a bite out of it, on forest green" />
+
 # Njam
+
+**Scan a barcode. Know if it fits your diet.**
 
 An AI-driven grocery scanner for South Africa. You set your dietary rules once,
 point the camera at a barcode, and get one of three answers in under three
-seconds: **Safe**, **Caution**, or **Not safe**, with the reasons that produced
-it.
+seconds, with the reasons that produced it.
+
+<img src="docs/readme/verdicts.svg" width="420" alt="The three verdict marks: a circle for Safe, a triangle for Caution, an octagon for Not safe" />
+
+**Safe** &nbsp;·&nbsp; **Caution** &nbsp;·&nbsp; **Not safe**
+
+![Expo](https://img.shields.io/badge/Expo-React%20Native-144425?style=flat-square&logo=expo&logoColor=d3fa53)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-144425?style=flat-square&logo=typescript&logoColor=d3fa53)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-144425?style=flat-square&logo=supabase&logoColor=d3fa53)
+![Gemini](https://img.shields.io/badge/Google-Gemini-144425?style=flat-square&logo=googlegemini&logoColor=d3fa53)
+
+[Screens](#screens) · [Getting started](#getting-started) · [Design system](#design-system) · [Documents](#project-documents)
+
+</div>
+
+---
 
 Built for Interactive Development 300 (DV300) Theme 4 at Open Window. This is
 assessed university work: the repository, the commit history and the author's
@@ -25,6 +45,21 @@ E-numbers, plain language) and deterministic code decides (numeric limits, hard
 allergen blocks). On conflict, the rules engine wins. An unverified AI-read
 record is capped at Caution and can never be Safe. **Zero false Safe verdicts**
 is a stated project target.
+
+---
+
+## Screens
+
+<!-- Add exports from Figma to docs/readme/screens/ and uncomment.
+<p align="center">
+  <img src="docs/readme/screens/home.png" width="200" alt="Home and search" />
+  <img src="docs/readme/screens/scanner.png" width="200" alt="Scanner with scope pill" />
+  <img src="docs/readme/screens/verdict.png" width="200" alt="Verdict with reasons" />
+  <img src="docs/readme/screens/ask-njam.png" width="200" alt="Ask Njam assistant" />
+</p>
+-->
+
+See every high-fidelity screen in [Figma](https://www.figma.com/design/SPM3c4yMgs3bW2BVRIoafz/Njam-App?node-id=1-8).
 
 ---
 
@@ -171,7 +206,7 @@ directly assessed. Conventions and the full workflow:
 
 ---
 
-## Screens (10)
+## Screen plan (10)
 
 Auth · Onboarding · Home/Search · Scanner · Verdict · Alternatives · Add a
 product · Profile & filters · Household · Admin review queue. The brief requires
