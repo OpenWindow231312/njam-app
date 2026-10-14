@@ -14,22 +14,30 @@ elevation is allowed).
   verified."
 - Writes the result to `scans` (`verdict` + `reasons`) so it can be reopened.
 
-Layout (13 Oct 2026): the product photo on top (`layout.productPhotoHeight`),
-the name with the brand and barcode smaller underneath, a compact verdict
-(mark, word, headline, reason lines) composed on this screen rather than the
-`VerdictBanner` card, then the ingredients. "Scan another product" is pinned
-to the bottom.
+Layout (14 Oct 2026, the Results screens in Figma): back, "For Thabo" and
+Ask Njam at the top, then `VerdictTab` ("Not safe for Thabo", mark and
+word) with a paper drawer over it. The drawer holds `ProductHeading` (brand,
+name, size and barcode chips, verdict mark), the packshot
+(`layout.productPhotoHeight`) with its save button, `RulesCard`, Nutrition,
+"Available at" and `IngredientsCard`. Caution and Not safe put the rules
+first, then "See alternatives" (the product's aisle, Safe only, offered
+while viewing the default profile); Safe puts the stores first.
+
+Scrolling: the drawer slides up over the tab's label and stops with a strip
+of the verdict colour still showing; the content then scrolls inside it.
+It is a plain scroll view inside a clipped window, with no animation code.
+
+The rules card lists one row per rule from the engine's `checks`: broken
+and unchecked rules always show, kept rules show when the card is opened.
+A past scan only stored its reason lines, so it lists those instead.
 
 "Viewing for" (top right) opens `ProfilePicker`, which lists everyone in the
 household with their own verdict for this product. Switching decides again
 with that person's rules and saves nothing; the scan is recorded once, against
 the default profile. A past scan from History has no switch.
 
-Product page additions (13 Oct 2026): the verdict chip sits beside the name,
-where a shop shows the quantity counter, and the brand has its own line under
-the name. A catalogue product also shows a save button on its photo (the same
-`saved_products` as Home), a Nutrition table from `nutrition_facts`, and
-"Where to buy it" from `stores` and `product_stores`; each store opens its
-website in the in-app browser. Ask Njam sits at the top right beside
-"Viewing for". A label read or a past scan has no product id, so none of
-these extras show for it.
+A catalogue product also shows a save button on its photo (the same
+`saved_products` as Home), a Nutrition card from `nutrition_facts`, and
+"Available at" from `stores` and `product_stores`; each store opens its
+website in the in-app browser. A label read or a past scan has no product
+id, so none of these extras show for it.
