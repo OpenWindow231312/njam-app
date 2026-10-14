@@ -2,19 +2,11 @@
 
 <img src="docs/readme/cover.png" width="100%" alt="Njam. Scan it. Know it. Eat it. Beside it, pills reading Allergies, Halal, E-numbers and Carbs on forest green." />
 
-<img src="docs/readme/logo.svg" width="72" alt="Njam logo: a lime circle with a bite out of it, on forest green" />
-
-# Njam
-
 **Scan a barcode. Know if it fits your diet.**
 
 An AI-driven grocery scanner for South Africa. You set your dietary rules once,
 point the camera at a barcode, and get one of three answers in under three
-seconds, with the reasons that produced it.
-
-<img src="docs/readme/verdicts.svg" width="420" alt="The three verdict marks: a circle for Safe, a triangle for Caution, an octagon for Not safe" />
-
-**Safe** &nbsp;·&nbsp; **Caution** &nbsp;·&nbsp; **Not safe**
+seconds, **Safe**, **Caution** or **Not safe**, with the reasons that produced it.
 
 ![Expo](https://img.shields.io/badge/Expo-React%20Native-144425?style=flat-square&logo=expo&logoColor=d3fa53)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-144425?style=flat-square&logo=typescript&logoColor=d3fa53)
@@ -168,6 +160,8 @@ Full explanation and the reasoning behind it: [`docs/STRUCTURE.md`](docs/STRUCTU
 ---
 
 ## Design system
+
+<img src="docs/readme/logo.svg" width="64" align="right" alt="Njam logo: a lime circle with a bite out of it, on a forest green tile" />
 
 The high-fidelity screens are in Figma (view only):
 <https://www.figma.com/design/SPM3c4yMgs3bW2BVRIoafz/Njam-App?node-id=1-8>
