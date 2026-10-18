@@ -2,6 +2,7 @@
  * The design system components, importable from one place:
  *   import { Button, VerdictBanner } from '@/components/design-system';
  */
+export { BottomSheet } from './BottomSheet';
 export { Button } from './Button';
 export { Icon } from './Icon';
 export { ListGroup, ListRow } from './ListRow';
