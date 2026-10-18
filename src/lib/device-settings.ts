@@ -35,14 +35,21 @@ function tellListeners() {
   for (const listener of listeners) listener(current);
 }
 
-/** Reads the saved copy once, when the app starts. A missing or broken copy means the defaults. */
-const loaded: Promise<void> = AsyncStorage.getItem(STORAGE_KEY)
-  .then((saved) => {
-    if (!saved) return;
-    current = { ...DEFAULTS, ...(JSON.parse(saved) as Partial<DeviceSettings>) };
-    tellListeners();
-  })
-  .catch(() => {});
+/**
+ * Reads the saved copy once, when the app starts. A missing or broken copy
+ * means the defaults. On the web, the first copy of each page is drawn in
+ * Node, which has no window and no storage, so it skips the read there.
+ */
+const loaded: Promise<void> =
+  typeof window === 'undefined'
+    ? Promise.resolve()
+    : AsyncStorage.getItem(STORAGE_KEY)
+        .then((saved) => {
+          if (!saved) return;
+          current = { ...DEFAULTS, ...(JSON.parse(saved) as Partial<DeviceSettings>) };
+          tellListeners();
+        })
+        .catch(() => {});
 
 export function currentDeviceSettings(): DeviceSettings {
   return current;
