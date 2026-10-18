@@ -9,6 +9,9 @@
  * Below the chips, "Limits and presets": the rule kinds Njam cannot check on
  * a label yet. They are shown so people know they are coming, and switched
  * off, because a rule the engine cannot check would make every scan Caution.
+ *
+ * Pass `profileId` to edit someone else's rules instead of your own: someone
+ * without a phone, from the Household tab (app/person-rules.tsx).
  */
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -16,7 +19,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { ListRow, LoadingMark, RuleChip, Snackbar } from '@/components/design-system';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { loadMyRules, saveMyRules, type MyRules } from '@/features/onboarding/my-rules';
+import { loadMyRules, loadRules, saveMyRules, type MyRules } from '@/features/onboarding/my-rules';
 import { CardBlock, SettingsCard } from '@/features/profile/SettingsCard';
 import { RuleSheet, type RuleSheetView } from '@/features/profile/RuleSheet';
 import { capitalise, ruleCount } from '@/features/profile/rule-edits';
@@ -32,7 +35,7 @@ function rulesCaption(count: number): string {
   return `Every scan is checked against ${count === 1 ? 'this rule' : `these ${count} rules`}. Tap one to change it.`;
 }
 
-export function RulesTab() {
+export function RulesTab({ profileId }: { profileId?: string }) {
   const { colors } = useNjamTheme();
   const { member } = useAuth();
   const [rules, setRules] = useState<MyRules | null>(null);
@@ -44,10 +47,11 @@ export function RulesTab() {
   // another phone in the household shows up.
   const load = useCallback(() => {
     if (!member?.householdId) return;
-    loadMyRules(member.id, member.householdId, member.displayName)
+    const loading = profileId ? loadRules(profileId) : loadMyRules(member.id, member.householdId, member.displayName);
+    loading
       .then(setRules)
-      .catch(() => setMessage({ kind: 'failure', text: 'We could not load your rules. Check your connection.' }));
-  }, [member]);
+      .catch(() => setMessage({ kind: 'failure', text: 'We could not load these rules. Check your connection.' }));
+  }, [member, profileId]);
   useFocusEffect(load);
 
   async function save(next: MyRules, done: string) {
@@ -70,7 +74,7 @@ export function RulesTab() {
     return (
       <View style={styles.loading}>
         <LoadingMark size={icon.sizeMd} color={colors.brandForest} />
-        <Text style={[typography.body, { color: colors.inkMuted }]}>Loading your rules</Text>
+        <Text style={[typography.body, { color: colors.inkMuted }]}>Loading the rules</Text>
         {message && <Snackbar kind={message.kind} message={message.text} onDismiss={() => setMessage(null)} />}
       </View>
     );

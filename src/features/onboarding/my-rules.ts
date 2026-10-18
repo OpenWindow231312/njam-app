@@ -54,7 +54,14 @@ async function myProfileId(userId: string, householdId: string, name: string): P
 }
 
 export async function loadMyRules(userId: string, householdId: string, name: string): Promise<MyRules> {
-  const profileId = await myProfileId(userId, householdId, name);
+  return loadRules(await myProfileId(userId, householdId, name));
+}
+
+/**
+ * The rules on any profile in your household. Used directly for someone
+ * without a phone, whose rules are set from the Household tab.
+ */
+export async function loadRules(profileId: string): Promise<MyRules> {
   const { data, error } = await supabase
     .from('profile_rules')
     .select('id, type, target, severity')

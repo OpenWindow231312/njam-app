@@ -38,6 +38,8 @@ type AuthContextValue = {
   signOut: () => Promise<void>;
   /** Marks onboarding as done, so the app opens on the tabs from now on. */
   finishOnboarding: () => Promise<void>;
+  /** Reads your row again, after something on the server changed your household or role. */
+  reloadMember: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -171,13 +173,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   }
 
+  // Joining, leaving or handing over a household happens in the database
+  // (see household.ts), so the app has to read the row again to see it.
+  async function reloadMember() {
+    if (!session) return;
+    const fresh = await fetchMember(session.user.id);
+    if (fresh) setMember(fresh);
+  }
+
   // A person can finish onboarding with no rules at all (no allergies, nothing
   // avoided), so "has rules" cannot stand in for "has been through onboarding".
   const onboarded = session?.user.user_metadata?.onboarded === true;
 
   return (
     <AuthContext.Provider
-      value={{ session, member, onboarded, loading, signIn, signUp, signOut, finishOnboarding }}>
+      value={{ session, member, onboarded, loading, signIn, signUp, signOut, finishOnboarding, reloadMember }}>
       {children}
     </AuthContext.Provider>
   );
