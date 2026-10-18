@@ -10,7 +10,22 @@ in onboarding, changeable any time.
 - A household may hold several profiles (a child, a guest); this screen edits the
   selected one.
 
-Built so far (13 Oct 2026): your initials, name, role and email; "Edit your
-rules", which opens the onboarding steps again (`/edit-rules`); and your rules
-grouped as Allergies, Ingredients you avoid, E-numbers you avoid and Other
-rules. The list is read again each time the tab comes into view.
+Built so far (18 Oct 2026, from the Figma "Settings C" design): Profile is
+your name and role, then three tabs on a SegmentedControl.
+
+- **Rules** (`RulesTab`): your rules as RuleChips. Tap one to change an
+  allergy's level or remove it; "Add a rule" searches allergies, diets,
+  ingredients and E-numbers. Both happen in one `RuleSheet`. Saving uses
+  `saveMyRules`, the same save as onboarding. Nutrient limits and health
+  presets show as "Coming soon": the engine cannot check them yet, and a rule
+  it cannot check would turn every scan into Caution. The same tab edits the
+  rules of someone without a phone (`app/person-rules.tsx`).
+- **Household**: see `src/features/household`.
+- **Settings** (`SettingsTab`): scanning, notifications, privacy and display,
+  then Delete my account and Log out. Phone settings (flashlight, vibration)
+  live in `src/lib/device-settings.ts`; account settings (notifications,
+  scan history) in the `user_settings` table (`account-settings.ts`).
+  "Download my data" and "Delete my account" are in `my-data.ts`; deleting
+  goes through the `delete-account` Edge Function.
+
+`SettingsCard` is the white card all three tabs use: a header, then rows.

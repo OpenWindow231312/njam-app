@@ -18,7 +18,7 @@ Built so far (v1.5, 30 Sep 2026, from the "Njam UI v1.4" canvas):
 | Stores | `StoreLogo` (a shop's square logo filling a round badge, storefront icon until one is uploaded) |
 | Scanner | `ScanFrame` |
 | Structure | `SectionHeader` (full, simple, shelf), `ListGroup` + `ListRow`, `StepProgress`, `TabBar`, `FrostedStrip` (v1.9: the frosted fade behind the status bar and the TabBar) |
-| Feedback | `Snackbar`, `EmptyState`, `ConfirmDialog`, `LoadingMark` |
+| Feedback | `Snackbar`, `EmptyState`, `ConfirmDialog`, `BottomSheet`, `LoadingMark` |
 | AI | `NjamMark`, `AiAvatar`, `ChatBubble`, `ChatComposer` (with optional ghost text) |
 
 `ProductGridCard` (13 Oct 2026, Home) is a white card for the two-column grid
@@ -29,8 +29,12 @@ pack size. It stretches to its column; `ProductTile` keeps the shelf width.
 it, like Sixty60's quick shops: white with the ambient shadow at rest, lime when
 it is the aisle on show. `layout.categoryBubbleSize` (64) sets the circle.
 
-Still to build: `BottomSheet` (the verdict sheet) and `NutrientMeter`, which the
-design system describes but the canvas did not draw yet.
+`BottomSheet` (18 Oct 2026, Profile) rises from the bottom over the scrim:
+white, xl top corners, the sheet shadow, a title with a close button, a body
+that scrolls past `layout.sheetMaxHeight`, and a footer for its buttons.
+
+Still to build: `NutrientMeter`, which the design system describes but the
+canvas did not draw yet.
 
 `ChatComposer` (12 Oct 2026, Ask Njam) can show ghost text: pass `ghost` and
 `onChangeText`, and the likely rest of the message is drawn after what was typed
