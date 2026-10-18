@@ -46,6 +46,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { fetchActiveProfile, type ActiveProfile } from '@/features/profile/active-profile';
 import { fetchFromOpenFoodFacts, readOpenFoodFactsProduct } from '@/features/scanner/open-food-facts';
 import { fetchProductByBarcode } from '@/features/verdict/catalogue';
+import { currentDeviceSettings } from '@/lib/device-settings';
 import { hapticSuccess } from '@/lib/haptics';
 import { LabelReadError, readFront, readLabel, type LabelRead } from '@/services/ai';
 import { space } from '@/theme/tokens';
@@ -132,6 +133,12 @@ export function ScannerScreen() {
 
   // Bumped by Retry when the profile failed to load, so this runs again.
   const [profileAttempt, setProfileAttempt] = useState(0);
+
+  // Each time the scanner opens, the flashlight starts as set on Profile >
+  // Settings. You can still switch it on the camera panel.
+  useEffect(() => {
+    if (focused) setTorchOn(currentDeviceSettings().flashlight === 'on');
+  }, [focused]);
 
   useEffect(() => {
     if (!member?.householdId) return;
