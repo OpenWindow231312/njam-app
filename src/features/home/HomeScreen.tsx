@@ -16,8 +16,9 @@
  * and the aisle page. The catalogue is small, so it is searched and filtered
  * on the phone, with no request per letter typed.
  *
- * The deck names the profile the verdicts are for, so you know whose rules
- * the marks are for.
+ * The header is the greeting and headline only, as on the Figma 🔵Home
+ * frame. Whose rules the marks are for is said on Search and the aisle
+ * pages, and on every verdict.
  */
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -69,14 +70,7 @@ export function HomeScreen() {
       <AskNjamHeader>
         <View style={styles.heading}>
           <Text style={[typography.title, { color: colors.brandForestMid }]}>{greeting(member?.displayName)}</Text>
-          <SectionHeader
-            headline="Check your food"
-            deck={
-              loaded
-                ? `Each product is checked against ${loaded.profile.name}'s rules.`
-                : 'Each product is checked against your rules.'
-            }
-          />
+          <SectionHeader headline="Check your food" />
         </View>
       </AskNjamHeader>
 
