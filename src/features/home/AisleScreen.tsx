@@ -43,10 +43,13 @@ export function AisleScreen() {
 
   const shown = applyFilters(catalogue.checked, saved, { query: '', verdictFilter, storeId, aisle });
   const storeName = loaded?.stores.find((store) => store.id === storeId)?.name;
+  // "all" is opened by Home's All bubble and its "Safe for you" shelf.
   const aisleName =
-    aisle === 'saved'
-      ? 'Saved products'
-      : (loaded?.categories.find((category) => category.id === aisle)?.name ?? 'Aisle');
+    aisle === 'all'
+      ? 'All products'
+      : aisle === 'saved'
+        ? 'Saved products'
+        : (loaded?.categories.find((category) => category.id === aisle)?.name ?? 'Aisle');
 
   return (
     <Screen>
