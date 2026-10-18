@@ -1,7 +1,13 @@
 # Home / Search
 
-The landing screen after auth: "Hi Anika, check your food", a search over the
-product catalogue, and a two-column grid of products, each with its verdict.
+The landing screen after auth, laid out as "Home 1 · Shelves" in Figma
+(18 Oct 2026, after Sixty60's deal shelves): "Hi Anika, check your food",
+"Checking for Anika · 4 rules" (`HomeScope`, opens Profile), a search with a
+scan button, the aisle bubbles, a tip card that opens the scanner
+(`ScanTipCard`), then shelves that scroll sideways (`ProductShelf` of
+`ProductTile`s): Safe for you, Saved by your household, Recently scanned.
+Each shelf's See all opens the aisle page or History. Typing in the search
+swaps the shelves for the matching products in the two-column grid.
 
 - Loads the verified catalogue once (`fetchCatalogue`) with each product's
   ingredients, aisle and stores, and searches and filters on the phone. The
@@ -9,15 +15,15 @@ product catalogue, and a two-column grid of products, each with its verdict.
   A product a shopper just scanned in is not here until an admin adds it to
   the feed from the review queue.
 - Each card's verdict comes from the verdict engine with the household's
-  default profile, the one a scan is recorded against. The deck names it.
+  default profile, the one a scan is recorded against. `HomeScope` names it.
   The card shows the verdict as its mark; tapping opens the full verdict.
-- Filters: the filter button beside the search bar opens `FilterSheet`: the
+- Filters (Search and the aisle page): the filter button opens `FilterSheet`: the
   verdict as one segmented control (All, Safe only, Hide Not safe) and the
   stores as pills with their logos (`StoreLogo`), ending with Other. While a
   filter is on, a line under the search bar names it, with "Clear filters".
   The aisle bubbles (`CategoryBubble`: All, Saved, then the `categories`
-  rows, each with its icon from `AISLE_ICONS` in `categories.ts`) switch
-  straight away.
+  rows, each with its icon from `AISLE_ICONS` in `categories.ts`) open that
+  aisle's page from Home.
 - Saved products live in `saved_products`, shared by the household. The
   bookmark on a card saves at once on screen and puts it back if the save
   fails.

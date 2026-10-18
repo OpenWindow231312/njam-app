@@ -1,27 +1,28 @@
 /**
- * Home: the screen after you log in. "Hi Anika, check your food", a search
- * over the products Njam knows, and a grid of them, each with its verdict
- * for you.
+ * Home: the screen after you log in. Laid out as "Home 1 · Shelves" in Figma
+ * (18 Oct 2026), after the deal shelves on Sixty60.
  *
  * Top to bottom:
- *   - the greeting and headline, with Ask Njam on the right.
- *   - the search bar, and the filter button beside it, which opens
- *     FilterSheet (verdict and store). While a filter is on, a line under
- *     the search bar says which, with "Clear filters".
- *   - the aisle bubbles (round icons, like Sixty60's quick shops): All,
- *     Saved, then one per category.
- *   - the products, two to a row.
+ *   - "Hi Anika, check your food", with Ask Njam on the right.
+ *   - whose rules the verdicts are for: "Checking for Anika", "4 rules".
+ *   - the search bar, and a scan button beside it.
+ *   - "Shop by aisle": round aisle bubbles. Each opens that aisle's page.
+ *   - a tip card that sends you to the scanner.
+ *   - three shelves that scroll sideways, each with See all:
+ *       Safe for you            - products Safe for your rules.
+ *       Saved by your household - left out until something is saved.
+ *       Recently scanned        - left out until there is a scan.
+ *
+ * Typing in the search swaps everything under it for the matching products,
+ * two to a row, so searching still works without leaving Home. Clearing the
+ * search brings the shelves back.
  *
  * Loading, verdicts and saving come from useCatalogue, shared with Search
- * and the aisle page. The catalogue is small, so it is searched and filtered
- * on the phone, with no request per letter typed.
- *
- * The header is the greeting and headline only, as on the Figma 🔵Home
- * frame. Whose rules the marks are for is said on Search and the aisle
- * pages, and on every verdict.
+ * and the aisle page. The catalogue is small, so it is searched on the
+ * phone, with no request per letter typed.
  */
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
@@ -30,23 +31,33 @@ import {
   EmptyState,
   IconButton,
   LoadingMark,
+  ProductTile,
   SectionHeader,
   Snackbar,
   TextField,
 } from '@/components/design-system';
 import { AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { FilteredBy } from '@/features/home/FilteredBy';
-import { FilterSheet, type VerdictFilter } from '@/features/home/FilterSheet';
+import { HomeScope } from '@/features/home/HomeScope';
 import { ProductGrid } from '@/features/home/ProductGrid';
-import { applyFilters, useCatalogue, type Aisle } from '@/features/home/use-catalogue';
+import { ProductShelf } from '@/features/home/ProductShelf';
+import { ScanTipCard } from '@/features/home/ScanTipCard';
+import { applyFilters, useCatalogue, type Checked } from '@/features/home/use-catalogue';
+import { fetchRecentScans, type ScanRecord } from '@/features/verdict/scans';
 import { icon, layout, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
+
+/** How many tiles a shelf shows. The rest are behind See all. */
+const SHELF_SIZE = 8;
 
 /** "Hi Anika": the first word of the display name. */
 function greeting(displayName: string | undefined): string {
   const firstName = displayName?.trim().split(/\s+/)[0];
   return firstName ? `Hi ${firstName}` : 'Hi there';
+}
+
+function openProduct(productId: string) {
+  router.push({ pathname: '/verdict', params: { productId } });
 }
 
 export function HomeScreen() {
@@ -56,14 +67,35 @@ export function HomeScreen() {
   const { loaded, saved } = catalogue;
 
   const [query, setQuery] = useState('');
-  const [aisle, setAisle] = useState<Aisle>('all');
-  const [verdictFilter, setVerdictFilter] = useState<VerdictFilter>('all');
-  const [storeId, setStoreId] = useState<string | null>(null);
-  const [filtering, setFiltering] = useState(false);
+  const [recent, setRecent] = useState<ScanRecord[]>([]);
 
-  const shown = applyFilters(catalogue.checked, saved, { query, verdictFilter, storeId, aisle });
-  const storeName = loaded?.stores.find((store) => store.id === storeId)?.name;
-  const emptySaved = aisle === 'saved' && query.trim() === '';
+  // Read again each time Home comes into view, so a scan you just made shows.
+  // If it fails, the shelf simply stays hidden: it is a shortcut, not the point of Home.
+  useFocusEffect(
+    useCallback(() => {
+      fetchRecentScans(SHELF_SIZE)
+        .then(setRecent)
+        .catch(() => setRecent([]));
+    }, []),
+  );
+
+  const searching = query.trim().length > 0;
+  const results = applyFilters(catalogue.checked, saved, { query, verdictFilter: 'all', storeId: null, aisle: 'all' });
+  const safe = catalogue.checked.filter((item) => item.verdict === 'safe').slice(0, SHELF_SIZE);
+  const savedItems = catalogue.checked.filter((item) => saved.has(item.product.id)).slice(0, SHELF_SIZE);
+
+  /** One catalogue product as a tile, with its verdict and bookmark. */
+  const tile = ({ product, verdict }: Checked) => (
+    <ProductTile
+      key={product.id}
+      name={product.name}
+      verdict={verdict}
+      imageUrl={product.imageUrl ?? undefined}
+      saved={saved.has(product.id)}
+      onPress={() => openProduct(product.id)}
+      onToggleSave={() => catalogue.toggleSave(product.id)}
+    />
+  );
 
   return (
     <Screen withTabBar>
@@ -74,6 +106,8 @@ export function HomeScreen() {
         </View>
       </AskNjamHeader>
 
+      {loaded && <HomeScope name={loaded.profile.name} ruleCount={loaded.profile.rules.length} />}
+
       <View style={styles.searchRow}>
         <View style={styles.flex}>
           <TextField
@@ -81,7 +115,7 @@ export function HomeScreen() {
             label="Search products"
             value={query}
             onChangeText={setQuery}
-            placeholder="Milk, Albany, rusks"
+            placeholder="Search products and brands"
             autoCapitalize="none"
             trailingIcon={query.length > 0 ? 'close' : undefined}
             trailingLabel="Clear search"
@@ -90,41 +124,10 @@ export function HomeScreen() {
         </View>
         <IconButton
           variant="filled"
-          icon="tune"
-          accessibilityLabel="Filter products"
-          onPress={() => setFiltering(true)}
+          icon="barcode_scanner"
+          accessibilityLabel="Scan a barcode"
+          onPress={() => router.navigate('/scan')}
         />
-      </View>
-
-      <FilteredBy
-        verdictFilter={verdictFilter}
-        storeName={storeName}
-        onClear={() => {
-          setVerdictFilter('all');
-          setStoreId(null);
-        }}
-      />
-
-      {/* The aisle bubbles scroll sideways, edge to edge past the screen gutter. */}
-      <View style={styles.aisles}>
-        <SectionHeader variant="shelf" headline="Shop by aisle" />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.bleed}
-          contentContainerStyle={styles.bubbleRow}>
-          <CategoryBubble icon="grid_view" label="All" active={aisle === 'all'} onPress={() => setAisle('all')} />
-          <CategoryBubble icon="bookmark" label="Saved" active={aisle === 'saved'} onPress={() => setAisle('saved')} />
-          {loaded?.categories.map((category) => (
-            <CategoryBubble
-              key={category.id}
-              icon={category.icon}
-              label={category.name}
-              active={aisle === category.id}
-              onPress={() => setAisle(category.id)}
-            />
-          ))}
-        </ScrollView>
       </View>
 
       {!loaded && !catalogue.failed && (
@@ -134,38 +137,94 @@ export function HomeScreen() {
         </View>
       )}
 
-      {loaded && shown.length === 0 && emptySaved && (
-        <EmptyState
-          icon="bookmark"
-          headline="You have not saved anything yet"
-          body="Tap the bookmark on a product to keep it here for your whole household."
-        />
+      {/* Searching: the matching products take the shelves' place. */}
+      {loaded && searching && (
+        <>
+          <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
+            {`${results.length} ${results.length === 1 ? 'product' : 'products'}, checked against ${loaded.profile.name}'s rules`}
+          </Text>
+          {results.length === 0 && (
+            <EmptyState
+              icon="search"
+              headline="No products match"
+              body="Try another spelling, or scan the barcode instead."
+              actionLabel="Scan a barcode"
+              actionIcon="barcode_scanner"
+              onAction={() => router.navigate('/scan')}
+            />
+          )}
+          <ProductGrid items={results} saved={saved} onToggleSave={catalogue.toggleSave} />
+        </>
       )}
 
-      {loaded && shown.length === 0 && !emptySaved && (
-        <EmptyState
-          icon="search"
-          headline="No products match"
-          body="Try another spelling or fewer filters, or scan the barcode instead."
-          actionLabel="Scan a barcode"
-          actionIcon="barcode_scanner"
-          onAction={() => router.navigate('/scan')}
-        />
-      )}
+      {loaded && !searching && (
+        <>
+          <View style={styles.aisles}>
+            <SectionHeader
+              variant="shelf"
+              headline="Shop by aisle"
+              actionLabel="See all"
+              onAction={() => router.navigate('/search')}
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.bleed}
+              contentContainerStyle={styles.bubbleRow}>
+              <CategoryBubble
+                icon="grid_view"
+                label="All"
+                active
+                onPress={() => router.push({ pathname: '/aisle', params: { aisle: 'all' } })}
+              />
+              <CategoryBubble
+                icon="bookmark"
+                label="Saved"
+                onPress={() => router.push({ pathname: '/aisle', params: { aisle: 'saved' } })}
+              />
+              {loaded.categories.map((category) => (
+                <CategoryBubble
+                  key={category.id}
+                  icon={category.icon}
+                  label={category.name}
+                  onPress={() => router.push({ pathname: '/aisle', params: { aisle: category.id } })}
+                />
+              ))}
+            </ScrollView>
+          </View>
 
-      <ProductGrid items={shown} saved={saved} onToggleSave={catalogue.toggleSave} />
+          <ScanTipCard />
 
-      {loaded && (
-        <FilterSheet
-          visible={filtering}
-          verdictFilter={verdictFilter}
-          onVerdictFilter={setVerdictFilter}
-          stores={loaded.stores}
-          storeId={storeId}
-          onStore={setStoreId}
-          resultCount={shown.length}
-          onClose={() => setFiltering(false)}
-        />
+          {safe.length > 0 && (
+            <ProductShelf
+              title={`Safe for ${loaded.profile.name}`}
+              onSeeAll={() => router.push({ pathname: '/aisle', params: { aisle: 'all', verdict: 'safe' } })}>
+              {safe.map(tile)}
+            </ProductShelf>
+          )}
+
+          {savedItems.length > 0 && (
+            <ProductShelf
+              title="Saved by your household"
+              onSeeAll={() => router.push({ pathname: '/aisle', params: { aisle: 'saved' } })}>
+              {savedItems.map(tile)}
+            </ProductShelf>
+          )}
+
+          {recent.length > 0 && (
+            <ProductShelf title="Recently scanned" onSeeAll={() => router.navigate('/history')}>
+              {recent.map((scan) => (
+                <ProductTile
+                  key={scan.id}
+                  name={scan.productName ?? 'Product from a label photo'}
+                  verdict={scan.verdict}
+                  imageUrl={scan.productImageUrl ?? undefined}
+                  onPress={() => router.push({ pathname: '/verdict', params: { scanId: scan.id } })}
+                />
+              ))}
+            </ProductShelf>
+          )}
+        </>
       )}
 
       {catalogue.failed && (
@@ -201,13 +260,18 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+  loading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s3,
+  },
+  aisles: {
+    gap: space.s2,
+  },
   // Pull the row out to the screen edges, then pad it back in, so bubbles
   // scroll off the edge of the phone rather than vanishing at the gutter.
   bleed: {
     marginHorizontal: -layout.screenGutter,
-  },
-  aisles: {
-    gap: space.s3,
   },
   // Vertical padding leaves room for the bubbles' soft shadow, which the
   // scroll view would otherwise clip.
@@ -215,10 +279,5 @@ const styles = StyleSheet.create({
     gap: space.s2,
     paddingHorizontal: layout.screenGutter,
     paddingVertical: space.s2,
-  },
-  loading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.s3,
   },
 });
