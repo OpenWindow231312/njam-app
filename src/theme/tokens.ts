@@ -2,6 +2,8 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.12 (18 Oct 2026): surfaceScrim is black at 30%, no longer forest green,
+ * so the page behind a sheet or dialog dims instead of turning green.
  * v1.11 (14 Oct 2026): the Results screens. icon.markXl for the verdict mark
  * beside a product's name, layout.storeColumnWidth,
  * layout.nutritionColumnWidth and layout.storeLogoLarge, and
@@ -67,8 +69,8 @@ export const colors = {
     surfaceInverse: "#144425",
     /** Placeholder behind the camera and photo previews until an image arrives. Never behind text. */
     surfaceMedia: "#c9d2c4",
-    /** Dimmer behind sheets and modals. Never a decorative wash. */
-    surfaceScrim: "rgba(20, 68, 37, 0.55)",
+    /** Dimmer behind sheets and modals: black at 30% (v1.12). Never a decorative wash. */
+    surfaceScrim: "rgba(0, 0, 0, 0.3)",
 
     /** Body and heading copy. */
     ink: "#14201a",
@@ -153,7 +155,8 @@ export const colors = {
     surfaceSunken: "#021b12",
     surfaceInverse: "#f5f4ee",
     surfaceMedia: "#0b3724",
-    surfaceScrim: "rgba(2, 17, 11, 0.72)",
+    // Darker than in Paper: 30% black barely shows on the dark Forest page.
+    surfaceScrim: "rgba(0, 0, 0, 0.6)",
 
     ink: "#cfe6d8",
     inkMuted: "#9dc2ac",
