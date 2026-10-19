@@ -11,13 +11,17 @@
  *               in place of a packshot, since a label read is not saved.
  *   scanId    - a past scan from History, shown exactly as it was decided.
  *
- * Layout (the Results screens in Figma, 14 Oct 2026): back and "For Thabo"
- * at the top, then the verdict tab ("Not safe for Thabo") with a paper
- * drawer over it. The drawer holds the product heading, the packshot, the
- * rules card, Nutrition, "Available at" and the ingredients. For a Caution
- * or Not safe verdict the rules come first, followed by "See alternatives"
- * (Safe products of the same kind, see src/features/alternatives);
- * for Safe the stores come first.
+ * Layout (the Results screens in Figma, 14 Oct 2026, with tabs from
+ * 18 Oct): back and "For Thabo" at the top, then the verdict tab ("Not safe
+ * for Thabo") with a paper drawer over it. The drawer holds the product
+ * heading and the packshot, then three tabs:
+ *   Verdict     - the rules card, "Who can eat it" (everyone in the
+ *                 household, tap one to see their result), and for a Not
+ *                 safe product, "See alternatives" (Safe products of the
+ *                 same kind, see src/features/alternatives).
+ *   Ingredients - the ingredient list, with what broke a rule picked out.
+ *   Nutrition   - the nutrition table, open.
+ * "Available at" sits under every tab.
  *
  * Scrolling: the drawer is the content of a scroll view whose window starts
  * just under the tab's label. At rest the drawer sits DRAWER_TRAVEL lower,
@@ -48,6 +52,7 @@ import {
   Icon,
   IconButton,
   LoadingMark,
+  SegmentedControl,
   Snackbar,
   type VerdictReason,
 } from '@/components/design-system';
@@ -66,6 +71,7 @@ import { ProfilePicker } from '@/features/verdict/ProfilePicker';
 import { PastRulesCard, RulesCard, rulesSummary } from '@/features/verdict/RulesCard';
 import { fetchScan, recordScan } from '@/features/verdict/scans';
 import { DRAWER_TRAVEL, TAB_PEEK_SCROLLED, VerdictTab } from '@/features/verdict/VerdictTab';
+import { WhoCanEatIt } from '@/features/verdict/WhoCanEatIt';
 import type { LabelRead } from '@/services/ai';
 import { decideVerdict, type RuleCheck, type VerdictProduct, type VerdictState } from '@/services/verdict';
 import { icon, layout, radius, space, typography } from '@/theme/tokens';
@@ -101,6 +107,15 @@ const STATE_WORDS: Record<VerdictState, string> = {
   caution: 'Caution',
   unsafe: 'Not safe',
 };
+
+/** The three tabs in the drawer, under the packshot. */
+type ResultTab = 'verdict' | 'ingredients' | 'nutrition';
+
+const RESULT_TABS: { value: ResultTab; label: string }[] = [
+  { value: 'verdict', label: 'Verdict' },
+  { value: 'ingredients', label: 'Ingredients' },
+  { value: 'nutrition', label: 'Nutrition' },
+];
 
 /** What the screen shows about the product, whoever it is viewed for. */
 type Subject = {
@@ -419,6 +434,7 @@ function Shown({ shown }: { shown: Live | Past }) {
   // the one the scan was recorded against.
   const [viewingId, setViewingId] = useState<string | null>(shown.kind === 'live' ? shown.profiles[0].id : null);
   const [picking, setPicking] = useState(false);
+  const [tab, setTab] = useState<ResultTab>('verdict');
   const extras = shown.kind === 'live' ? shown.extras : null;
   const [saved, setSaved] = useState(extras?.saved ?? false);
   const [saveFailed, setSaveFailed] = useState(false);
@@ -470,7 +486,9 @@ function Shown({ shown }: { shown: Live | Past }) {
   // "See alternatives" opens Safe products of the same kind. They are checked
   // against the default profile, so it is only offered while viewing that
   // profile: for anyone else it would show the wrong person's verdicts.
-  const offerAlternatives = state !== 'safe' && viewingDefault && extras !== null;
+  // Only for Not safe: a Caution says what is unknown, and "Who can eat it"
+  // takes the button's place (Figma, 18 Oct 2026).
+  const offerAlternatives = state === 'unsafe' && viewingDefault && extras !== null;
 
   const rules =
     shown.kind === 'live' ? (
@@ -498,7 +516,8 @@ function Shown({ shown }: { shown: Live | Past }) {
         }
       />
     ) : null;
-  const nutrition = extras ? <NutritionCard nutrition={extras.nutrition} /> : null;
+  // A label read or a past scan has no nutrition table; the card says so.
+  const nutrition = <NutritionCard nutrition={extras?.nutrition ?? null} startOpen />;
   const stores = extras ? <AvailableAt stores={extras.stores} edgeInset={space.s6} /> : null;
   const ingredients =
     subject.ingredients.length > 0 ? (
@@ -507,6 +526,22 @@ function Shown({ shown }: { shown: Live | Past }) {
         highlighted={highlighted}
         cautioned={cautioned}
         note={subject.note}
+      />
+    ) : (
+      // A past scan stores its verdict and reasons, not the list itself.
+      <Text style={[typography.body, { color: colors.inkMuted }]}>
+        This scan kept its verdict and reasons, not the ingredient list.
+      </Text>
+    );
+  // Everyone in the household, for a live result. Left out when you are the
+  // only person, where it would just repeat the verdict above.
+  const who =
+    picker && viewingId && picker.options.length > 1 ? (
+      <WhoCanEatIt
+        people={picker.options}
+        selectedId={viewingId}
+        onSelect={setViewingId}
+        edgeInset={space.s6}
       />
     ) : null;
 
@@ -556,22 +591,19 @@ function Shown({ shown }: { shown: Live | Past }) {
                   onToggleSave={extras ? () => toggleSave(extras.productId) : undefined}
                 />
 
-                {/* Safe leads with where to buy it; otherwise the rules that failed come first. */}
-                {state === 'safe' ? (
-                  <>
-                    {stores}
-                    {rules}
-                    {nutrition}
-                  </>
-                ) : (
+                <SegmentedControl segments={RESULT_TABS} value={tab} onChange={setTab} />
+
+                {tab === 'verdict' && (
                   <>
                     {rules}
+                    {who}
                     {alternatives}
-                    {nutrition}
-                    {stores}
                   </>
                 )}
-                {ingredients}
+                {tab === 'ingredients' && ingredients}
+                {tab === 'nutrition' && nutrition}
+
+                {stores}
               </View>
             </View>
           </ScrollView>

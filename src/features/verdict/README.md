@@ -18,10 +18,12 @@ Layout (14 Oct 2026, the Results screens in Figma): back, "For Thabo" and
 Ask Njam at the top, then `VerdictTab` ("Not safe for Thabo", mark and
 word) with a paper drawer over it. The drawer holds `ProductHeading` (brand,
 name, size and barcode chips, verdict mark), the packshot
-(`layout.productPhotoHeight`) with its save button, `RulesCard`, Nutrition,
-"Available at" and `IngredientsCard`. Caution and Not safe put the rules
-first, then "See alternatives" (the product's aisle, Safe only, offered
-while viewing the default profile); Safe puts the stores first.
+(`layout.productPhotoHeight`) with its save button, then three tabs on a
+`SegmentedControl` (18 Oct 2026): Verdict (`RulesCard`, `WhoCanEatIt` with
+everyone's verdict, tap a person to see their result, and for Not safe only
+"See alternatives": the product's aisle, Safe only, offered while viewing
+the default profile), Ingredients (`IngredientsCard`) and Nutrition
+(`NutritionCard`, open). "Available at" sits under every tab.
 
 Scrolling: the drawer slides up over the tab's label and stops with a strip
 of the verdict colour still showing; the content then scrolls inside it.

@@ -22,9 +22,10 @@ function summaryLine(nutrition: Nutrition): string {
   return parts.length > 0 ? `${nutrition.basis}: ${parts.join(', ')}` : nutrition.basis;
 }
 
-export function NutritionCard({ nutrition }: { nutrition: Nutrition | null }) {
+/** startOpen: open from the start, as on the Nutrition tab where the table is the point. */
+export function NutritionCard({ nutrition, startOpen = false }: { nutrition: Nutrition | null; startOpen?: boolean }) {
   const { colors, shadows } = useNjamTheme();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(startOpen);
   const card = [styles.card, shadows.ambient, { backgroundColor: colors.surfaceRaised }];
   const divider = { borderTopWidth: border.hairline, borderTopColor: colors.line };
 
