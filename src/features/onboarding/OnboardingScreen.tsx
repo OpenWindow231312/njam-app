@@ -42,6 +42,14 @@ import {
   type AllergySeverity,
   type MyRules,
 } from '@/features/onboarding/my-rules';
+import {
+  ALLERGENS,
+  DIETS,
+  E_NUMBER_PATTERN,
+  SEVERITY_CHOICES,
+  SUGGESTED_E_NUMBERS,
+  SUGGESTED_INGREDIENTS,
+} from '@/features/onboarding/rule-options';
 import { RuleGroups } from '@/features/profile/RuleGroups';
 import { allergenWord } from '@/services/verdict';
 import { icon, space, typography } from '@/theme/tokens';
@@ -51,42 +59,6 @@ type Mode = 'first-run' | 'edit';
 type Step = 1 | 2 | 'ready';
 
 const TOTAL_STEPS = 2;
-
-/** The eight allergens R146 makes a label declare, as seeded in the allergens table. */
-const ALLERGENS = ['milk', 'egg', 'peanut', 'tree-nut', 'soy', 'gluten', 'fish', 'crustacean-mollusc'];
-
-/** Each diet and the allergens it rules out. Only diets the engine can fully check belong here. */
-const DIETS: { label: string; allergens: string[] }[] = [
-  { label: 'Gluten-free', allergens: ['gluten'] },
-  { label: 'Dairy-free', allergens: ['milk'] },
-  { label: 'Egg-free', allergens: ['egg'] },
-  { label: 'Nut-free', allergens: ['peanut', 'tree-nut'] },
-];
-
-/**
- * Suggestions are ingredients the catalogue already knows by these names,
- * so a rule made from one is sure to match a label. Anything else can be
- * typed in.
- */
-const SUGGESTED_INGREDIENTS = ['palm oil', 'sugar', 'caffeine', 'cocoa', 'coconut', 'maize', 'onion', 'garlic'];
-
-const SUGGESTED_E_NUMBERS: { code: string; name: string }[] = [
-  { code: 'E621', name: 'MSG' },
-  { code: 'E211', name: 'sodium benzoate' },
-  { code: 'E202', name: 'potassium sorbate' },
-  { code: 'E282', name: 'calcium propionate' },
-  { code: 'E150D', name: 'caramel colour' },
-  { code: 'E322', name: 'lecithin' },
-];
-
-/** E100 to E1521, with an optional letter: E150d, E160a. */
-const E_NUMBER_PATTERN = /^E\d{3,4}[A-Z]?$/;
-
-const SEVERITY_CHOICES: { value: AllergySeverity; label: string }[] = [
-  { value: null, label: 'Avoid' },
-  { value: 'moderate', label: 'Moderate' },
-  { value: 'severe', label: 'Severe' },
-];
 
 function capitalise(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);

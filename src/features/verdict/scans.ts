@@ -54,6 +54,16 @@ export async function recordScan(scan: {
   verdict: VerdictState;
   reasons: VerdictReason[];
 }): Promise<void> {
+  // "Keep my scan history" off on Profile > Settings: nothing is written.
+  // If the setting cannot be read, the scan is kept, as it was before the
+  // setting existed. Your own settings row is only made once you change one.
+  const settings = await supabase
+    .from('user_settings')
+    .select('keep_scan_history')
+    .eq('user_id', scan.userId)
+    .maybeSingle();
+  if (!settings.error && settings.data && !settings.data.keep_scan_history) return;
+
   const { error } = await supabase.from('scans').insert({
     user_id: scan.userId,
     diet_profile_id: scan.profileId,

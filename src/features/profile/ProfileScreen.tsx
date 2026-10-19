@@ -1,133 +1,77 @@
 /**
- * Profile: who you are, the rules your scans are checked against, and the
- * way out (Log out).
+ * Profile: who you are, then three tabs (as designed in Figma, 18 Oct 2026):
  *
- * The rules are grouped by kind (allergies, ingredients, E-numbers), so the
- * screen answers "what can I not eat?" at a glance. "Edit your rules" opens
- * the onboarding steps again, filled in with what is saved.
+ *   Rules     - the rules every scan is checked against (RulesTab).
+ *   Household - who you shop for and what they may change (HouseholdTab).
+ *   Settings  - scanning, notifications, privacy, your account (SettingsTab).
+ *
+ * The tabs are a SegmentedControl, not separate screens, so switching is
+ * instant and the bottom TabBar stays on Profile. Each tab reads its own
+ * data when it is shown.
  */
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
-import { Avatar, Button, ListGroup, ListRow, SectionHeader, Snackbar } from '@/components/design-system';
-import { AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
+import { Avatar, SegmentedControl } from '@/components/design-system';
 import { useAuth, type Role } from '@/features/auth/AuthProvider';
-import { fetchActiveProfile, type ActiveProfile } from '@/features/profile/active-profile';
-import { RuleGroups } from '@/features/profile/RuleGroups';
+import { HouseholdTab } from '@/features/household/HouseholdTab';
+import { RulesTab } from '@/features/profile/RulesTab';
+import { SettingsTab } from '@/features/profile/SettingsTab';
 import { space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
+type Tab = 'rules' | 'household' | 'settings';
+
+const TABS: { value: Tab; label: string }[] = [
+  { value: 'rules', label: 'Rules' },
+  { value: 'household', label: 'Household' },
+  { value: 'settings', label: 'Settings' },
+];
+
 const ROLE_LABELS: Record<Role, string> = {
   owner: 'Household owner',
-  standard: 'Standard user',
+  standard: 'Household member',
   admin: 'Admin and moderator',
 };
 
-/** "Every scan is checked against 4 rules." */
-function rulesSummary(count: number): string {
-  return `Every scan is checked against ${count} ${count === 1 ? 'rule' : 'rules'}.`;
-}
-
 export function ProfileScreen() {
   const { colors } = useNjamTheme();
-  const { session, member, signOut } = useAuth();
-  const [profile, setProfile] = useState<ActiveProfile | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-
-  // Read again each time the tab comes into view, so rules changed on the
-  // edit-rules screen show as soon as you come back.
-  const householdId = member?.householdId;
-  const load = useCallback(() => {
-    if (!householdId) return;
-    fetchActiveProfile(householdId)
-      .then(setProfile)
-      .catch(() => setFailed(true));
-  }, [householdId]);
-
-  useFocusEffect(load);
-
-  async function logOut() {
-    setSigningOut(true);
-    try {
-      await signOut();
-      // The root layout sees the session end and shows the Auth screen.
-    } catch {
-      setSigningOut(false);
-      setFailed(true);
-    }
-  }
+  const { member } = useAuth();
+  const [tab, setTab] = useState<Tab>('rules');
 
   return (
     <Screen withTabBar>
-      <AskNjamHeader>
-        <View style={styles.identity}>
-          <Avatar name={member?.displayName} size="lg" tone="strong" />
-          <SectionHeader
-            headline={member?.displayName ?? 'Your profile'}
-            deck={[member ? ROLE_LABELS[member.role] : null, session?.user.email].filter(Boolean).join(', ')}
-          />
+      <Text accessibilityRole="header" style={[typography.displayL, { color: colors.ink }]}>
+        Profile
+      </Text>
+
+      <View style={styles.identity}>
+        <Avatar name={member?.displayName} size="lg" tone="strong" />
+        <View style={styles.flex}>
+          <Text style={[typography.headline, { color: colors.ink }]}>{member?.displayName ?? 'Your profile'}</Text>
+          {member && (
+            <Text style={[typography.bodyS, { color: colors.inkMuted }]}>{ROLE_LABELS[member.role]}</Text>
+          )}
         </View>
-      </AskNjamHeader>
-
-      <Button label="Edit your rules" icon="edit" onPress={() => router.push('/edit-rules')} fullWidth />
-
-      <View style={styles.block}>
-        <SectionHeader variant="simple" headline="Your rules" />
-        {profile && profile.rules.length === 0 && (
-          <Text style={[typography.body, { color: colors.inkMuted }]}>
-            You have no rules yet, so every scan comes back as Caution.
-          </Text>
-        )}
-        {profile && profile.rules.length > 0 && (
-          <Text style={[typography.body, { color: colors.inkMuted }]}>{rulesSummary(profile.rules.length)}</Text>
-        )}
-        {profile && <RuleGroups rules={profile.rules} />}
       </View>
 
-      {/* Only an admin sees the way in. The database still refuses a
-          verification from anyone else (see admin-review/review-queue.ts). */}
-      {member?.role === 'admin' && (
-        <ListGroup>
-          <ListRow
-            title="Review queue"
-            supporting="Verify products shoppers added or Njam read from a label"
-            icon="admin_panel_settings"
-            iconBadge="strong"
-            trailing="chevron"
-            onPress={() => router.push('/admin-review')}
-          />
-        </ListGroup>
-      )}
+      <SegmentedControl segments={TABS} value={tab} onChange={setTab} />
 
-      <Button
-        label="Log out"
-        icon="logout"
-        variant="outlined"
-        loading={signingOut}
-        loadingLabel="Logging you out"
-        onPress={logOut}
-        fullWidth
-      />
-
-      {failed && (
-        <Snackbar
-          kind="failure"
-          message="We could not reach Njam. Check your connection."
-          onDismiss={() => setFailed(false)}
-        />
-      )}
+      {tab === 'rules' && <RulesTab />}
+      {tab === 'household' && <HouseholdTab />}
+      {tab === 'settings' && <SettingsTab />}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   identity: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: space.s3,
   },
-  block: {
-    gap: space.s3,
+  flex: {
+    flex: 1,
   },
 });

@@ -9,13 +9,17 @@
  *                     returns its verdict. The neutral Snackbar calls it for
  *                     you when it appears.
  *
- * The web has no vibration motor to drive, so it does nothing there.
+ * The web has no vibration motor to drive, so it does nothing there. It also
+ * stays still when "Vibrate when something works" is off on Profile > Settings.
  */
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 
+import { currentDeviceSettings } from '@/lib/device-settings';
+
 export function hapticSuccess() {
   if (Platform.OS === 'web') return;
+  if (!currentDeviceSettings().vibrate) return;
   // Fire and forget: a missing motor or a phone set to no vibration should
   // never break the flow that succeeded.
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
