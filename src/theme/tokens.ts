@@ -2,6 +2,10 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.13 (21 Oct 2026): the camera scanner redesign. layout.shutterSize for the
+ * round ShutterButton, smoother scan brackets (scanBracketStroke 5 to 3 and a
+ * new scanBracketRadius), and productPhotoHeight 200 to 317 so the packshot
+ * fills more of the Verdict screen.
  * v1.12 (18 Oct 2026): surfaceScrim is black at 30%, no longer forest green,
  * so the page behind a sheet or dialog dims instead of turning green.
  * v1.11 (14 Oct 2026): the Results screens. icon.markXl for the verdict mark
@@ -594,8 +598,12 @@ export const layout = {
   scanFrameHeight: 170,
   /** Length of each corner bracket arm in ScanFrame. */
   scanBracketSize: 44,
-  /** Stroke of the ScanFrame corner brackets. */
-  scanBracketStroke: 5,
+  /** Stroke of the ScanFrame corner brackets (v1.13: 5 to 3, smoother). */
+  scanBracketStroke: 3,
+  /** Corner radius of each ScanFrame bracket: a soft quarter circle (v1.13). */
+  scanBracketRadius: 26,
+  /** The round ShutterButton on the camera: a white ring round a white core (v1.13). */
+  shutterSize: 72,
   /** Ceiling for an expanded bottom sheet, as a fraction of screen height. */
   sheetMaxHeight: 0.88,
   /** Cap the column on tablets so line length stays readable. */
@@ -626,8 +634,8 @@ export const layout = {
   productTileImageHeight: 130,
   /** The round aisle bubble on Home and Search, Sixty60's "quick shops" (approved 13 Oct 2026). */
   categoryBubbleSize: 64,
-  /** The product photo (packshot) on the Verdict screen, full width (v1.11: 240 to 200). */
-  productPhotoHeight: 200,
+  /** The product photo (packshot) on the Verdict screen, full width (v1.13: 200 to 317). */
+  productPhotoHeight: 317,
   /** One store, logo over name, in the sideways "Available at" row (v1.11). */
   storeColumnWidth: 72,
   /** The amount column in the Nutrition table, right aligned (v1.11). */
