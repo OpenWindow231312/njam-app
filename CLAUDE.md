@@ -167,8 +167,9 @@ This is the heart of the app and the part most likely to be wrong in a way that 
   regression suite. A false Caution is a nuisance; a false Safe is a health incident.
   When in doubt, the engine degrades toward Caution, never toward Safe.
 - Target: a verdict in under 3 seconds.
-- The scope pill is mandatory on the scanner. A scan run against the wrong household
-  profile is the worst failure mode in the app.
+- The scanner reads nothing until its shutter button is pressed. The scope pill was
+  taken off the scanner (decision 21 Oct 2026); the Verdict screen's "For ..." picker
+  says whose rules a verdict is for, and switches between them.
 
 ---
 

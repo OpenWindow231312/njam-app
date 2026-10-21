@@ -29,8 +29,8 @@ ability to explain every line are all marked.
 
 - **Set a profile once.** Allergies with severity, diet and faith, banned
   ingredients, E-numbers, nutrient limits, and health presets.
-- **Scan a barcode.** The scanner always shows a scope pill so you know which
-  household profile the scan runs against.
+- **Scan a barcode.** Press the round button to photograph it. The number
+  floats up as Njam reads it; if it will not read, type it instead.
 - **Get a verdict with reasons.** A verdict is a fact plus a reason: "Not safe.
   Contains milk solids, which you marked severe."
 
