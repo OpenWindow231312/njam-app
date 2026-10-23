@@ -37,7 +37,7 @@ function tabForRoute(routeName: string): TabKey {
 // not need a direct import from React Navigation.
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
-function NjamTabBar({ state, navigation }: TabBarProps) {
+function NjamTabBar({ state, navigateToTab }: TabBarProps) {
   const insets = useSafeAreaInsets();
   // The strip ends level with the top of the bar, so the fade happens behind it.
   const stripHeight = layout.tabBarHeight + layout.tabBarInset + insets.bottom;
@@ -47,7 +47,12 @@ function NjamTabBar({ state, navigation }: TabBarProps) {
       <FrostedStrip edge="bottom" height={stripHeight} />
       <TabBar
         active={tabForRoute(state.routes[state.index].name)}
-        onSelect={(tab) => navigation.navigate(ROUTE_FOR_TAB[tab])}
+        onSelect={(tab) => {
+          // SDK 58's tab bar navigates by route key, not by name, so look the
+          // route up by its file name first.
+          const route = state.routes.find((r) => r.name === ROUTE_FOR_TAB[tab]);
+          if (route) navigateToTab(route.key);
+        }}
       />
     </>
   );
