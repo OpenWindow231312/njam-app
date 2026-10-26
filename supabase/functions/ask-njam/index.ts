@@ -278,9 +278,14 @@ async function chat(req: Request, body: Record<string, unknown>, apiKey: string)
   const db = clientFor(authHeader);
 
   // Everything about the person, read in parallel so the answer stays quick.
-  const person = await readPerson(db, authHeader.replace(/^Bearer\s+/i, ''));
-  const [profile, scans, catalogue, history] = await Promise.all([
-    readRules(db, person.householdId),
+  // Only the rules need the person first (for their household), so that pair
+  // runs as one chain while the scans, catalogue and history start at once.
+  const personAndRules = readPerson(db, authHeader.replace(/^Bearer\s+/i, '')).then(async (person) => ({
+    person,
+    profile: await readRules(db, person.householdId),
+  }));
+  const [{ person, profile }, scans, catalogue, history] = await Promise.all([
+    personAndRules,
     readRecentScans(db),
     readCatalogue(db),
     conversationId ? readHistory(db, conversationId) : Promise.resolve([]),
