@@ -303,8 +303,6 @@ export function ScannerScreen() {
         barcode,
         front: { ...front, name: front.name },
         label: read,
-        source: 'ai_label_read',
-        nutrition: null,
         frontPhotoBase64: photo.base64,
         labelPhotoBase64: labelPhoto.current.base64,
       });

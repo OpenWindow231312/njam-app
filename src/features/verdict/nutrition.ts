@@ -1,6 +1,6 @@
 /**
- * Reads and writes nutrition_facts: the nutrition table from a product's
- * label, for the Nutrition section of the Verdict screen.
+ * Reads nutrition_facts: the nutrition table from a product's label, for the
+ * Nutrition section of the Verdict screen.
  *
  * Only the nutrients the label gave are returned, in the order a South
  * African label prints them. A product with no row has no nutrition facts yet.
@@ -12,19 +12,6 @@ export type NutrientLine = {
   name: string;
   /** "12.4 g". */
   amount: string;
-};
-
-/** One nutrition_facts row, as the app writes it. null for a nutrient the label does not give. */
-export type NutritionFacts = {
-  perBasis: '100g' | '100ml' | 'serving';
-  energyKj: number | null;
-  proteinG: number | null;
-  carbsG: number | null;
-  sugarG: number | null;
-  fatG: number | null;
-  satFatG: number | null;
-  fibreG: number | null;
-  sodiumMg: number | null;
 };
 
 export type Nutrition = {
@@ -66,24 +53,4 @@ export async function fetchNutrition(productId: string): Promise<Nutrition | nul
     return value === null || value === undefined ? [] : [{ name: nutrient.name, amount: `${value} ${nutrient.unit}` }];
   });
   return { basis: BASIS_WORDS[String(row.per_basis)] ?? 'Per 100 g', lines };
-}
-
-/**
- * Saves the nutrition table for a product you just added. The database only
- * lets the person who added a product (or an admin) do this.
- */
-export async function saveNutrition(productId: string, facts: NutritionFacts): Promise<void> {
-  const { error } = await supabase.from('nutrition_facts').insert({
-    product_id: productId,
-    per_basis: facts.perBasis,
-    energy_kj: facts.energyKj,
-    protein_g: facts.proteinG,
-    carbs_g: facts.carbsG,
-    sugar_g: facts.sugarG,
-    fat_g: facts.fatG,
-    sat_fat_g: facts.satFatG,
-    fibre_g: facts.fibreG,
-    sodium_mg: facts.sodiumMg,
-  });
-  if (error) throw error;
 }
