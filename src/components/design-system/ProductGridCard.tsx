@@ -9,9 +9,11 @@
  *   - under it the brand as an overline, the name in two lines at most,
  *     and the pack size.
  *
- * The save button is a round IconButton so it reads on any photo: white
- * ("raised") when not saved, forest with a lime filled bookmark ("filled")
+ * The save button is a small circle so it reads on any photo: white with a
+ * forest outline bookmark when not saved, forest with a lime filled bookmark
  * when saved. It used to be a bare outline, which disappeared on dark packs.
+ * The circle is layout.saveButtonSize (32), smaller than an IconButton's 48
+ * so it covers less of the pack, but the tap area around it is still 48.
  *
  * A white card (lg radius, ambient shadow, no outline). In the grid it
  * stretches to fill its column; with `shelf` it keeps the fixed shelf width.
@@ -25,7 +27,6 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
-import { IconButton } from '@/components/design-system/IconButton';
 import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { VerdictMark, type VerdictState } from '@/components/design-system/VerdictMark';
 import { icon, layout, radius, space, typography } from '@/theme/tokens';
@@ -85,15 +86,19 @@ export function ProductGridCard({
         </View>
 
         {onToggleSave && (
-          <View style={styles.save}>
-            <IconButton
-              icon="bookmark"
-              variant={saved ? 'filled' : 'raised'}
-              selected={saved}
-              accessibilityLabel={saved ? `Remove ${name} from saved` : `Save ${name}`}
-              onPress={onToggleSave}
-            />
-          </View>
+          <PressableSurface
+            onPress={onToggleSave}
+            accessibilityRole="button"
+            accessibilityLabel={saved ? `Remove ${name} from saved` : `Save ${name}`}
+            accessibilityState={{ selected: saved }}
+            radius={radius.pill}
+            // The 48 target is invisible, so only the circle shrinks; no wash.
+            wash={false}
+            style={styles.saveTarget}>
+            <View style={[styles.saveCircle, { backgroundColor: saved ? colors.selected : colors.surfaceRaised }]}>
+              <Icon name="bookmark" size="sm" filled={saved} color={saved ? colors.onSelected : colors.selected} />
+            </View>
+          </PressableSurface>
         )}
       </View>
 
@@ -148,10 +153,22 @@ const styles = StyleSheet.create({
     left: space.s2,
     bottom: space.s2,
   },
-  save: {
+  // The full 48 tap area, in the photo's corner, with the circle centred in it.
+  saveTarget: {
     position: 'absolute',
     top: 0,
     right: 0,
+    width: layout.touchTargetMin,
+    height: layout.touchTargetMin,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveCircle: {
+    width: layout.saveButtonSize,
+    height: layout.saveButtonSize,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   text: {
     gap: space.s1,
