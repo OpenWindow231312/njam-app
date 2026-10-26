@@ -87,7 +87,8 @@ Called from: `src/services/ai/index.ts` (`askNjam`, `completeMessage`).
 
 | Route | What for | Called from |
 | --- | --- | --- |
-| `GET https://world.openfoodfacts.org/api/v2/product/<barcode>` | Ingredient text for a barcode not in Njam's catalogue (6 s timeout) | `features/scanner/open-food-facts.ts` |
+| `GET https://world.openfoodfacts.org/api/v2/product/<barcode>` | The full record for a barcode not in Njam's catalogue, saved to it | `supabase/functions/import-open-food-facts` (the scanner calls the function, 8 s timeout) |
+| `GET https://search.openfoodfacts.org/search` | South African barcodes for the bulk import | `supabase/functions/import-open-food-facts` |
 
 ## Trying it by hand
 
