@@ -77,6 +77,10 @@ system instruction:
   to these rules (a defence against prompt injection); food only.
 - Voice: second person, warm, at most three sentences a block, no emoji,
   no em dashes.
+- **Order:** the instructions and the catalogue, which are the same for
+  everyone, come first; the person's name, rules and scans come last.
+  Gemini caches a prompt's opening it has seen recently, but only while it
+  matches word for word, so the shared part goes at the start.
 - `temperature: 0.4`: a little warmth in the wording; the facts come from
   the context.
 - `thinkingLevel: low`, the lowest `gemini-3.8-flash` allows. Thinking runs

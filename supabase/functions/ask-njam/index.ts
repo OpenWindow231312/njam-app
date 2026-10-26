@@ -111,8 +111,13 @@ type Context = {
   catalogue: string[];
 };
 
+// The order matters for speed and cost. Gemini caches the start of a prompt
+// it has seen recently and reads it again more cheaply, but only while it
+// matches word for word. So everything that is the same for every person
+// (the instructions, then the catalogue) comes first, and the parts about
+// this person (name, rules, scans) come last.
 function chatInstruction(context: Context): string {
-  return `You are Njam, the assistant in a South African grocery app that checks food against one person's dietary rules. You are talking to ${context.firstName}.
+  return `You are Njam, the assistant in a South African grocery app that checks food against one person's dietary rules.
 
 You help with four things: recipes that use a product they scanned or name; why a product got its verdict; what an ingredient, allergen or E-number is; and what they could eat instead.
 
@@ -134,14 +139,16 @@ Blocks:
   When they ask what they can make, or ask for a recipe, always answer with one recipe block that has a title, every ingredient with an amount in metric units, and the steps, one step per string. Write the recipe yourself; a product block alone is never a recipe. Never say "here is a recipe" without a recipe block after it.
 - suggestions: { "type": "suggestions", "prompts" } with 2 or 3 follow-up questions they might ask next, in their words, at most 6 words each. Always end with one.
 
+Catalogue (id | brand and name | ingredients with allergen and E-number tags):
+${context.catalogue.join('\n')}
+
+You are talking to ${context.firstName}.
+
 Their rules:
 ${context.rules.length > 0 ? context.rules.map((rule) => `- ${rule}`).join('\n') : '- none yet'}
 
 Their recent scans, newest first, with the rules engine's verdict and reasons:
-${context.scans.length > 0 ? context.scans.map((scan) => `- ${scan}`).join('\n') : '- none yet'}
-
-Catalogue (id | brand and name | ingredients with allergen and E-number tags):
-${context.catalogue.join('\n')}`;
+${context.scans.length > 0 ? context.scans.map((scan) => `- ${scan}`).join('\n') : '- none yet'}`;
 }
 
 const COMPLETE_INSTRUCTION = `You predict how a person will finish the message they are typing to Njam, a food and grocery assistant in a South African app.
