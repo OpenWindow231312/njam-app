@@ -36,8 +36,11 @@ import { ALLERGEN_SLUGS, MAX_COMPLETION_LENGTH, validateBlocks, validateCompleti
 // without ingredients or steps, or repeated itself until the reply was cut
 // off mid-JSON (bug 11). Ghost text has to be fast and short, so it keeps
 // Flash-Lite.
-const CHAT_MODEL = 'gemini-flash-latest';
-const COMPLETE_MODEL = 'gemini-flash-lite-latest';
+// Named versions, not the "-latest" aliases: an alias can move to a new model
+// without warning, which would change Njam's answers overnight. Upgrading is
+// a decision, made here.
+const CHAT_MODEL = 'gemini-3.8-flash';
+const COMPLETE_MODEL = 'gemini-3.5-flash-lite';
 const geminiUrl = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 

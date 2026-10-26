@@ -1,7 +1,8 @@
 # AI: prompt design, validation and failure handling
 
-Njam uses Google Gemini (`gemini-flash-lite-latest`) in two places. Both
-calls run in Supabase Edge Functions, where the key is a secret
+Njam uses Google Gemini in two places: `scan-label` (`gemini-flash-lite-latest`)
+and Ask Njam (`gemini-3.8-flash` for chat, `gemini-3.5-flash-lite` for ghost
+text, named versions so an alias cannot change the answers). Both calls run in Supabase Edge Functions, where the key is a secret
 (`GEMINI_API_KEY`). The app only ever talks to the functions, through
 `src/services/ai/index.ts`.
 
