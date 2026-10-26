@@ -7,16 +7,18 @@
  * service reads that text into typed ingredients, exactly as it reads a label
  * photo.
  *
- * Anyone can edit Open Food Facts, so nothing found here is verified. The
- * verdict engine caps it at Caution, the same as an AI label read. Nothing is
- * saved to our catalogue yet: it is looked up again on every scan.
+ * Anyone can edit Open Food Facts, so nothing found here is verified, and
+ * the verdict says so, the same as an AI label read. Its nutrition table is
+ * kept too, once it passes the checks in off-nutrition.ts.
  */
+import { readNutriments } from '@/features/scanner/off-nutrition';
+import type { NutritionFacts } from '@/features/verdict/nutrition';
 import { readLabel, type LabelRead } from '@/services/ai';
 import { allergenWord } from '@/services/verdict';
 
 const API = 'https://world.openfoodfacts.org/api/v2/product';
 /** Only the fields we use, so the reply stays small. */
-const FIELDS = 'product_name,brands,ingredients_text,allergens_tags,traces_tags';
+const FIELDS = 'product_name,brands,quantity,ingredients_text,allergens_tags,traces_tags,nutriments';
 /** Give up quickly: the person is standing at the shelf. */
 const TIMEOUT_MS = 6_000;
 
@@ -44,6 +46,8 @@ export type OpenFoodFactsProduct = {
   allergens: string[];
   /** Allergens from its "may contain" line, as our slugs. */
   traces: string[];
+  /** Per 100 g or 100 ml, or null when it has none or it failed a check. */
+  nutrition: NutritionFacts | null;
 };
 
 function toSlugs(tags: unknown): string[] {
@@ -79,6 +83,7 @@ export async function fetchFromOpenFoodFacts(barcode: string): Promise<OpenFoodF
       ingredientsText: text(product.ingredients_text),
       allergens: toSlugs(product.allergens_tags),
       traces: toSlugs(product.traces_tags),
+      nutrition: readNutriments(product.nutriments, text(product.quantity)),
     };
   } finally {
     clearTimeout(timer);

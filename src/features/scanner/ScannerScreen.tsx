@@ -46,6 +46,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { fetchActiveProfile, type ActiveProfile } from '@/features/profile/active-profile';
 import { fetchFromOpenFoodFacts, readOpenFoodFactsProduct } from '@/features/scanner/open-food-facts';
 import { fetchProductByBarcode } from '@/features/verdict/catalogue';
+import type { NutritionFacts } from '@/features/verdict/nutrition';
 import { currentDeviceSettings } from '@/lib/device-settings';
 import { hapticSuccess } from '@/lib/haptics';
 import { LabelReadError, readFront, readLabel, type LabelRead } from '@/services/ai';
@@ -72,6 +73,8 @@ type FrontStep = {
   source: LabelSource;
   /** The brand Open Food Facts gave, if the front photo does not show one. */
   brand: string | null;
+  /** Open Food Facts' nutrition table, saved with the product. null for a label photo. */
+  nutrition: NutritionFacts | null;
 };
 
 type Mode =
@@ -195,7 +198,7 @@ export function ScannerScreen() {
 
       hapticSuccess();
       labelPhoto.current = null;
-      setMode({ kind: 'front', barcode, read, source: 'open-food-facts', brand: found.brand });
+      setMode({ kind: 'front', barcode, read, source: 'open-food-facts', brand: found.brand, nutrition: found.nutrition });
       return true;
     } catch (error) {
       console.warn('Open Food Facts lookup failed', error);
@@ -245,7 +248,7 @@ export function ScannerScreen() {
       // with its photo to show on the verdict.
       if (barcode && read.readable) {
         labelPhoto.current = photo;
-        setMode({ kind: 'front', barcode, read, source: 'photo', brand: null });
+        setMode({ kind: 'front', barcode, read, source: 'photo', brand: null, nutrition: null });
         return;
       }
       openLabelVerdict(read, { barcode, photoUri: photo.uri });
@@ -279,7 +282,13 @@ export function ScannerScreen() {
   /** The shutter on the front of the pack: freeze it, then check it. */
   async function photographFront() {
     if (mode.kind !== 'front') return;
-    const step: FrontStep = { barcode: mode.barcode, read: mode.read, source: mode.source, brand: mode.brand };
+    const step: FrontStep = {
+      barcode: mode.barcode,
+      read: mode.read,
+      source: mode.source,
+      brand: mode.brand,
+      nutrition: mode.nutrition,
+    };
     setNotice(null);
     const photo = await takePhoto();
     if (photo) setMode({ kind: 'check-front', ...step, photo });
@@ -315,6 +324,7 @@ export function ScannerScreen() {
         front: { ...front, name: front.name, brand: front.brand ?? step.brand },
         label: read,
         source: step.source === 'photo' ? 'ai_label_read' : 'open_food_facts',
+        nutrition: step.nutrition,
         frontPhotoBase64: photo.base64,
         labelPhotoBase64: labelPhoto.current?.base64 ?? null,
       });
@@ -416,14 +426,30 @@ export function ScannerScreen() {
                 label="Retake"
                 variant="outlined"
                 onPress={() =>
-                  setMode({ kind: 'front', barcode: mode.barcode, read: mode.read, source: mode.source, brand: mode.brand })
+                  setMode({
+                    kind: 'front',
+                    barcode: mode.barcode,
+                    read: mode.read,
+                    source: mode.source,
+                    brand: mode.brand,
+                    nutrition: mode.nutrition,
+                  })
                 }
               />
               <Button
                 label="Use this photo"
                 icon="check"
                 onPress={() =>
-                  addWithFront({ barcode: mode.barcode, read: mode.read, source: mode.source, brand: mode.brand }, mode.photo)
+                  addWithFront(
+                    {
+                      barcode: mode.barcode,
+                      read: mode.read,
+                      source: mode.source,
+                      brand: mode.brand,
+                      nutrition: mode.nutrition,
+                    },
+                    mode.photo,
+                  )
                 }
               />
             </View>
