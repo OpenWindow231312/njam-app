@@ -622,8 +622,13 @@ export const layout = {
   scopePillHeight: 36,
   /** ProductTile width in a horizontal shelf. */
   productTileWidth: 150,
-  /** ProductTile image well height. */
-  productTileImageHeight: 130,
+  /** Photo height in ProductTile and ProductGridCard (26 Oct 2026: 130 to 180, option E). */
+  productTileImageHeight: 180,
+  /**
+   * The round save button on a product photo (26 Oct 2026, option E). Drawn
+   * this size so it covers less of the pack; its hit area is still touchTargetMin.
+   */
+  saveButtonSize: 32,
   /** The round aisle bubble on Home and Search, Sixty60's "quick shops" (approved 13 Oct 2026). */
   categoryBubbleSize: 64,
   /** The product photo (packshot) on the Verdict screen, full width (v1.11: 240 to 200). */
