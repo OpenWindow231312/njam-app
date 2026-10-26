@@ -420,7 +420,8 @@ where id = (select id from auth.users where email = 'you@example.com');
 npm test
 ```
 
-There are 36 automated tests covering ingredient aliases and alternatives.
+There are 50 automated tests covering ingredient aliases, alternatives and
+how Open Food Facts records are decided.
 They run with Node's built-in test runner.
 
 [`docs/TESTING.md`](docs/TESTING.md) holds the core flow checklist, the bug
