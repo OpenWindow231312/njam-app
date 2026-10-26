@@ -6,18 +6,20 @@
  *             open the Verdict screen for that product.
  *   Open Food Facts - a barcode we do not know is looked up in Open Food
  *             Facts, a public database. Its ingredient text is read by the
- *             AI service, and the verdict is capped at Caution.
+ *             AI service. Our team has not checked it, and the verdict says so.
  *   label   - if neither knows the barcode (or there is none), you
  *             photograph the ingredient list. The AI service reads it and
- *             the Verdict screen shows the result, capped at Caution.
+ *             the Verdict screen shows the result, which says our team has not
+ *             checked it.
  *
  * Whenever a barcode is not in our catalogue (found in Open Food Facts, or
  * read from a label photo), Njam asks for one more photo: the front of the
  * pack. The AI reads the name off it, the product is added to the catalogue
  * (unverified) with the photos, and its Verdict screen opens with the photo,
  * like any other product. The next person who scans it finds it straight
- * away. It stays out of the feed until an admin adds it. Skipping the photo
- * shows the verdict from the ingredient list alone, and saves nothing.
+ * away. It stays out of the feed until an admin adds it. The front photo is
+ * not optional: without it the product is not saved, and the scan could not
+ * show its ingredients and nutrition again from History.
  *
  * Every photo is checked before it is used: the shutter freezes the photo on
  * the panel (with a buzz), and you choose "Use this photo" or "Retake". In
@@ -46,6 +48,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { fetchActiveProfile, type ActiveProfile } from '@/features/profile/active-profile';
 import { fetchFromOpenFoodFacts, readOpenFoodFactsProduct } from '@/features/scanner/open-food-facts';
 import { fetchProductByBarcode } from '@/features/verdict/catalogue';
+import type { NutritionFacts } from '@/features/verdict/nutrition';
 import { currentDeviceSettings } from '@/lib/device-settings';
 import { hapticSuccess } from '@/lib/haptics';
 import { LabelReadError, readFront, readLabel, type LabelRead } from '@/services/ai';
@@ -72,6 +75,8 @@ type FrontStep = {
   source: LabelSource;
   /** The brand Open Food Facts gave, if the front photo does not show one. */
   brand: string | null;
+  /** Open Food Facts' nutrition table, saved with the product. null for a label photo. */
+  nutrition: NutritionFacts | null;
 };
 
 type Mode =
@@ -195,7 +200,7 @@ export function ScannerScreen() {
 
       hapticSuccess();
       labelPhoto.current = null;
-      setMode({ kind: 'front', barcode, read, source: 'open-food-facts', brand: found.brand });
+      setMode({ kind: 'front', barcode, read, source: 'open-food-facts', brand: found.brand, nutrition: found.nutrition });
       return true;
     } catch (error) {
       console.warn('Open Food Facts lookup failed', error);
@@ -245,7 +250,7 @@ export function ScannerScreen() {
       // with its photo to show on the verdict.
       if (barcode && read.readable) {
         labelPhoto.current = photo;
-        setMode({ kind: 'front', barcode, read, source: 'photo', brand: null });
+        setMode({ kind: 'front', barcode, read, source: 'photo', brand: null, nutrition: null });
         return;
       }
       openLabelVerdict(read, { barcode, photoUri: photo.uri });
@@ -256,21 +261,17 @@ export function ScannerScreen() {
   }
 
   /**
-   * The verdict from the ingredient list alone. Nothing is added to the
-   * catalogue. The photo just taken, if any, goes along to show on it.
+   * The verdict from the ingredient list alone, for a label with no barcode
+   * or one we could not read. Nothing is added to the catalogue. The photo
+   * just taken goes along to show on it.
    */
-  function openLabelVerdict(
-    read: LabelRead,
-    from: { barcode?: string; source?: LabelSource; brand?: string | null; photoUri?: string | null },
-  ) {
+  function openLabelVerdict(read: LabelRead, from: { barcode?: string; photoUri?: string }) {
     // The label read travels to the Verdict screen as a route param.
     router.push({
       pathname: '/verdict',
       params: {
         label: JSON.stringify(read),
         ...(from.barcode ? { barcode: from.barcode } : {}),
-        ...(from.source === 'open-food-facts' ? { source: from.source } : {}),
-        ...(from.brand ? { brand: from.brand } : {}),
         ...(from.photoUri ? { photo: from.photoUri } : {}),
       },
     });
@@ -279,7 +280,13 @@ export function ScannerScreen() {
   /** The shutter on the front of the pack: freeze it, then check it. */
   async function photographFront() {
     if (mode.kind !== 'front') return;
-    const step: FrontStep = { barcode: mode.barcode, read: mode.read, source: mode.source, brand: mode.brand };
+    const step: FrontStep = {
+      barcode: mode.barcode,
+      read: mode.read,
+      source: mode.source,
+      brand: mode.brand,
+      nutrition: mode.nutrition,
+    };
     setNotice(null);
     const photo = await takePhoto();
     if (photo) setMode({ kind: 'check-front', ...step, photo });
@@ -315,6 +322,7 @@ export function ScannerScreen() {
         front: { ...front, name: front.name, brand: front.brand ?? step.brand },
         label: read,
         source: step.source === 'photo' ? 'ai_label_read' : 'open_food_facts',
+        nutrition: step.nutrition,
         frontPhotoBase64: photo.base64,
         labelPhotoBase64: labelPhoto.current?.base64 ?? null,
       });
@@ -334,7 +342,7 @@ export function ScannerScreen() {
       setNotice(
         error instanceof LabelReadError
           ? error.message
-          : 'We could not add this product. Try again, or show the verdict without it.',
+          : 'We could not add this product. Try again.',
       );
       setMode({ kind: 'front', ...step });
     }
@@ -393,37 +401,37 @@ export function ScannerScreen() {
               <Button label="Use this photo" icon="check" onPress={() => readLabelPhoto(mode.photo, mode.barcode)} />
             </View>
           ) : mode.kind === 'front' ? (
-            <View style={styles.actions}>
-              <Button label="Photograph the front" icon="photo_camera" size="large" onPress={photographFront} />
-              <Button
-                label="Show the verdict without it"
-                variant="outlined"
-                size="small"
-                onPress={() => {
-                  setNotice(null);
-                  openLabelVerdict(mode.read, {
-                    barcode: mode.barcode,
-                    source: mode.source,
-                    brand: mode.brand,
-                    photoUri: labelPhoto.current?.uri,
-                  });
-                }}
-              />
-            </View>
+            <Button label="Photograph the front" icon="photo_camera" size="large" onPress={photographFront} />
           ) : mode.kind === 'check-front' ? (
             <View style={styles.choice}>
               <Button
                 label="Retake"
                 variant="outlined"
                 onPress={() =>
-                  setMode({ kind: 'front', barcode: mode.barcode, read: mode.read, source: mode.source, brand: mode.brand })
+                  setMode({
+                    kind: 'front',
+                    barcode: mode.barcode,
+                    read: mode.read,
+                    source: mode.source,
+                    brand: mode.brand,
+                    nutrition: mode.nutrition,
+                  })
                 }
               />
               <Button
                 label="Use this photo"
                 icon="check"
                 onPress={() =>
-                  addWithFront({ barcode: mode.barcode, read: mode.read, source: mode.source, brand: mode.brand }, mode.photo)
+                  addWithFront(
+                    {
+                      barcode: mode.barcode,
+                      read: mode.read,
+                      source: mode.source,
+                      brand: mode.brand,
+                      nutrition: mode.nutrition,
+                    },
+                    mode.photo,
+                  )
                 }
               />
             </View>
@@ -483,11 +491,6 @@ export function ScannerScreen() {
 }
 
 const styles = StyleSheet.create({
-  // "Photograph the front" with the way to skip it underneath.
-  actions: {
-    alignItems: 'center',
-    gap: space.s1,
-  },
   // "Retake" and "Use this photo", side by side.
   choice: {
     flexDirection: 'row',

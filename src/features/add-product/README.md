@@ -9,15 +9,17 @@ How it runs (from the Scanner):
    ingredient text, or you photograph the ingredient list and `scan-label`
    reads it.
 2. The Scanner asks for the front of the pack. `scan-label` in front mode reads
-   the name and brand. You can skip this and see the verdict from the
-   ingredient list alone; then nothing is saved.
+   the name and brand. This step cannot be skipped: every scan with a barcode
+   adds its product, so History can show its ingredients and nutrition again.
 3. `add-product.ts` uploads the photos to the `product-photos` bucket (only
    into a folder named after you), then calls the `add_product` database
    function, which saves the product, its ingredients and their order in one
-   transaction. A product from Open Food Facts has no label photo.
+   transaction. A product from Open Food Facts has no label photo, but its
+   nutrition table is saved to `nutrition_facts` once it passes the checks in
+   `src/features/scanner/off-nutrition.ts`. A label photo has no nutrition.
 4. The Verdict screen opens for the new product, with its front photo, laid
    out like any other product. The scan is saved against it, so History shows
-   its name.
+   its name, ingredients and nutrition.
 
 Rules it keeps:
 
