@@ -14,8 +14,10 @@
  *   1. Every rule that the ingredient list breaks is a Not safe reason.
  *   2. Every rule it could not check (no ingredient list, no nutrition facts,
  *      a rule type the engine does not know yet) is a Caution reason.
- *   3. A product nobody has verified can never be Safe. It is capped at
- *      Caution, but a broken rule still makes it Not safe.
+ *   3. A product nobody has verified can be Safe or Not safe, and its
+ *      reasons say our team has not checked the list. The one exception: if
+ *      the profile has a severe allergy, an unverified list is capped at
+ *      Caution, because a misread label there could send someone to hospital.
  *   4. Safe only when every rule was checked and none was broken.
  *
  * When unsure, it says Caution. A false Caution is a nuisance; a false Safe
@@ -313,24 +315,30 @@ export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Ve
     unchecked.push({ icon: 'info', text: 'Your profile has no rules yet, so there was nothing to check.' });
   }
 
-  if (!product.verified) {
-    unchecked.push({
-      icon: 'info',
-      text: product.readFromLabel
-        ? 'We read this list from your photo, and our team has not checked it yet.'
-        : 'Our team has not checked this ingredient list yet.',
-    });
-  }
+  // A severe allergy is where a misread label does the most harm, so for
+  // that profile a list our team has not checked still cannot be Safe.
+  const hasSevereRule = rules.some((rule) => rule.severity === 'severe');
+  const capped = !product.verified && hasSevereRule;
 
   let state: VerdictState;
   if (broken.length > 0) state = 'unsafe';
-  else if (unchecked.length > 0) state = 'caution';
+  else if (unchecked.length > 0 || capped) state = 'caution';
   else state = 'safe';
 
-  const reasons =
+  let reasons =
     state === 'safe'
       ? [{ icon: 'task_alt', text: 'None of your rules matched the ingredient list.' }]
       : [...broken, ...unchecked].slice(0, MAX_REASONS);
+
+  // Every verdict on an unverified list says so, last, and the reason limit
+  // never cuts it off. It is saved with the scan, so a reopened scan says it too.
+  if (!product.verified) {
+    const notChecked = product.readFromLabel
+      ? 'We read this list from your photo, and our team has not checked it yet.'
+      : 'Our team has not checked this ingredient list yet.';
+    const text = capped && state === 'caution' ? `${notChecked} You marked an allergy as severe, so we cannot call it Safe.` : notChecked;
+    reasons = [...reasons.slice(0, MAX_REASONS - 1), { icon: 'info', text }];
+  }
 
   return { state, reasons, rulesChecked: rules.length, checks };
 }
