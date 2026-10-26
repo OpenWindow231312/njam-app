@@ -89,6 +89,11 @@ system instruction:
 - **Generative UI:** the answer is a list of JSON blocks (`text`,
   `product`, `recipe`, `suggestions`) against a schema. The app draws each
   block with a design-system component.
+- **The recipe has its own field** (bug 11). In a flat block only `type`
+  can be required, so Gemini once sent a recipe with a title and nothing
+  else. `recipe` is a separate object that requires a title, ingredients
+  and steps (at least one each), or is null; `validate.ts` turns it back
+  into a recipe block, tested in `ask-njam/validate.test.ts`.
 
 **Validation** (`ask-njam/validate.ts`):
 

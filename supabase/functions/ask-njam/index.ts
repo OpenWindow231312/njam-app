@@ -62,6 +62,12 @@ const CORS_HEADERS = {
 // Gemini's structured-output schema. Its schema language has no "one of",
 // so a block is one flat object: `type` says which of the other fields
 // matter, and validate.ts checks each type has what it needs.
+//
+// The recipe is not a block here but a field of its own (bug 11). In the
+// flat block only `type` could be required, so Gemini was free to send a
+// recipe with a title and nothing else, and did. As its own object it can
+// require a title, ingredients and steps, each list with at least one item.
+// validate.ts turns it back into a recipe block, so the app sees no change.
 const BLOCKS_SCHEMA = {
   type: 'OBJECT',
   properties: {
@@ -70,32 +76,39 @@ const BLOCKS_SCHEMA = {
       items: {
         type: 'OBJECT',
         properties: {
-          type: { type: 'STRING', enum: ['text', 'product', 'recipe', 'suggestions'] },
+          type: { type: 'STRING', enum: ['text', 'product', 'suggestions'] },
           text: { type: 'STRING', nullable: true },
           productId: { type: 'STRING', nullable: true },
-          title: { type: 'STRING', nullable: true },
-          ingredients: {
-            type: 'ARRAY',
-            nullable: true,
-            items: {
-              type: 'OBJECT',
-              properties: {
-                name: { type: 'STRING' },
-                productId: { type: 'STRING', nullable: true },
-                allergen: { type: 'STRING', enum: [...ALLERGEN_SLUGS], nullable: true },
-                eNumber: { type: 'STRING', nullable: true },
-              },
-              required: ['name', 'productId', 'allergen', 'eNumber'],
-            },
-          },
-          steps: { type: 'ARRAY', nullable: true, items: { type: 'STRING' } },
           prompts: { type: 'ARRAY', nullable: true, items: { type: 'STRING' } },
         },
         required: ['type'],
       },
     },
+    recipe: {
+      type: 'OBJECT',
+      nullable: true,
+      properties: {
+        title: { type: 'STRING' },
+        ingredients: {
+          type: 'ARRAY',
+          minItems: 1,
+          items: {
+            type: 'OBJECT',
+            properties: {
+              name: { type: 'STRING' },
+              productId: { type: 'STRING', nullable: true },
+              allergen: { type: 'STRING', enum: [...ALLERGEN_SLUGS], nullable: true },
+              eNumber: { type: 'STRING', nullable: true },
+            },
+            required: ['name', 'productId', 'allergen', 'eNumber'],
+          },
+        },
+        steps: { type: 'ARRAY', minItems: 1, items: { type: 'STRING' } },
+      },
+      required: ['title', 'ingredients', 'steps'],
+    },
   },
-  required: ['blocks'],
+  required: ['blocks', 'recipe'],
 };
 
 const COMPLETION_SCHEMA = {
@@ -132,12 +145,15 @@ Hard rules:
 
 Voice: second person, warm and short, at most three sentences per text block. Sentence case. No emoji, no em dashes. Metric units. South African products and words are welcome.
 
+Your answer has "blocks" and "recipe".
+
 Blocks:
 - text: { "type": "text", "text" }
 - product: { "type": "product", "productId" } for one catalogue product.
-- recipe: { "type": "recipe", "title", "ingredients": [{ "name", "productId" (a catalogue id or null), "allergen" (one of ${ALLERGEN_SLUGS.join(', ')}, or null), "eNumber" (or null) }], "steps" }. Tag every ingredient's allergen honestly: butter is milk, flour is gluten.
-  When they ask what they can make, or ask for a recipe, always answer with one recipe block that has a title, every ingredient with an amount in metric units, and the steps, one step per string. Write the recipe yourself; a product block alone is never a recipe. Never say "here is a recipe" without a recipe block after it.
 - suggestions: { "type": "suggestions", "prompts" } with 2 or 3 follow-up questions they might ask next, in their words, at most 6 words each. Always end with one.
+
+Recipe: { "title", "ingredients": [{ "name", "productId" (a catalogue id or null), "allergen" (one of ${ALLERGEN_SLUGS.join(', ')}, or null), "eNumber" (or null) }], "steps" }, or null when the answer has no recipe. Tag every ingredient's allergen honestly: butter is milk, flour is gluten.
+When they ask what they can make, or ask for a recipe, always fill "recipe" with a title, every ingredient with an amount in metric units, and the steps, one step per string. Write the recipe yourself; a product block alone is never a recipe. Never say "here is a recipe" in a text block unless "recipe" is filled. The app shows the recipe after your text blocks.
 
 Catalogue (id | brand and name | ingredients with allergen and E-number tags):
 ${context.catalogue.join('\n')}

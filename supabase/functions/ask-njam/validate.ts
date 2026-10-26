@@ -201,7 +201,14 @@ export function validateBlocks(raw: unknown, knownProductIds: Set<string>): AskB
     throw new Error('The AI response had no blocks.');
   }
 
-  const cleaned = ((raw as { blocks: unknown[] }).blocks)
+  // The recipe arrives in its own field, where the schema can require its
+  // ingredients and steps (bug 11). From here on it is one more block, after
+  // the text that introduces it, and goes through the same checks.
+  const { blocks: rawBlocks, recipe } = raw as { blocks: unknown[]; recipe?: unknown };
+  const withRecipe =
+    typeof recipe === 'object' && recipe !== null ? [...rawBlocks, { ...recipe, type: 'recipe' }] : rawBlocks;
+
+  const cleaned = withRecipe
     .map((block) => cleanBlock(block, knownProductIds))
     .filter((block): block is AskBlock => block !== null);
 
