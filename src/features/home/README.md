@@ -9,9 +9,11 @@ scan button, the aisle bubbles, a tip card that opens the scanner
 Each shelf's See all opens the aisle page or History. Typing in the search
 swaps the shelves for the matching products in the two-column grid.
 
-- Loads the verified catalogue once (`fetchCatalogue`) with each product's
+- Loads the catalogue once (`fetchCatalogue`) with each product's
   ingredients, aisle and stores, and searches and filters on the phone. The
-  catalogue holds a few dozen products; past a few hundred this needs paging.
+  catalogue is the verified products plus the complete Open Food Facts ones
+  (a real name and at least three ingredients), about a thousand; thin Open
+  Food Facts records are hidden.
   A product a shopper just scanned in is not here until an admin adds it to
   the feed from the review queue.
 - Each card's verdict comes from the verdict engine with the household's

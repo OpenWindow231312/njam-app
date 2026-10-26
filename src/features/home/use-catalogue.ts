@@ -2,7 +2,7 @@
  * useCatalogue: everything Home, Search and an aisle page need to show
  * products with their verdicts, in one hook so the three screens agree.
  *
- * It loads the whole catalogue (a few dozen products for now), the
+ * It loads the whole catalogue (about a thousand products), the
  * household's default profile, the aisles, the stores and the household's
  * saved products. It decides each product's verdict once per load with the
  * default profile, the same profile a scan is recorded against.
