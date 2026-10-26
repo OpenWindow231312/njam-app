@@ -1,10 +1,17 @@
 /**
- * import-open-food-facts: copies one page of South African products from
- * Open Food Facts into the shared catalogue.
+ * import-open-food-facts: copies products from Open Food Facts into the
+ * shared catalogue. Two ways in:
  *
  * POST { "page": 1 }, admins only (verify_jwt is on, and the role is checked).
+ *   One page of South African products, for the bulk import.
  *   200 { "ok": true, "data": { page, pageCount, found, imported, alreadyThere, skipped, failed } }
  *   502 { "ok": false, "error": { "code": "open_food_facts_busy", ... } }
+ *
+ * POST { "barcode": "6001087340366" }, anyone signed in.
+ *   One product the scanner did not find in our catalogue. It is saved the
+ *   same way as the bulk import, so the next scan finds it straight away.
+ *   200 { "ok": true, "data": { productId } }    productId is null when Open
+ *       Food Facts does not know it, or has no ingredient list for it.
  *
  * One page is 50 products, found in two steps:
  *   1. Open Food Facts' search service (search.openfoodfacts.org) lists the
@@ -16,8 +23,9 @@
  * scripts/import-open-food-facts.mjs calls this once per page.
  *
  * Why a function and not the app: import_product needs the service role key,
- * which never goes in the app (CLAUDE.md). Every product goes in unverified,
- * so the verdict engine caps it at Caution until an admin checks it.
+ * which never goes in the app (CLAUDE.md). Every product goes in unverified.
+ * The verdict engine decides a complete one like a verified one, and keeps a
+ * thin one (fewer than three ingredients) at Caution.
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
@@ -92,6 +100,22 @@ async function fetchBarcodes(page: number): Promise<{ codes: string[]; pageCount
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// deno-lint-ignore no-explicit-any
+type Admin = any;
+
+/** The id of the product with this barcode in our catalogue, or null. */
+async function existingId(admin: Admin, code: string): Promise<string | null> {
+  const { data } = await admin.from('products').select('id').eq('barcode', code).maybeSingle();
+  return data?.id ?? null;
+}
+
+/** What happened to one barcode. */
+type Outcome =
+  | { kind: 'imported'; id: string }
+  | { kind: 'already'; id: string }
+  | { kind: 'skipped'; reason: string }
+  | { kind: 'failed' };
+
 /**
  * The full product record, or null if Open Food Facts did not give it. A
  * busy answer is tried once more after a short wait; a product still
@@ -101,6 +125,43 @@ async function fetchProduct(code: string) {
   const url = `${PRODUCT}/${encodeURIComponent(code)}.json?fields=${FIELDS}`;
   const body = (await getJson(url)) ?? (await pause(2_000), await getJson(url));
   return body?.status === 1 && body.product ? body.product : null;
+}
+
+/**
+ * Fetches one product from Open Food Facts and saves it, unless it is
+ * already in the catalogue or too incomplete to save.
+ */
+async function importOne(admin: Admin, code: string): Promise<Outcome> {
+  const product = await fetchProduct(code);
+  if (!product) return { kind: 'skipped', reason: 'not_found' };
+
+  const mapped = mapProduct(product);
+  if (!mapped.ok) return { kind: 'skipped', reason: mapped.reason };
+
+  const { data, error } = await admin.rpc('import_product', mapped.args);
+  if (error) {
+    console.error('import_product failed', mapped.args.p_barcode, error.message);
+    return { kind: 'failed' };
+  }
+  // null: someone saved this barcode while we were fetching it.
+  if (data === null) {
+    const id = await existingId(admin, code);
+    return id ? { kind: 'already', id } : { kind: 'failed' };
+  }
+  return { kind: 'imported', id: data };
+}
+
+/** The scanner's way in: one barcode, for anyone signed in. */
+async function importBarcode(admin: Admin, barcode: unknown): Promise<Response> {
+  const code = typeof barcode === 'string' ? barcode.trim() : '';
+  if (!/^\d{8,14}$/.test(code)) return fail(400, 'bad_request', 'Send { "barcode": "6001087340366" }.');
+
+  const id = await existingId(admin, code);
+  if (id) return reply(200, { ok: true, data: { productId: id } });
+
+  const outcome = await importOne(admin, code);
+  const productId = outcome.kind === 'imported' || outcome.kind === 'already' ? outcome.id : null;
+  return reply(200, { ok: true, data: { productId } });
 }
 
 Deno.serve(async (req) => {
@@ -114,19 +175,27 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
-  // Only an admin may fill the shared catalogue. The role comes from the
-  // database, looked up by the id in their own verified JWT.
   const { data: auth, error: authError } = await admin.auth.getUser(jwt);
   if (authError || !auth.user) return fail(401, 'not_signed_in', 'Sign in first.');
+
+  // deno-lint-ignore no-explicit-any
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return fail(400, 'bad_request', 'Send { "page": 1 } or { "barcode": "..." }.');
+  }
+
+  // One barcode from the scanner: anyone signed in. What is saved comes from
+  // Open Food Facts, never from the person scanning.
+  if (body?.barcode !== undefined) return importBarcode(admin, body.barcode);
+
+  // A whole page: only an admin may fill the shared catalogue in bulk. The
+  // role comes from the database, looked up by the id in their own verified JWT.
   const { data: person } = await admin.from('users').select('role').eq('id', auth.user.id).maybeSingle();
   if (person?.role !== 'admin') return fail(403, 'admins_only', 'Only an admin can import products.');
 
-  let page: number;
-  try {
-    page = Number((await req.json())?.page);
-  } catch {
-    return fail(400, 'bad_request', 'Send { "page": 1 }.');
-  }
+  const page = Number(body?.page);
   if (!Number.isInteger(page) || page < 1) return fail(400, 'bad_request', 'Send { "page": 1 }.');
 
   const found = await fetchBarcodes(page);
@@ -141,29 +210,14 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    await pause(PAUSE_MS);
-    const product = await fetchProduct(code);
-    if (!product) {
-      counts.skipped.not_found = (counts.skipped.not_found ?? 0) + 1;
-      continue;
-    }
-
-    const mapped = mapProduct(product);
-    if (!mapped.ok) {
-      counts.skipped[mapped.reason] = (counts.skipped[mapped.reason] ?? 0) + 1;
-      continue;
-    }
     // One at a time, each in its own transaction, so one bad product does
     // not undo the rest of the page.
-    const { data, error } = await admin.rpc('import_product', mapped.args);
-    if (error) {
-      console.error('import_product failed', mapped.args.p_barcode, error.message);
-      counts.failed += 1;
-    } else if (data === null) {
-      counts.alreadyThere += 1;
-    } else {
-      counts.imported += 1;
-    }
+    await pause(PAUSE_MS);
+    const outcome = await importOne(admin, code);
+    if (outcome.kind === 'imported') counts.imported += 1;
+    else if (outcome.kind === 'already') counts.alreadyThere += 1;
+    else if (outcome.kind === 'failed') counts.failed += 1;
+    else counts.skipped[outcome.reason] = (counts.skipped[outcome.reason] ?? 0) + 1;
   }
 
   return reply(200, {

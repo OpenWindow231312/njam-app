@@ -26,9 +26,8 @@ export const FIELDS = [
 ].join(',');
 
 /**
- * Open Food Facts allergen tags mapped to our allergens.slug. The same list as
- * the scanner (src/features/scanner/open-food-facts.ts). Tags we do not track
- * yet (sesame, mustard, celery, sulphites, lupin) are left out.
+ * Open Food Facts allergen tags mapped to our allergens.slug. Tags we do not
+ * track yet (sesame, mustard, celery, sulphites, lupin) are left out.
  */
 const ALLERGEN_FOR_TAG: Record<string, string> = {
   'en:milk': 'milk',
@@ -242,8 +241,8 @@ export function mapProduct(product: OffProduct): Mapped {
   const listed = flattenIngredients(product.ingredients, product.lang === 'en');
   if (listed.length === 0) return { ok: false, reason: 'no_ingredients' };
 
-  // Every allergen the product declares is added as its own ingredient, the
-  // same way the scanner does. This can only make a verdict stricter.
+  // Every allergen the product declares is added as its own ingredient. This
+  // can only make a verdict stricter.
   const declared = allergenSlugs(product.allergens_tags).map((slug) => ({
     name: `${ALLERGEN_WORDS[slug]} (declared allergen)`,
     allergen: slug,
