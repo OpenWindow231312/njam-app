@@ -3,8 +3,8 @@
  * shared catalogue, so the next person who scans that barcode finds it.
  *
  * Anyone signed in can add one, whatever their role. It goes in unverified
- * (the database refuses anything else), so the verdict engine caps it at
- * Caution and it stays out of the feed until an admin adds it from the
+ * (the database refuses anything else), so its verdict says our team has
+ * not checked it (Caution for a severe allergy) and it stays out of the feed until an admin adds it from the
  * review queue.
  *
  * The ingredient list comes from a label photo, or from Open Food Facts,

@@ -22,8 +22,8 @@ How it runs (from the Scanner):
 Rules it keeps:
 
 - Saved with `verified = false`, and `source` is `ai_label_read` or
-  `open_food_facts`. RLS refuses a verified insert, so it is capped at Caution
-  and stays out of the feed until an admin adds it from the review queue.
+  `open_food_facts`. RLS refuses a verified insert, so its verdict says our team
+  has not checked it (capped at Caution for a severe allergy) and stays out of the feed until an admin adds it from the review queue.
   Nothing waits for the admin: the product saves straight away.
 - The label's "may contain" line is saved (`products.may_contain`), so the saved
   product is never less strict than the scan that created it.

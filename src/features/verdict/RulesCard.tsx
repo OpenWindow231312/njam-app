@@ -47,8 +47,8 @@ export function rulesSummary(checks: RuleCheck[], state: VerdictState): string {
   if (total === 0) return 'Your profile has no rules yet, so there was nothing to check';
   if (broken > 0) return `Breaks ${ofYourRules(broken, total)}`;
   if (unchecked > 0) return `We could not check ${ofYourRules(unchecked, total)}`;
-  // Every rule kept, but the engine still said Caution: our team has not
-  // checked the ingredient list, so it cannot be Safe yet.
+  // Every rule kept, but the engine still said Caution: the profile has a
+  // severe allergy and our team has not checked the ingredient list.
   if (state !== 'safe') return 'Nothing you avoid is listed, but our team has not checked this list yet';
   return 'Nothing you avoid is listed';
 }

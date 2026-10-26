@@ -11,7 +11,10 @@ The rules:
   (from `src/services/ai`) and the active profile rules, and returns one of
   `safe` | `caution` | `unsafe` with the reason lines that produced it.
 - **On conflict, the rules engine wins.** Always.
-- **An unverified record can never be Safe.** It is capped at Caution.
+- **An unverified record can be Safe or Not safe**, and its last reason line says
+  our team has not checked the list. The exception: if the profile has a severe
+  allergy, an unverified record is capped at Caution, because a misread label is
+  most dangerous there.
 - **Degrade toward Caution, never toward Safe.** A false Caution is a nuisance; a
   false Safe is a health incident. Zero false Safe verdicts is the project target.
 - **Follow the alias chain** (`ingredients.canonical_id`) before checking a rule,
