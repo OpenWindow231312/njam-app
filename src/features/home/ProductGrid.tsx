@@ -2,12 +2,17 @@
  * ProductGrid: products two to a row, each a ProductGridCard with its verdict
  * and save button. Tapping a card opens its Verdict screen.
  *
+ * It draws PAGE_SIZE cards at first, and PAGE_SIZE more each time you tap
+ * the button under them. The catalogue holds hundreds of products, and
+ * drawing every card (and loading every photo) at once makes the screen slow.
+ *
  * Used on Home, Search and an aisle page.
  */
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { ProductGridCard } from '@/components/design-system';
+import { Button, ProductGridCard } from '@/components/design-system';
 import type { Checked } from '@/features/home/use-catalogue';
 import { productDetail } from '@/features/verdict/catalogue';
 import { space } from '@/theme/tokens';
@@ -17,6 +22,9 @@ type ProductGridProps = {
   saved: Set<string>;
   onToggleSave: (productId: string) => void;
 };
+
+/** How many more cards each tap of the button draws. */
+const PAGE_SIZE = 40;
 
 /** Splits the list into rows of two. The last row may hold one. */
 function inPairs<T>(items: T[]): T[][] {
@@ -28,9 +36,12 @@ function inPairs<T>(items: T[]): T[][] {
 }
 
 export function ProductGrid({ items, saved, onToggleSave }: ProductGridProps) {
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  const hidden = items.length - limit;
+
   return (
     <View style={styles.grid}>
-      {inPairs(items).map((pair) => (
+      {inPairs(items.slice(0, limit)).map((pair) => (
         <View key={pair[0].product.id} style={styles.row}>
           {pair.map(({ product, verdict }) => (
             <ProductGridCard
@@ -48,6 +59,13 @@ export function ProductGrid({ items, saved, onToggleSave }: ProductGridProps) {
           {pair.length === 1 && <View style={styles.spacer} />}
         </View>
       ))}
+      {hidden > 0 && (
+        <Button
+          label={`Show ${Math.min(hidden, PAGE_SIZE)} more products`}
+          variant="outlined"
+          onPress={() => setLimit((current) => current + PAGE_SIZE)}
+        />
+      )}
     </View>
   );
 }

@@ -13,7 +13,9 @@ swaps the shelves for the matching products in the two-column grid.
   ingredients, aisle and stores, and searches and filters on the phone. The
   catalogue is the verified products plus the complete Open Food Facts ones
   (a real name and at least three ingredients), about a thousand; thin Open
-  Food Facts records are hidden.
+  Food Facts records are hidden. The products are kept in memory for ten
+  minutes, so coming back to a screen does not fetch them again, and
+  `ProductGrid` draws 40 cards at a time with a button for more.
   A product a shopper just scanned in is not here until an admin adds it to
   the feed from the review queue.
 - Each card's verdict comes from the verdict engine with the household's
