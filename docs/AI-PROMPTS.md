@@ -79,6 +79,9 @@ system instruction:
   no em dashes.
 - `temperature: 0.4`: a little warmth in the wording; the facts come from
   the context.
+- `thinkingLevel: low`, the lowest `gemini-3.8-flash` allows. Thinking runs
+  before the answer starts, so the person waits for all of it, and Njam
+  explains from the context it is given rather than reasoning at length.
 - **Generative UI:** the answer is a list of JSON blocks (`text`,
   `product`, `recipe`, `suggestions`) against a schema. The app draws each
   block with a design-system component.
@@ -109,7 +112,7 @@ system instruction:
 
 - A short prompt: return only the rest of the sentence, at most 6 words,
   never repeat what was typed.
-- `temperature: 0.2`, a small `maxOutputTokens`, a 4 s timeout, and no
+- `temperature: 0.2`, `thinkingLevel: minimal`, a small `maxOutputTokens`, a 4 s timeout, and no
   database reads, so it stays fast.
 - Validation strips a repeated prefix and emoji, and cuts it at 48
   characters on a whole word.

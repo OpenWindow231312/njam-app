@@ -174,7 +174,14 @@ async function askGemini(
   instruction: string,
   turns: GeminiTurn[],
   schema: unknown,
-  options: { model: string; temperature: number; maxOutputTokens: number; timeoutMs: number; signal?: AbortSignal },
+  options: {
+    model: string;
+    temperature: number;
+    maxOutputTokens: number;
+    thinkingLevel: 'minimal' | 'low';
+    timeoutMs: number;
+    signal?: AbortSignal;
+  },
 ): Promise<unknown> {
   // Stop when we time out, or when the app gives up on a ghost-text request.
   const signal = options.signal
@@ -191,6 +198,10 @@ async function askGemini(
       generationConfig: {
         temperature: options.temperature,
         maxOutputTokens: options.maxOutputTokens,
+        // Thinking happens before the first word of the answer, so the person
+        // waits for all of it. Njam explains food from the context it is given;
+        // it does not need to reason at length.
+        thinkingConfig: { thinkingLevel: options.thinkingLevel },
         responseMimeType: 'application/json',
         responseSchema: schema,
       },
@@ -284,6 +295,8 @@ async function chat(req: Request, body: Record<string, unknown>, apiKey: string)
     temperature: 0.4,
     // A recipe with its JSON around it can pass 2,000 tokens.
     maxOutputTokens: 8_192,
+    // The lowest level gemini-3.8-flash accepts; it rejects "minimal".
+    thinkingLevel: 'low',
     timeoutMs: CHAT_TIMEOUT_MS,
   });
   const geminiDone = performance.now();
@@ -316,6 +329,7 @@ async function complete(req: Request, body: Record<string, unknown>, apiKey: str
       temperature: 0.2,
       // A few tokens more than MAX_COMPLETION_LENGTH needs, for the JSON around it.
       maxOutputTokens: Math.ceil(MAX_COMPLETION_LENGTH / 2) + 16,
+      thinkingLevel: 'minimal',
       timeoutMs: COMPLETE_TIMEOUT_MS,
       // If the app cancels (the person typed again), stop asking Gemini too.
       signal: req.signal,
