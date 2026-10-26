@@ -37,7 +37,8 @@
  * decided at the time, for the person it was decided for.
  *
  * This screen only shows the verdict. The verdict engine decides it, and
- * the engine caps anything read from a label at Caution.
+ * the engine flags anything our team has not checked, and caps it at
+ * Caution for a severe allergy.
  */
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
