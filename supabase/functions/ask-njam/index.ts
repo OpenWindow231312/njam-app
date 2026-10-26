@@ -226,6 +226,8 @@ async function askGemini(
   const usage = result?.usageMetadata;
   console.log('Gemini usage', {
     model: result?.modelVersion,
+    // STOP is a normal finish; MAX_TOKENS means the answer ran out of room.
+    finishReason: result?.candidates?.[0]?.finishReason,
     promptTokens: usage?.promptTokenCount,
     cachedTokens: usage?.cachedContentTokenCount ?? 0,
     thoughtsTokens: usage?.thoughtsTokenCount ?? 0,
