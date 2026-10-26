@@ -155,8 +155,19 @@ function cleanBlock(raw: unknown, knownProductIds: Set<string>): AskBlock | null
       : [];
     // A recipe without a title, ingredients or steps is not a recipe.
     if (!title || ingredients.length === 0 || steps.length === 0) {
-      // Logged so a missing recipe can be traced in the function logs.
-      console.warn('ask-njam dropped a recipe', { title: Boolean(title), ingredients: ingredients.length, steps: steps.length });
+      // Logged so a missing recipe can be traced in the function logs: what
+      // survived the checks, and what Gemini actually sent before them.
+      console.warn('ask-njam dropped a recipe', {
+        title: Boolean(title),
+        ingredients: ingredients.length,
+        steps: steps.length,
+        sent: {
+          keys: Object.keys(block),
+          ingredients: Array.isArray(block.ingredients) ? block.ingredients.length : String(block.ingredients),
+          steps: Array.isArray(block.steps) ? block.steps.length : String(block.steps),
+          firstIngredient: Array.isArray(block.ingredients) ? JSON.stringify(block.ingredients[0] ?? null).slice(0, 200) : null,
+        },
+      });
       return null;
     }
     return { type: 'recipe', title, ingredients, steps };
