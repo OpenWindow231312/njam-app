@@ -98,6 +98,7 @@ function ProductBlock({ productId, rules }: { productId: string; rules: ProfileR
         variant="identity"
         name={product.name}
         detail={productDetail(product)}
+        imageUrl={product.imageUrl ?? undefined}
         metaIcon={product.verified ? 'verified' : 'info'}
         metaText={product.verified ? 'Verified' : 'Not yet checked by our team'}
       />
