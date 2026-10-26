@@ -201,6 +201,15 @@ async function askGemini(
   }
 
   const result = await response.json();
+  // Which model answered and where the tokens went, so speed and cost can be compared between versions.
+  const usage = result?.usageMetadata;
+  console.log('Gemini usage', {
+    model: result?.modelVersion,
+    promptTokens: usage?.promptTokenCount,
+    cachedTokens: usage?.cachedContentTokenCount ?? 0,
+    thoughtsTokens: usage?.thoughtsTokenCount ?? 0,
+    outputTokens: usage?.candidatesTokenCount,
+  });
   const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (typeof jsonText !== 'string') {
     console.error('Gemini returned no text', JSON.stringify(result).slice(0, 500));
@@ -236,6 +245,7 @@ function historyTurn(message: HistoryMessage): GeminiTurn {
 
 async function chat(req: Request, body: Record<string, unknown>, apiKey: string): Promise<Response> {
   const askedAt = new Date();
+  const started = performance.now();
   const message = typeof body.message === 'string' ? body.message.trim() : '';
   if (message.length === 0) return fail(400, 'bad_request', 'Send a message.');
   if (message.length > MAX_MESSAGE_LENGTH) {
@@ -255,6 +265,7 @@ async function chat(req: Request, body: Record<string, unknown>, apiKey: string)
     conversationId ? readHistory(db, conversationId) : Promise.resolve([]),
   ]);
   if (history === null) return fail(404, 'not_found', 'We could not find that conversation.');
+  const readDone = performance.now();
 
   const instruction = chatInstruction({
     firstName: person.name.split(' ')[0],
@@ -272,9 +283,18 @@ async function chat(req: Request, body: Record<string, unknown>, apiKey: string)
     maxOutputTokens: 8_192,
     timeoutMs: CHAT_TIMEOUT_MS,
   });
+  const geminiDone = performance.now();
   const blocks = validateBlocks(raw, new Set(catalogue.map((product) => product.id)));
 
   const savedId = await saveExchange(db, conversationId, message, askedAt, blocks);
+  const saveDone = performance.now();
+  // One line per answer: where the time went, in milliseconds.
+  console.log('ask-njam timings', {
+    readMs: Math.round(readDone - started),
+    geminiMs: Math.round(geminiDone - readDone),
+    saveMs: Math.round(saveDone - geminiDone),
+    totalMs: Math.round(saveDone - started),
+  });
   return reply(200, { ok: true, data: { conversationId: savedId, blocks } });
 }
 
