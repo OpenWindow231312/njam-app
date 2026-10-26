@@ -15,11 +15,10 @@
  * White with the ambient shadow like every white control on the pale ground;
  * the rule count sits on a sunken chip, because it is a fact, not a button.
  */
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Avatar, Checkbox, Icon, ListGroup, ListRow } from '@/components/design-system';
+import { Avatar, Checkbox, Icon, ListGroup } from '@/components/design-system';
 import { PressableSurface } from '@/components/design-system/PressableSurface';
 import type { ActiveProfile } from '@/features/profile/active-profile';
 import { layout, radius, space, typography } from '@/theme/tokens';
@@ -116,12 +115,6 @@ export function HomeScope({ profiles, selectedIds, onChange }: HomeScopeProps) {
               />
             );
           })}
-          <ListRow
-            title="Change who is in your household"
-            icon="person_add"
-            trailing="chevron"
-            onPress={() => router.navigate('/profile')}
-          />
         </ListGroup>
       )}
     </View>

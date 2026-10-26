@@ -109,14 +109,19 @@ export function HomeScreen() {
 
   return (
     <Screen withTabBar>
-      <AskNjamHeader>
-        <View style={styles.heading}>
-          <Text style={[typography.title, { color: colors.brandForestMid }]}>{greeting(member?.displayName)}</Text>
-          <SectionHeader headline="Check your food" />
-        </View>
-      </AskNjamHeader>
+      {/* One View with no gap of its own: the SectionHeader already leaves
+          space.s7 under itself, and Screen's gap on top of that pushed the
+          scope pill too far from the headline. */}
+      <View>
+        <AskNjamHeader>
+          <View style={styles.heading}>
+            <Text style={[typography.title, { color: colors.brandForestMid }]}>{greeting(member?.displayName)}</Text>
+            <SectionHeader headline="Check your food" />
+          </View>
+        </AskNjamHeader>
 
-      {loaded && <HomeScope profiles={loaded.profiles} selectedIds={selectedIds} onChange={setCheckingFor} />}
+        {loaded && <HomeScope profiles={loaded.profiles} selectedIds={selectedIds} onChange={setCheckingFor} />}
+      </View>
 
       <View style={styles.searchRow}>
         <View style={styles.flex}>
