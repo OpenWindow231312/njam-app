@@ -631,8 +631,8 @@ export const layout = {
   saveButtonSize: 32,
   /** The round aisle bubble on Home and Search, Sixty60's "quick shops" (approved 13 Oct 2026). */
   categoryBubbleSize: 64,
-  /** The product photo (packshot) on the Verdict screen, full width (v1.11: 240 to 200). */
-  productPhotoHeight: 200,
+  /** The product photo (packshot) on the Verdict screen, full width (v1.11: 240 to 200; 26 Oct 2026: 200 to 260). */
+  productPhotoHeight: 260,
   /** One store, logo over name, in the sideways "Available at" row (v1.11). */
   storeColumnWidth: 72,
   /** The amount column in the Nutrition table, right aligned (v1.11). */
