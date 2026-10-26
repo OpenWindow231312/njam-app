@@ -1,8 +1,8 @@
 # API: the routes Njam's app calls
 
 Njam has no server of its own to host. The backend is Supabase: two Edge
-Functions for the AI, and the database's REST API (PostgREST) for
-everything else, protected by Row Level Security. Base URL:
+Functions for the AI, one for the Open Food Facts import, and the database's
+REST API (PostgREST) for everything else, protected by Row Level Security. Base URL:
 `https://<project-ref>.supabase.co`.
 
 Every request carries the signed-in person's JWT
@@ -25,7 +25,7 @@ Reads an ingredient list from a label photo or from typed text.
 | Request body | Meaning |
 | --- | --- |
 | `{ "imageBase64": "...", "mimeType": "image/jpeg" }` | A label photo, under 4 MB |
-| `{ "text": "Ingredients: wheat flour, sugar, ..." }` | Ingredient text (also used for Open Food Facts text) |
+| `{ "text": "Ingredients: wheat flour, sugar, ..." }` | Ingredient text, as typed. The app does not send this today |
 | `{ "mode": "front", "imageBase64": "...", "mimeType": "image/jpeg" }` | A photo of the front of the pack, read for its name and brand |
 
 `200 { "ok": true, "data": LabelRead }`, where LabelRead is
@@ -69,6 +69,30 @@ nicety, so any failure is `null`. Times out after 4 s.
 
 Called from: `src/services/ai/index.ts` (`askNjam`, `completeMessage`).
 
+### `POST /functions/v1/import-open-food-facts`
+
+Copies products from Open Food Facts into the catalogue, unverified, with
+source `open_food_facts`. No AI: `map.ts` maps each record by plain rules.
+It saves through `import_product`, which only the service role may call, so
+the app can never write an import itself.
+
+| Request body | Who | Meaning |
+| --- | --- | --- |
+| `{ "barcode": "6001087340366" }` | Anyone signed in | One barcode the scanner did not find. Saved if Open Food Facts has its ingredient list |
+| `{ "page": 1 }` | Admins only | One page of 50 South African products, for the bulk import |
+
+Barcode: `200 { "ok": true, "data": { "productId": "uuid" | null } }`.
+`null` means Open Food Facts does not know it, or has no ingredient list.
+
+Page: `200 { "ok": true, "data": { page, pageCount, found, imported, alreadyThere, skipped, failed } }`,
+where `skipped` counts each reason (`not_found`, `no_name`, `no_ingredients`).
+
+Errors: `400 bad_request`, `401 not_signed_in`, `403 admins_only` (page
+only), `502 open_food_facts_busy` (page only).
+
+Called from: `src/features/scanner/open-food-facts.ts` (barcode, 8 s
+timeout) and `scripts/import-open-food-facts.mjs` (pages).
+
 ## Database (Supabase REST, RLS on every table)
 
 | Route | Verb | What for | Called from |
@@ -76,8 +100,8 @@ Called from: `src/services/ai/index.ts` (`askNjam`, `completeMessage`).
 | `/rest/v1/users` | GET, POST | Your row; created at first sign-in | `features/auth/AuthProvider.tsx` |
 | `/rest/v1/households` | POST | A new household at sign-up | `features/auth/AuthProvider.tsx` |
 | `/rest/v1/diet_profiles` (+ `profile_rules`) | GET | The active profile and its rules | `features/profile/active-profile.ts` |
-| `/rest/v1/products` (+ ingredients) | GET | Search, barcode lookup, a product by id | `features/verdict/catalogue.ts`, `features/home/ProductSearch.tsx` |
-| `/rest/v1/products` | PATCH | Verify a product (admins only) | `features/admin-review/review-queue.ts` |
+| `/rest/v1/products` (+ ingredients) | GET | The catalogue for Home (verified and Open Food Facts products, 1,000 rows a request), barcode lookup, a product by id | `features/verdict/catalogue.ts` |
+| `/rest/v1/products` | GET, PATCH | The review queue (unverified, not from Open Food Facts) and verifying a product (admins only) | `features/admin-review/review-queue.ts` |
 | `/rest/v1/rpc/add_product` | POST | Add a scanned product, its ingredients and their order in one transaction (always unverified) | `features/add-product/add-product.ts` |
 | `/storage/v1/object/product-photos/<your user id>/...` | POST | Upload the front and label photos (only into your own folder) | `features/add-product/add-product.ts` |
 | `/rest/v1/scans` | GET, POST | Save and read scan history | `features/verdict/scans.ts` |

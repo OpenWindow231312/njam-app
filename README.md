@@ -40,6 +40,11 @@ allergen blocks). On conflict, the rules engine wins. An unverified AI-read
 record is capped at Caution and can never be Safe. **Zero false Safe verdicts**
 is a stated project target.
 
+The catalogue holds about a thousand South African products, most of them
+imported from [Open Food Facts](https://openfoodfacts.org). A complete Open
+Food Facts record (at least three ingredients) is decided like a verified one;
+a thin one is hidden from Home and stays at Caution.
+
 ---
 
 ## Screens
@@ -127,6 +132,28 @@ See every high-fidelity screen in [Figma](https://www.figma.com/design/SPM3c4yMg
 
   ```bash
   npx supabase functions deploy ask-njam --project-ref <your-project-ref>
+  ```
+
+- **Open Food Facts import.** `supabase/functions/import-open-food-facts`
+  copies South African products from Open Food Facts (data ODbL, photos
+  CC BY-SA, by Open Food Facts contributors) into the catalogue through the
+  `import_product` database function. No AI is involved: the structured
+  ingredient list, allergen tags, nutrition table, pack size and aisle are
+  mapped by plain rules (`map.ts`), and a nutrition table that contradicts
+  itself is left out. It has two ways in:
+  - **Bulk**, admins only, one page of 50 at a time. Run it with an admin's
+    email and password (asked for in the terminal, never stored):
+
+    ```bash
+    node --env-file=.env scripts/import-open-food-facts.mjs
+    ```
+
+    It is safe to run again: a barcode already in the catalogue is skipped.
+  - **One barcode**, for anyone signed in: the scanner calls it when a barcode
+    is not in the catalogue, so the product is saved on its first scan.
+
+  ```bash
+  npx supabase functions deploy import-open-food-facts --project-ref <your-project-ref>
   ```
 
 - **Test accounts.** Two accounts exist for the demo: a Household Owner and an

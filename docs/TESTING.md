@@ -21,7 +21,7 @@ Run before every merge into `main`. Mark each with the date and pass or fail.
 | 2 | Log out, log in as owner@njam.test | Home, with your name on Profile | 13 Oct, pass |
 | 3 | Search "rusk", open Ouma Buttermilk Rusks | Not safe: contains buttermilk powder, you marked milk as severe | 13 Oct, pass |
 | 4 | Open one of the 3 unverified seed products | Caution at best, with "Our team has not checked this ingredient list yet" | |
-| 5 | Scan a real barcode not in the catalogue | Open Food Facts verdict marked "not yet verified", or a request for a label photo | 13 Oct, pass (label photo asked for) |
+| 5 | Scan a real barcode not in the catalogue | Saved from Open Food Facts and its verdict opens, marked "From Open Food Facts"; a second scan opens it straight away. If Open Food Facts lacks it, a request for a label photo | 13 Oct, pass (label photo asked for). Behaviour changed 27 Oct: rerun |
 | 6 | Photograph a clear label | Ingredient list read; verdict capped at Caution | 13 Oct, pass |
 | 7 | Photograph a blurry label | "We could not read this label", never a guessed list | |
 | 8 | History tab | The scans above, newest first, reopen as decided | 13 Oct, pass, but the label-photo scan has no product name (bug 12) |
