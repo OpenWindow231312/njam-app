@@ -1,7 +1,8 @@
 # AI: prompt design, validation and failure handling
 
-Njam uses Google Gemini (`gemini-flash-lite-latest`) in two places. Both
-calls run in Supabase Edge Functions, where the key is a secret
+Njam uses Google Gemini in two places: `scan-label` (`gemini-flash-lite-latest`)
+and Ask Njam (`gemini-3.8-flash` for chat, `gemini-3.5-flash-lite` for ghost
+text, named versions so an alias cannot change the answers). Both calls run in Supabase Edge Functions, where the key is a secret
 (`GEMINI_API_KEY`). The app only ever talks to the functions, through
 `src/services/ai/index.ts`.
 
@@ -76,11 +77,23 @@ system instruction:
   to these rules (a defence against prompt injection); food only.
 - Voice: second person, warm, at most three sentences a block, no emoji,
   no em dashes.
+- **Order:** the instructions and the catalogue, which are the same for
+  everyone, come first; the person's name, rules and scans come last.
+  Gemini caches a prompt's opening it has seen recently, but only while it
+  matches word for word, so the shared part goes at the start.
 - `temperature: 0.4`: a little warmth in the wording; the facts come from
   the context.
+- `thinkingLevel: low`, the lowest `gemini-3.8-flash` allows. Thinking runs
+  before the answer starts, so the person waits for all of it, and Njam
+  explains from the context it is given rather than reasoning at length.
 - **Generative UI:** the answer is a list of JSON blocks (`text`,
   `product`, `recipe`, `suggestions`) against a schema. The app draws each
   block with a design-system component.
+- **The recipe has its own field** (bug 11). In a flat block only `type`
+  can be required, so Gemini once sent a recipe with a title and nothing
+  else. `recipe` is a separate object that requires a title, ingredients
+  and steps (at least one each), or is null; `validate.ts` turns it back
+  into a recipe block, tested in `ask-njam/validate.test.ts`.
 
 **Validation** (`ask-njam/validate.ts`):
 
@@ -108,7 +121,7 @@ system instruction:
 
 - A short prompt: return only the rest of the sentence, at most 6 words,
   never repeat what was typed.
-- `temperature: 0.2`, a small `maxOutputTokens`, a 4 s timeout, and no
+- `temperature: 0.2`, `thinkingLevel: minimal`, a small `maxOutputTokens`, a 4 s timeout, and no
   database reads, so it stays fast.
 - Validation strips a repeated prefix and emoji, and cuts it at 48
   characters on a whole word.

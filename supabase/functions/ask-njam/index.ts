@@ -36,8 +36,11 @@ import { ALLERGEN_SLUGS, MAX_COMPLETION_LENGTH, validateBlocks, validateCompleti
 // without ingredients or steps, or repeated itself until the reply was cut
 // off mid-JSON (bug 11). Ghost text has to be fast and short, so it keeps
 // Flash-Lite.
-const CHAT_MODEL = 'gemini-flash-latest';
-const COMPLETE_MODEL = 'gemini-flash-lite-latest';
+// Named versions, not the "-latest" aliases: an alias can move to a new model
+// without warning, which would change Njam's answers overnight. Upgrading is
+// a decision, made here.
+const CHAT_MODEL = 'gemini-3.8-flash';
+const COMPLETE_MODEL = 'gemini-3.5-flash-lite';
 const geminiUrl = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
@@ -59,6 +62,12 @@ const CORS_HEADERS = {
 // Gemini's structured-output schema. Its schema language has no "one of",
 // so a block is one flat object: `type` says which of the other fields
 // matter, and validate.ts checks each type has what it needs.
+//
+// The recipe is not a block here but a field of its own (bug 11). In the
+// flat block only `type` could be required, so Gemini was free to send a
+// recipe with a title and nothing else, and did. As its own object it can
+// require a title, ingredients and steps, each list with at least one item.
+// validate.ts turns it back into a recipe block, so the app sees no change.
 const BLOCKS_SCHEMA = {
   type: 'OBJECT',
   properties: {
@@ -67,32 +76,39 @@ const BLOCKS_SCHEMA = {
       items: {
         type: 'OBJECT',
         properties: {
-          type: { type: 'STRING', enum: ['text', 'product', 'recipe', 'suggestions'] },
+          type: { type: 'STRING', enum: ['text', 'product', 'suggestions'] },
           text: { type: 'STRING', nullable: true },
           productId: { type: 'STRING', nullable: true },
-          title: { type: 'STRING', nullable: true },
-          ingredients: {
-            type: 'ARRAY',
-            nullable: true,
-            items: {
-              type: 'OBJECT',
-              properties: {
-                name: { type: 'STRING' },
-                productId: { type: 'STRING', nullable: true },
-                allergen: { type: 'STRING', enum: [...ALLERGEN_SLUGS], nullable: true },
-                eNumber: { type: 'STRING', nullable: true },
-              },
-              required: ['name', 'productId', 'allergen', 'eNumber'],
-            },
-          },
-          steps: { type: 'ARRAY', nullable: true, items: { type: 'STRING' } },
           prompts: { type: 'ARRAY', nullable: true, items: { type: 'STRING' } },
         },
         required: ['type'],
       },
     },
+    recipe: {
+      type: 'OBJECT',
+      nullable: true,
+      properties: {
+        title: { type: 'STRING' },
+        ingredients: {
+          type: 'ARRAY',
+          minItems: 1,
+          items: {
+            type: 'OBJECT',
+            properties: {
+              name: { type: 'STRING' },
+              productId: { type: 'STRING', nullable: true },
+              allergen: { type: 'STRING', enum: [...ALLERGEN_SLUGS], nullable: true },
+              eNumber: { type: 'STRING', nullable: true },
+            },
+            required: ['name', 'productId', 'allergen', 'eNumber'],
+          },
+        },
+        steps: { type: 'ARRAY', minItems: 1, items: { type: 'STRING' } },
+      },
+      required: ['title', 'ingredients', 'steps'],
+    },
   },
-  required: ['blocks'],
+  required: ['blocks', 'recipe'],
 };
 
 const COMPLETION_SCHEMA = {
@@ -108,8 +124,13 @@ type Context = {
   catalogue: string[];
 };
 
+// The order matters for speed and cost. Gemini caches the start of a prompt
+// it has seen recently and reads it again more cheaply, but only while it
+// matches word for word. So everything that is the same for every person
+// (the instructions, then the catalogue) comes first, and the parts about
+// this person (name, rules, scans) come last.
 function chatInstruction(context: Context): string {
-  return `You are Njam, the assistant in a South African grocery app that checks food against one person's dietary rules. You are talking to ${context.firstName}.
+  return `You are Njam, the assistant in a South African grocery app that checks food against one person's dietary rules.
 
 You help with four things: recipes that use a product they scanned or name; why a product got its verdict; what an ingredient, allergen or E-number is; and what they could eat instead.
 
@@ -124,21 +145,26 @@ Hard rules:
 
 Voice: second person, warm and short, at most three sentences per text block. Sentence case. No emoji, no em dashes. Metric units. South African products and words are welcome.
 
+Your answer has "blocks" and "recipe".
+
 Blocks:
 - text: { "type": "text", "text" }
 - product: { "type": "product", "productId" } for one catalogue product.
-- recipe: { "type": "recipe", "title", "ingredients": [{ "name", "productId" (a catalogue id or null), "allergen" (one of ${ALLERGEN_SLUGS.join(', ')}, or null), "eNumber" (or null) }], "steps" }. Tag every ingredient's allergen honestly: butter is milk, flour is gluten.
-  When they ask what they can make, or ask for a recipe, always answer with one recipe block that has a title, every ingredient with an amount in metric units, and the steps, one step per string. Write the recipe yourself; a product block alone is never a recipe. Never say "here is a recipe" without a recipe block after it.
 - suggestions: { "type": "suggestions", "prompts" } with 2 or 3 follow-up questions they might ask next, in their words, at most 6 words each. Always end with one.
+
+Recipe: { "title", "ingredients": [{ "name", "productId" (a catalogue id or null), "allergen" (one of ${ALLERGEN_SLUGS.join(', ')}, or null), "eNumber" (or null) }], "steps" }, or null when the answer has no recipe. Tag every ingredient's allergen honestly: butter is milk, flour is gluten.
+When they ask what they can make, or ask for a recipe, always fill "recipe" with a title, every ingredient with an amount in metric units, and the steps, one step per string. Write the recipe yourself; a product block alone is never a recipe. Never say "here is a recipe" in a text block unless "recipe" is filled. The app shows the recipe after your text blocks.
+
+Catalogue (id | brand and name | ingredients with allergen and E-number tags):
+${context.catalogue.join('\n')}
+
+You are talking to ${context.firstName}.
 
 Their rules:
 ${context.rules.length > 0 ? context.rules.map((rule) => `- ${rule}`).join('\n') : '- none yet'}
 
 Their recent scans, newest first, with the rules engine's verdict and reasons:
-${context.scans.length > 0 ? context.scans.map((scan) => `- ${scan}`).join('\n') : '- none yet'}
-
-Catalogue (id | brand and name | ingredients with allergen and E-number tags):
-${context.catalogue.join('\n')}`;
+${context.scans.length > 0 ? context.scans.map((scan) => `- ${scan}`).join('\n') : '- none yet'}`;
 }
 
 const COMPLETE_INSTRUCTION = `You predict how a person will finish the message they are typing to Njam, a food and grocery assistant in a South African app.
@@ -171,7 +197,14 @@ async function askGemini(
   instruction: string,
   turns: GeminiTurn[],
   schema: unknown,
-  options: { model: string; temperature: number; maxOutputTokens: number; timeoutMs: number; signal?: AbortSignal },
+  options: {
+    model: string;
+    temperature: number;
+    maxOutputTokens: number;
+    thinkingLevel: 'minimal' | 'low';
+    timeoutMs: number;
+    signal?: AbortSignal;
+  },
 ): Promise<unknown> {
   // Stop when we time out, or when the app gives up on a ghost-text request.
   const signal = options.signal
@@ -188,6 +221,10 @@ async function askGemini(
       generationConfig: {
         temperature: options.temperature,
         maxOutputTokens: options.maxOutputTokens,
+        // Thinking happens before the first word of the answer, so the person
+        // waits for all of it. Njam explains food from the context it is given;
+        // it does not need to reason at length.
+        thinkingConfig: { thinkingLevel: options.thinkingLevel },
         responseMimeType: 'application/json',
         responseSchema: schema,
       },
@@ -201,6 +238,17 @@ async function askGemini(
   }
 
   const result = await response.json();
+  // Which model answered and where the tokens went, so speed and cost can be compared between versions.
+  const usage = result?.usageMetadata;
+  console.log('Gemini usage', {
+    model: result?.modelVersion,
+    // STOP is a normal finish; MAX_TOKENS means the answer ran out of room.
+    finishReason: result?.candidates?.[0]?.finishReason,
+    promptTokens: usage?.promptTokenCount,
+    cachedTokens: usage?.cachedContentTokenCount ?? 0,
+    thoughtsTokens: usage?.thoughtsTokenCount ?? 0,
+    outputTokens: usage?.candidatesTokenCount,
+  });
   const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (typeof jsonText !== 'string') {
     console.error('Gemini returned no text', JSON.stringify(result).slice(0, 500));
@@ -236,6 +284,7 @@ function historyTurn(message: HistoryMessage): GeminiTurn {
 
 async function chat(req: Request, body: Record<string, unknown>, apiKey: string): Promise<Response> {
   const askedAt = new Date();
+  const started = performance.now();
   const message = typeof body.message === 'string' ? body.message.trim() : '';
   if (message.length === 0) return fail(400, 'bad_request', 'Send a message.');
   if (message.length > MAX_MESSAGE_LENGTH) {
@@ -247,14 +296,20 @@ async function chat(req: Request, body: Record<string, unknown>, apiKey: string)
   const db = clientFor(authHeader);
 
   // Everything about the person, read in parallel so the answer stays quick.
-  const person = await readPerson(db, authHeader.replace(/^Bearer\s+/i, ''));
-  const [profile, scans, catalogue, history] = await Promise.all([
-    readRules(db, person.householdId),
+  // Only the rules need the person first (for their household), so that pair
+  // runs as one chain while the scans, catalogue and history start at once.
+  const personAndRules = readPerson(db, authHeader.replace(/^Bearer\s+/i, '')).then(async (person) => ({
+    person,
+    profile: await readRules(db, person.householdId),
+  }));
+  const [{ person, profile }, scans, catalogue, history] = await Promise.all([
+    personAndRules,
     readRecentScans(db),
     readCatalogue(db),
     conversationId ? readHistory(db, conversationId) : Promise.resolve([]),
   ]);
   if (history === null) return fail(404, 'not_found', 'We could not find that conversation.');
+  const readDone = performance.now();
 
   const instruction = chatInstruction({
     firstName: person.name.split(' ')[0],
@@ -270,11 +325,22 @@ async function chat(req: Request, body: Record<string, unknown>, apiKey: string)
     temperature: 0.4,
     // A recipe with its JSON around it can pass 2,000 tokens.
     maxOutputTokens: 8_192,
+    // The lowest level gemini-3.8-flash accepts; it rejects "minimal".
+    thinkingLevel: 'low',
     timeoutMs: CHAT_TIMEOUT_MS,
   });
+  const geminiDone = performance.now();
   const blocks = validateBlocks(raw, new Set(catalogue.map((product) => product.id)));
 
   const savedId = await saveExchange(db, conversationId, message, askedAt, blocks);
+  const saveDone = performance.now();
+  // One line per answer: where the time went, in milliseconds.
+  console.log('ask-njam timings', {
+    readMs: Math.round(readDone - started),
+    geminiMs: Math.round(geminiDone - readDone),
+    saveMs: Math.round(saveDone - geminiDone),
+    totalMs: Math.round(saveDone - started),
+  });
   return reply(200, { ok: true, data: { conversationId: savedId, blocks } });
 }
 
@@ -293,6 +359,7 @@ async function complete(req: Request, body: Record<string, unknown>, apiKey: str
       temperature: 0.2,
       // A few tokens more than MAX_COMPLETION_LENGTH needs, for the JSON around it.
       maxOutputTokens: Math.ceil(MAX_COMPLETION_LENGTH / 2) + 16,
+      thinkingLevel: 'minimal',
       timeoutMs: COMPLETE_TIMEOUT_MS,
       // If the app cancels (the person typed again), stop asking Gemini too.
       signal: req.signal,
