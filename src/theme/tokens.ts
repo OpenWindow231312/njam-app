@@ -620,8 +620,8 @@ export const layout = {
   chipHeightLarge: 44,
   /** Visual height of the ScopePill on the camera; hit area extends to touchTargetMin. */
   scopePillHeight: 36,
-  /** ProductTile width in a horizontal shelf. */
-  productTileWidth: 150,
+  /** ProductTile width in a horizontal shelf (26 Oct 2026: 150 to 160, closer to a grid card). */
+  productTileWidth: 160,
   /** Photo height in ProductTile and ProductGridCard (26 Oct 2026: 130 to 180, option E). */
   productTileImageHeight: 180,
   /**

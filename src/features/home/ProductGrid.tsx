@@ -57,9 +57,10 @@ const styles = StyleSheet.create({
   grid: {
     gap: space.s4,
   },
+  // The same gap as between cards on a shelf, so each card is a little wider.
   row: {
     flexDirection: 'row',
-    gap: space.s4,
+    gap: space.s3,
   },
   spacer: {
     flex: 1,
