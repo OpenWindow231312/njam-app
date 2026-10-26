@@ -11,15 +11,17 @@
  *             no extra photo. See open-food-facts.ts.
  *   label   - if neither knows the barcode (or there is none), you
  *             photograph the ingredient list. The AI service reads it and
- *             the Verdict screen shows the result, capped at Caution.
+ *             the Verdict screen shows the result, which says our team has not
+ *             checked it.
  *
  * When a label photo was read for a barcode we did not know, Njam asks for
  * one more photo: the front of the pack. The AI reads the name off it, the
  * product is added to the catalogue (unverified) with the photos, and its
  * Verdict screen opens with the photo, like any other product. The next
  * person who scans it finds it straight away. It stays out of the feed until
- * an admin adds it. Skipping the photo shows the verdict from the ingredient
- * list alone, and saves nothing.
+ * an admin adds it. The front photo is not optional: without it the product
+ * is not saved, and the scan could not show its ingredients again from
+ * History.
  *
  * Every photo is checked before it is used: the shutter freezes the photo on
  * the panel (with a buzz), and you choose "Use this photo" or "Retake". In
@@ -247,10 +249,11 @@ export function ScannerScreen() {
   }
 
   /**
-   * The verdict from the ingredient list alone. Nothing is added to the
-   * catalogue. The photo just taken, if any, goes along to show on it.
+   * The verdict from the ingredient list alone, for a label with no barcode
+   * or one we could not read. Nothing is added to the catalogue. The photo
+   * just taken goes along to show on it.
    */
-  function openLabelVerdict(read: LabelRead, from: { barcode?: string; photoUri?: string | null }) {
+  function openLabelVerdict(read: LabelRead, from: { barcode?: string; photoUri?: string }) {
     // The label read travels to the Verdict screen as a route param.
     router.push({
       pathname: '/verdict',
@@ -301,6 +304,7 @@ export function ScannerScreen() {
         front: { ...front, name: front.name },
         label: read,
         source: 'ai_label_read',
+        nutrition: null,
         frontPhotoBase64: photo.base64,
         labelPhotoBase64: labelPhoto.current.base64,
       });
@@ -320,7 +324,7 @@ export function ScannerScreen() {
       setNotice(
         error instanceof LabelReadError
           ? error.message
-          : 'We could not add this product. Try again, or show the verdict without it.',
+          : 'We could not add this product. Try again.',
       );
       setMode({ kind: 'front', ...step });
     }
@@ -379,18 +383,7 @@ export function ScannerScreen() {
               <Button label="Use this photo" icon="check" onPress={() => readLabelPhoto(mode.photo, mode.barcode)} />
             </View>
           ) : mode.kind === 'front' ? (
-            <View style={styles.actions}>
-              <Button label="Photograph the front" icon="photo_camera" size="large" onPress={photographFront} />
-              <Button
-                label="Show the verdict without it"
-                variant="outlined"
-                size="small"
-                onPress={() => {
-                  setNotice(null);
-                  openLabelVerdict(mode.read, { barcode: mode.barcode, photoUri: labelPhoto.current?.uri });
-                }}
-              />
-            </View>
+            <Button label="Photograph the front" icon="photo_camera" size="large" onPress={photographFront} />
           ) : mode.kind === 'check-front' ? (
             <View style={styles.choice}>
               <Button
@@ -460,11 +453,6 @@ export function ScannerScreen() {
 }
 
 const styles = StyleSheet.create({
-  // "Photograph the front" with the way to skip it underneath.
-  actions: {
-    alignItems: 'center',
-    gap: space.s1,
-  },
   // "Retake" and "Use this photo", side by side.
   choice: {
     flexDirection: 'row',

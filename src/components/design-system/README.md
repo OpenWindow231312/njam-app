@@ -21,9 +21,12 @@ Built so far (v1.5, 30 Sep 2026, from the "Njam UI v1.4" canvas):
 | Feedback | `Snackbar`, `EmptyState`, `ConfirmDialog`, `BottomSheet`, `LoadingMark` |
 | AI | `NjamMark`, `AiAvatar`, `ChatBubble`, `ChatComposer` (with optional ghost text) |
 
-`ProductGridCard` (13 Oct 2026, Home) is a white card for the two-column grid
-on Home: photo with the verdict mark and save button, then the name, brand and
-pack size. It stretches to its column; `ProductTile` keeps the shelf width.
+`ProductGridCard` (13 Oct 2026, Home; option E on 26 Oct 2026) is the one
+white card for a product, on every shelf and grid: a 180 tall photo with the
+verdict mark lower left and a round save button upper right (white, or forest
+with a lime bookmark once saved), then the brand as an overline, the name and
+the pack size. It stretches to its column; `ProductTile` is the same card at
+the shelf width.
 
 `CategoryBubble` (13 Oct 2026) is an aisle as a round icon with its name under
 it, like Sixty60's quick shops: white with the ambient shadow at rest, lime when

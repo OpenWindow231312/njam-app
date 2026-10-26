@@ -189,12 +189,16 @@ export function ingredientNames(product: { ingredients: VerdictIngredient[] }): 
   return [...new Set(product.ingredients.map((item) => item.name))];
 }
 
+/** "1000 ml": the pack size, or null when it is not known. */
+export function packSize(product: { servingSize: number | null; servingUnit: string | null }): string | null {
+  return product.servingSize && product.servingUnit ? `${product.servingSize} ${product.servingUnit}` : null;
+}
+
 /** "Clover · 1000 ml": the brand and pack size, for ProductCard. */
 export function productDetail(product: {
   brand: string | null;
   servingSize: number | null;
   servingUnit: string | null;
 }): string {
-  const size = product.servingSize && product.servingUnit ? `${product.servingSize} ${product.servingUnit}` : null;
-  return [product.brand, size].filter(Boolean).join(' · ');
+  return [product.brand, packSize(product)].filter(Boolean).join(' · ');
 }

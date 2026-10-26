@@ -14,11 +14,15 @@
  *   1. Every rule that the ingredient list breaks is a Not safe reason.
  *   2. Every rule it could not check (no ingredient list, no nutrition facts,
  *      a rule type the engine does not know yet) is a Caution reason.
- *   3. A product nobody has verified can never be Safe. It is capped at
- *      Caution, but a broken rule still makes it Not safe. The exception is
- *      a complete Open Food Facts record (see isCompleteList): people typed
- *      it in from the real label, so it is decided like a verified one.
- *   4. Safe only when every rule was checked and none was broken.
+ *   3. A product nobody has verified can be Safe or Not safe, and its
+ *      reasons say our team has not checked the list. The one exception: if
+ *      the profile has a severe allergy, an unverified list is capped at
+ *      Caution, because a misread label there could send someone to hospital.
+ *   4. Open Food Facts records are decided by how complete they are (see
+ *      isCompleteList). A complete one was typed in from the real label, so
+ *      it is decided like a verified one. A thin one is always Caution,
+ *      whatever the profile, because the missing part may hold the allergen.
+ *   5. Safe only when every rule was checked and none was broken.
  *
  * When unsure, it says Caution. A false Caution is a nuisance; a false Safe
  * is a health incident.
@@ -305,13 +309,6 @@ export function isCompleteList(ingredients: { name: string }[]): boolean {
   return names.size >= MIN_COMPLETE_INGREDIENTS;
 }
 
-/** Why an untrusted record is Caution, in words for the reason line. */
-function untrustedReason(product: VerdictProduct): string {
-  if (product.readFromLabel) return 'We read this list from your photo, and our team has not checked it yet.';
-  if (product.fromOpenFoodFacts) return 'The ingredient list from Open Food Facts looks incomplete.';
-  return 'Our team has not checked this ingredient list yet.';
-}
-
 export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Verdict {
   const broken: VerdictReason[] = [];
   const unchecked: VerdictReason[] = [];
@@ -344,20 +341,38 @@ export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Ve
     unchecked.push({ icon: 'info', text: 'Your profile has no rules yet, so there was nothing to check.' });
   }
 
-  const trusted =
-    product.verified ||
-    (product.fromOpenFoodFacts === true && !product.readFromLabel && isCompleteList(product.ingredients));
-  if (!trusted) unchecked.push({ icon: 'info', text: untrustedReason(product) });
+  // An Open Food Facts list (never a photo read) is trusted when complete.
+  // A thin one cannot be Safe for anyone.
+  const fromOpenFoodFacts = product.fromOpenFoodFacts === true && !product.readFromLabel;
+  const trusted = product.verified || (fromOpenFoodFacts && isCompleteList(product.ingredients));
+  if (fromOpenFoodFacts && !trusted) {
+    unchecked.push({ icon: 'info', text: 'The ingredient list from Open Food Facts looks incomplete.' });
+  }
+
+  // A severe allergy is where a misread label does the most harm, so for
+  // that profile a list our team has not checked still cannot be Safe.
+  const hasSevereRule = rules.some((rule) => rule.severity === 'severe');
+  const capped = !trusted && hasSevereRule;
 
   let state: VerdictState;
   if (broken.length > 0) state = 'unsafe';
-  else if (unchecked.length > 0) state = 'caution';
+  else if (unchecked.length > 0 || capped) state = 'caution';
   else state = 'safe';
 
-  const reasons =
+  let reasons =
     state === 'safe'
       ? [{ icon: 'task_alt', text: 'None of your rules matched the ingredient list.' }]
       : [...broken, ...unchecked].slice(0, MAX_REASONS);
+
+  // Every verdict on an unverified list says so, last, and the reason limit
+  // never cuts it off. It is saved with the scan, so a reopened scan says it too.
+  if (!trusted) {
+    const notChecked = product.readFromLabel
+      ? 'We read this list from your photo, and our team has not checked it yet.'
+      : 'Our team has not checked this ingredient list yet.';
+    const text = capped && state === 'caution' ? `${notChecked} You marked an allergy as severe, so we cannot call it Safe.` : notChecked;
+    reasons = [...reasons.slice(0, MAX_REASONS - 1), { icon: 'info', text }];
+  }
 
   return { state, reasons, rulesChecked: rules.length, checks };
 }

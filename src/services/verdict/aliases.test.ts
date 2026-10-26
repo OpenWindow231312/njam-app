@@ -202,3 +202,29 @@ describe('the engine with aliases', () => {
     assert.equal(verdict.reasons[0].text, 'Contains brown sugar, which you avoid.');
   });
 });
+
+describe('a list our team has not checked', () => {
+  test('can be Safe, and says the team has not checked it', () => {
+    const verdict = decideVerdict(product(['rooibos tea'], false), [avoidCaffeine]);
+    assert.equal(verdict.state, 'safe');
+    assert.equal(verdict.reasons.at(-1)?.text, 'We read this list from your photo, and our team has not checked it yet.');
+  });
+
+  test('is still Not safe when it breaks a rule, with the same note', () => {
+    const verdict = decideVerdict(product(['black tea'], false), [avoidCaffeine]);
+    assert.equal(verdict.state, 'unsafe');
+    assert.equal(verdict.reasons.at(-1)?.text, 'We read this list from your photo, and our team has not checked it yet.');
+  });
+
+  test('is capped at Caution for someone with a severe allergy', () => {
+    const verdict = decideVerdict(product(['sugar', 'cocoa butter'], false), [allergy('peanut')]);
+    assert.equal(verdict.state, 'caution');
+    assert.match(verdict.reasons.at(-1)?.text ?? '', /so we cannot call it Safe/);
+  });
+
+  test('a verified list for the same severe allergy is Safe, with no note', () => {
+    const verdict = decideVerdict(product(['sugar', 'cocoa butter']), [allergy('peanut')]);
+    assert.equal(verdict.state, 'safe');
+    assert.equal(verdict.reasons.length, 1);
+  });
+});

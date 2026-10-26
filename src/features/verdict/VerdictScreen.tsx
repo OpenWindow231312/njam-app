@@ -36,7 +36,9 @@
  * decided at the time, for the person it was decided for.
  *
  * This screen only shows the verdict. The verdict engine decides it, and
- * the engine caps anything read from a label photo at Caution.
+ * the engine flags anything our team has not checked (capped at Caution for
+ * a severe allergy), and decides a complete Open Food Facts list like a
+ * checked one.
  */
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -119,7 +121,7 @@ type Subject = {
   size: string | null;
   barcode: string | null;
   imageUrl: string | null;
-  /** In label order. Empty for a past scan, which stores only its reasons. */
+  /** In label order. Empty for a past label read that was never added. */
   ingredients: string[];
   /** Where the ingredient list came from, when nobody has verified it. */
   note: string | null;
@@ -157,6 +159,8 @@ type Past = {
   state: VerdictState;
   reasons: VerdictReason[];
   profileName: string;
+  /** The product's nutrition table, when the scan links to a catalogue product. */
+  nutrition: Nutrition | null;
   /** "Scanned 14/10/2026, 09:12. Your rules may have changed since." */
   sourceNote: string;
 };
@@ -283,10 +287,16 @@ async function loadLabel(
   return live;
 }
 
-/** A past scan, as it was stored. */
+/**
+ * A past scan: its verdict and reasons as they were stored, with the
+ * ingredients and nutrition read again from the product it links to. A
+ * label read that was never added has no product, so it shows the verdict only.
+ */
 async function loadPastScan(scanId: string) {
   const scan = await fetchScan(scanId);
   if (!scan) throw new Error('Scan not found');
+  const product = scan.productId ? await fetchProductById(scan.productId).catch(() => null) : null;
+  const nutrition = product ? await fetchNutrition(product.id).catch(() => null) : null;
   const past: Past = {
     kind: 'past',
     subject: {
@@ -295,12 +305,13 @@ async function loadPastScan(scanId: string) {
       size: null,
       barcode: scan.barcode,
       imageUrl: scan.productImageUrl,
-      ingredients: [],
+      ingredients: product ? ingredientNames(product) : [],
       note: null,
     },
     state: scan.verdict,
     reasons: scan.reasons,
     profileName: scan.profileName ?? 'your profile',
+    nutrition,
     sourceNote: `Scanned ${new Date(scan.scannedAt).toLocaleString()}. Your rules may have changed since.`,
   };
   return past;
@@ -505,8 +516,10 @@ function Shown({ shown }: { shown: Live | Past }) {
         }
       />
     ) : null;
-  // A label read or a past scan has no nutrition table; the card says so.
-  const nutrition = <NutritionCard nutrition={extras?.nutrition ?? null} startOpen />;
+  // A label read, or a product with no nutrition table yet: the card says so.
+  const nutrition = (
+    <NutritionCard nutrition={shown.kind === 'past' ? shown.nutrition : (extras?.nutrition ?? null)} startOpen />
+  );
   const stores = extras ? <AvailableAt stores={extras.stores} edgeInset={space.s6} /> : null;
   const ingredients =
     subject.ingredients.length > 0 ? (
@@ -517,9 +530,10 @@ function Shown({ shown }: { shown: Live | Past }) {
         note={subject.note}
       />
     ) : (
-      // A past scan stores its verdict and reasons, not the list itself.
+      // A past label read that was never added (no barcode, or scanned before
+      // every scan added its product): no product to read the list from again.
       <Text style={[typography.body, { color: colors.inkMuted }]}>
-        This scan kept its verdict and reasons, not the ingredient list.
+        This product was not added to Njam, so we kept its verdict and reasons but not the ingredient list.
       </Text>
     );
   // Everyone in the household, for a live result. Left out when you are the

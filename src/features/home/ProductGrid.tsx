@@ -14,7 +14,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Button, ProductGridCard } from '@/components/design-system';
 import type { Checked } from '@/features/home/use-catalogue';
-import { productDetail } from '@/features/verdict/catalogue';
+import { packSize } from '@/features/verdict/catalogue';
 import { space } from '@/theme/tokens';
 
 type ProductGridProps = {
@@ -47,7 +47,8 @@ export function ProductGrid({ items, saved, onToggleSave }: ProductGridProps) {
             <ProductGridCard
               key={product.id}
               name={product.name}
-              detail={productDetail(product)}
+              brand={product.brand}
+              size={packSize(product)}
               verdict={verdict}
               imageUrl={product.imageUrl}
               saved={saved.has(product.id)}
@@ -74,9 +75,10 @@ const styles = StyleSheet.create({
   grid: {
     gap: space.s4,
   },
+  // The same gap as between cards on a shelf, so each card is a little wider.
   row: {
     flexDirection: 'row',
-    gap: space.s4,
+    gap: space.s3,
   },
   spacer: {
     flex: 1,

@@ -5,6 +5,7 @@
  * Top to bottom:
  *   - "Hi Anika, check your food", with Ask Njam on the right.
  *   - whose rules the verdicts are for: "Checking for Anika", "4 rules".
+ *     Tapping it opens a tick list of everyone in the household.
  *   - the search bar, and a scan button beside it.
  *   - "Shop by aisle": round aisle bubbles. Each opens that aisle's page.
  *   - a tip card that sends you to the scanner.
@@ -38,11 +39,12 @@ import {
 } from '@/components/design-system';
 import { AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { HomeScope } from '@/features/home/HomeScope';
+import { HomeScope, scopeName } from '@/features/home/HomeScope';
 import { ProductGrid } from '@/features/home/ProductGrid';
 import { ProductShelf } from '@/features/home/ProductShelf';
 import { ScanTipCard } from '@/features/home/ScanTipCard';
 import { applyFilters, useCatalogue, type Checked } from '@/features/home/use-catalogue';
+import { packSize } from '@/features/verdict/catalogue';
 import { fetchRecentScans, type ScanRecord } from '@/features/verdict/scans';
 import { icon, layout, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
@@ -63,7 +65,10 @@ function openProduct(productId: string) {
 export function HomeScreen() {
   const { colors } = useNjamTheme();
   const { member } = useAuth();
-  const catalogue = useCatalogue();
+  // Whose rules Home checks against. Empty means the default profile, which
+  // is what useCatalogue falls back to until someone is ticked.
+  const [checkingFor, setCheckingFor] = useState<string[]>([]);
+  const catalogue = useCatalogue(checkingFor);
   const { loaded, saved } = catalogue;
 
   const [query, setQuery] = useState('');
@@ -79,6 +84,9 @@ export function HomeScreen() {
     }, []),
   );
 
+  const selectedIds = loaded && checkingFor.length === 0 ? [loaded.profile.id] : checkingFor;
+  const forWhom = loaded ? scopeName(loaded.profiles, selectedIds) : '';
+
   const searching = query.trim().length > 0;
   const results = applyFilters(catalogue.checked, saved, { query, verdictFilter: 'all', storeId: null, aisle: 'all' });
   const safe = catalogue.checked.filter((item) => item.verdict === 'safe').slice(0, SHELF_SIZE);
@@ -89,8 +97,10 @@ export function HomeScreen() {
     <ProductTile
       key={product.id}
       name={product.name}
+      brand={product.brand}
+      size={packSize(product)}
       verdict={verdict}
-      imageUrl={product.imageUrl ?? undefined}
+      imageUrl={product.imageUrl}
       saved={saved.has(product.id)}
       onPress={() => openProduct(product.id)}
       onToggleSave={() => catalogue.toggleSave(product.id)}
@@ -99,14 +109,19 @@ export function HomeScreen() {
 
   return (
     <Screen withTabBar>
-      <AskNjamHeader>
-        <View style={styles.heading}>
-          <Text style={[typography.title, { color: colors.brandForestMid }]}>{greeting(member?.displayName)}</Text>
-          <SectionHeader headline="Check your food" />
-        </View>
-      </AskNjamHeader>
+      {/* One View with no gap of its own: the SectionHeader already leaves
+          space.s7 under itself, and Screen's gap on top of that pushed the
+          scope pill too far from the headline. */}
+      <View>
+        <AskNjamHeader>
+          <View style={styles.heading}>
+            <Text style={[typography.title, { color: colors.brandForestMid }]}>{greeting(member?.displayName)}</Text>
+            <SectionHeader headline="Check your food" />
+          </View>
+        </AskNjamHeader>
 
-      {loaded && <HomeScope name={loaded.profile.name} ruleCount={loaded.profile.rules.length} />}
+        {loaded && <HomeScope profiles={loaded.profiles} selectedIds={selectedIds} onChange={setCheckingFor} />}
+      </View>
 
       <View style={styles.searchRow}>
         <View style={styles.flex}>
@@ -141,7 +156,7 @@ export function HomeScreen() {
       {loaded && searching && (
         <>
           <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
-            {`${results.length} ${results.length === 1 ? 'product' : 'products'}, checked against ${loaded.profile.name}'s rules`}
+            {`${results.length} ${results.length === 1 ? 'product' : 'products'}, checked for ${forWhom}`}
           </Text>
           {results.length === 0 && (
             <EmptyState
@@ -197,7 +212,7 @@ export function HomeScreen() {
 
           {safe.length > 0 && (
             <ProductShelf
-              title={`Safe for ${loaded.profile.name}`}
+              title={`Safe for ${forWhom}`}
               onSeeAll={() => router.push({ pathname: '/aisle', params: { aisle: 'all', verdict: 'safe' } })}>
               {safe.map(tile)}
             </ProductShelf>
@@ -217,8 +232,9 @@ export function HomeScreen() {
                 <ProductTile
                   key={scan.id}
                   name={scan.productName ?? 'Product from a label photo'}
+                  brand={scan.productBrand}
                   verdict={scan.verdict}
-                  imageUrl={scan.productImageUrl ?? undefined}
+                  imageUrl={scan.productImageUrl}
                   onPress={() => router.push({ pathname: '/verdict', params: { scanId: scan.id } })}
                 />
               ))}

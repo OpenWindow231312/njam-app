@@ -2,14 +2,17 @@
  * Reads and writes the scans table: the record of each verdict.
  *
  * A scan stores the verdict and its reason lines exactly as they were shown,
- * so reopening it from History shows the same answer even if the rules or
- * the product have changed since.
+ * so reopening it from History shows the same answer even if the rules have
+ * changed since. The ingredients and nutrition are not copied here: they are
+ * read from the product the scan links to.
  */
 import { supabase } from '@/lib/supabase';
 import type { VerdictReason, VerdictState } from '@/services/verdict';
 
 export type ScanRecord = {
   id: string;
+  /** null when the product was never added to the catalogue. */
+  productId: string | null;
   barcode: string;
   verdict: VerdictState;
   reasons: VerdictReason[];
@@ -22,6 +25,7 @@ export type ScanRecord = {
 
 type ScanRow = {
   id: string;
+  product_id: string | null;
   barcode: string;
   verdict: VerdictState;
   reasons: VerdictReason[];
@@ -30,11 +34,12 @@ type ScanRow = {
   diet_profiles: { name: string } | null;
 };
 
-const SCAN_COLUMNS = 'id, barcode, verdict, reasons, scanned_at, products ( name, brand, image_url ), diet_profiles ( name )';
+const SCAN_COLUMNS = 'id, product_id, barcode, verdict, reasons, scanned_at, products ( name, brand, image_url ), diet_profiles ( name )';
 
 function toRecord(row: ScanRow): ScanRecord {
   return {
     id: row.id,
+    productId: row.product_id,
     barcode: row.barcode,
     verdict: row.verdict,
     reasons: row.reasons,
