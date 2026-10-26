@@ -102,8 +102,8 @@ without reading every label.
   shape, a word and a reason: "Not safe. Contains milk solids, which you
   marked severe."
 - **Read a label with AI.** If Njam does not know a product, photograph the
-  ingredient list. Google Gemini reads it, and the result is capped at
-  Caution until a person verifies it.
+  ingredient list. Google Gemini reads it, and the verdict says the list
+  has not been checked by our team yet.
 - **Ask Njam.** An AI assistant that knows your rules and recent scans:
   ask why something is not safe, for a safer swap, or for a recipe.
 - **Find alternatives.** Safer products in the same category.
@@ -158,10 +158,11 @@ flowchart LR
     V --> R["Safe, Caution or Not safe<br/>with reasons"]
 ```
 
-Only products in the Njam catalogue that a person has verified can be
-**Safe**. Anything from Open Food Facts or a label photo is unverified, so
-the best it can get is **Caution**. When in doubt, the engine moves toward
-Caution, never toward Safe.
+Anything from Open Food Facts or a label photo is unverified. It can still
+be **Safe** or **Not safe**, and its verdict says our team has not checked
+the list. If your profile has a severe allergy, an unverified list is capped
+at **Caution**, because a misread label is most dangerous there. When in
+doubt, the engine moves toward Caution, never toward Safe.
 
 ## The AI
 
@@ -182,8 +183,8 @@ inside Supabase Edge Functions so the API key never reaches the phone.
 - Every answer is validated before the app sees it. Unknown allergens are
   dropped and E-numbers are normalised. If nothing is usable, the label
   counts as unreadable.
-- Every AI-read record is unverified and capped at Caution. On a conflict,
-  the rules engine wins.
+- Every AI-read record is unverified and its verdict says so. For a severe
+  allergy it is capped at Caution. On a conflict, the rules engine wins.
 
 Both prompts, the validation rules, and the loading and error states are
 documented in [`docs/AI-PROMPTS.md`](docs/AI-PROMPTS.md).
