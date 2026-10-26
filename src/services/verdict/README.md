@@ -12,6 +12,10 @@ The rules:
   `safe` | `caution` | `unsafe` with the reason lines that produced it.
 - **On conflict, the rules engine wins.** Always.
 - **An unverified record can never be Safe.** It is capped at Caution.
+  One exception: a complete Open Food Facts record (at least three real
+  ingredients, `isCompleteList`) is decided like a verified one, because people
+  typed it in from the real label. A thin one stays capped. An AI read from a
+  photo is always capped.
 - **Degrade toward Caution, never toward Safe.** A false Caution is a nuisance; a
   false Safe is a health incident. Zero false Safe verdicts is the project target.
 - **Follow the alias chain** (`ingredients.canonical_id`) before checking a rule,

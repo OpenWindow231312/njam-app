@@ -15,7 +15,9 @@
  *   2. Every rule it could not check (no ingredient list, no nutrition facts,
  *      a rule type the engine does not know yet) is a Caution reason.
  *   3. A product nobody has verified can never be Safe. It is capped at
- *      Caution, but a broken rule still makes it Not safe.
+ *      Caution, but a broken rule still makes it Not safe. The exception is
+ *      a complete Open Food Facts record (see isCompleteList): people typed
+ *      it in from the real label, so it is decided like a verified one.
  *   4. Safe only when every rule was checked and none was broken.
  *
  * When unsure, it says Caution. A false Caution is a nuisance; a false Safe
@@ -43,6 +45,11 @@ export type VerdictProduct = {
   verified: boolean;
   /** True when this came straight from a label photo or typed label text. */
   readFromLabel: boolean;
+  /**
+   * True when the ingredient list came from Open Food Facts. A complete one
+   * is trusted like a verified record; a thin one stays capped at Caution.
+   */
+  fromOpenFoodFacts?: boolean;
   ingredients: VerdictIngredient[];
   /** Allergen slugs from a "may contain" line. */
   mayContain: string[];
@@ -281,6 +288,30 @@ function checkRule(rule: ProfileRule, product: VerdictProduct): RuleOutcome {
   };
 }
 
+/** Fewer real ingredients than this, and an Open Food Facts list looks cut short. */
+export const MIN_COMPLETE_INGREDIENTS = 3;
+
+/**
+ * Does this ingredient list look like a whole label? Counts each ingredient
+ * once, and leaves out the "milk (declared allergen)" lines added from the
+ * allergen tags, because those are not on the label's list. "Nuttikrust"
+ * with one ingredient is not a whole label; a rusk has at least flour, fat
+ * and sugar.
+ */
+export function isCompleteList(ingredients: { name: string }[]): boolean {
+  const names = new Set(
+    ingredients.map((item) => item.name).filter((name) => !name.endsWith('(declared allergen)')),
+  );
+  return names.size >= MIN_COMPLETE_INGREDIENTS;
+}
+
+/** Why an untrusted record is Caution, in words for the reason line. */
+function untrustedReason(product: VerdictProduct): string {
+  if (product.readFromLabel) return 'We read this list from your photo, and our team has not checked it yet.';
+  if (product.fromOpenFoodFacts) return 'The ingredient list from Open Food Facts looks incomplete.';
+  return 'Our team has not checked this ingredient list yet.';
+}
+
 export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Verdict {
   const broken: VerdictReason[] = [];
   const unchecked: VerdictReason[] = [];
@@ -313,14 +344,10 @@ export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Ve
     unchecked.push({ icon: 'info', text: 'Your profile has no rules yet, so there was nothing to check.' });
   }
 
-  if (!product.verified) {
-    unchecked.push({
-      icon: 'info',
-      text: product.readFromLabel
-        ? 'We read this list from your photo, and our team has not checked it yet.'
-        : 'Our team has not checked this ingredient list yet.',
-    });
-  }
+  const trusted =
+    product.verified ||
+    (product.fromOpenFoodFacts === true && !product.readFromLabel && isCompleteList(product.ingredients));
+  if (!trusted) unchecked.push({ icon: 'info', text: untrustedReason(product) });
 
   let state: VerdictState;
   if (broken.length > 0) state = 'unsafe';
