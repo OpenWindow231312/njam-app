@@ -8,7 +8,9 @@
  * default profile, the same profile a scan is recorded against.
  *
  * It reloads whenever its screen comes back into focus, so a product saved
- * on one screen shows as saved on the others.
+ * on one screen shows as saved on the others. The products themselves are
+ * the heavy part (a few megabytes), so they are kept in memory and fetched
+ * again only after CATALOGUE_MAX_AGE_MS.
  */
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -44,9 +46,31 @@ export type Filters = {
   aisle: Aisle;
 };
 
+/** How long the products are kept before they are fetched again. */
+const CATALOGUE_MAX_AGE_MS = 10 * 60 * 1000;
+
+/**
+ * The products, shared by Home, Search and every aisle page. The promise is
+ * kept rather than the list, so two screens opening at once share one fetch.
+ */
+let cachedProducts: { products: Promise<CatalogueProduct[]>; fetchedAt: number } | null = null;
+
+function catalogueProducts(): Promise<CatalogueProduct[]> {
+  if (cachedProducts && Date.now() - cachedProducts.fetchedAt < CATALOGUE_MAX_AGE_MS) {
+    return cachedProducts.products;
+  }
+  const products = fetchCatalogue();
+  cachedProducts = { products, fetchedAt: Date.now() };
+  // A failed fetch is not kept, so the next focus tries again.
+  products.catch(() => {
+    cachedProducts = null;
+  });
+  return products;
+}
+
 async function loadCatalogue(householdId: string): Promise<{ loaded: Loaded; saved: Set<string> }> {
   const [products, profile, categories, stores, saved] = await Promise.all([
-    fetchCatalogue(),
+    catalogueProducts(),
     fetchActiveProfile(householdId),
     fetchCategories(),
     fetchStores(),
