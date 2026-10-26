@@ -25,16 +25,34 @@ const BUSY_TRIES = 3;
 
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Reads a line without showing what is typed, for the password. */
-async function askHidden(question) {
-  const rl = createInterface({ input: stdin, output: stdout, terminal: true });
-  rl._writeToOutput = (text) => {
-    if (text.includes(question)) stdout.write(text);
-  };
-  const answer = await rl.question(question);
-  rl.close();
-  stdout.write('\n');
-  return answer;
+/**
+ * Reads a line without showing what is typed, for the password. Raw mode
+ * turns the terminal's own echo off, so each key arrives here unseen.
+ */
+function askHidden(question) {
+  stdout.write(question);
+  stdin.setRawMode(true);
+  stdin.setEncoding('utf8');
+  stdin.resume();
+  return new Promise((resolve) => {
+    let typed = '';
+    const onKey = (keys) => {
+      for (const key of keys) {
+        if (key === '\r' || key === '\n') {
+          stdin.off('data', onKey);
+          stdin.setRawMode(false);
+          stdin.pause();
+          stdout.write('\n');
+          resolve(typed);
+          return;
+        }
+        if (key === '\u0003') process.exit(130); // Ctrl-C
+        if (key === '\u007f') typed = typed.slice(0, -1); // Backspace
+        else typed += key;
+      }
+    };
+    stdin.on('data', onKey);
+  });
 }
 
 async function signIn() {
