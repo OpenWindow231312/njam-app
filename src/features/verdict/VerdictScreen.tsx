@@ -37,7 +37,7 @@
  * decided at the time, for the person it was decided for.
  *
  * This screen only shows the verdict. The verdict engine decides it, and
- * the engine caps anything read from a label at Caution.
+ * the engine caps anything read from a label photo at Caution.
  */
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -89,14 +89,18 @@ type Params = {
   scanId?: string;
 };
 
-/** How each label source is named on screen. Neither is ever verified. */
+/**
+ * How each label source is named on screen. Neither is verified, but a
+ * complete Open Food Facts list is decided like a verified one (see
+ * isCompleteList in the verdict engine), so its note only says where it is from.
+ */
 const SOURCE_WORDS: Record<LabelSource, { note: string; fallbackName: string }> = {
   photo: {
     note: 'Read from your photo. Not yet checked by our team.',
     fallbackName: 'Product from a label photo',
   },
   'open-food-facts': {
-    note: 'Found in Open Food Facts, a public database anyone can edit. Not yet checked by our team.',
+    note: 'From Open Food Facts, a public database of real labels that anyone can edit.',
     fallbackName: 'Product from Open Food Facts',
   },
 };
@@ -206,6 +210,7 @@ async function loadProduct(productId: string, barcode: string | undefined, membe
   const checked: VerdictProduct = {
     verified: product.verified,
     readFromLabel: false,
+    fromOpenFoodFacts: product.source === 'open_food_facts',
     ingredients: product.ingredients,
     mayContain: product.mayContain,
   };
@@ -258,6 +263,7 @@ async function loadLabel(
   const checked: VerdictProduct = {
     verified: false,
     readFromLabel: source === 'photo',
+    fromOpenFoodFacts: source === 'open-food-facts',
     ingredients: read.ingredients.map((item) => ({ ...item, canonicalName: null })),
     mayContain: read.mayContain,
   };

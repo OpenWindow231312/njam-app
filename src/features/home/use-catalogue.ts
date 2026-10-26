@@ -114,6 +114,7 @@ export function useCatalogue() {
         {
           verified: product.verified,
           readFromLabel: false,
+          fromOpenFoodFacts: product.source === 'open_food_facts',
           ingredients: product.ingredients,
           mayContain: product.mayContain,
         },
