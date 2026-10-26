@@ -5,6 +5,7 @@
  * Top to bottom:
  *   - "Hi Anika, check your food", with Ask Njam on the right.
  *   - whose rules the verdicts are for: "Checking for Anika", "4 rules".
+ *     Tapping it opens a tick list of everyone in the household.
  *   - the search bar, and a scan button beside it.
  *   - "Shop by aisle": round aisle bubbles. Each opens that aisle's page.
  *   - a tip card that sends you to the scanner.
@@ -38,7 +39,7 @@ import {
 } from '@/components/design-system';
 import { AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { HomeScope } from '@/features/home/HomeScope';
+import { HomeScope, scopeName } from '@/features/home/HomeScope';
 import { ProductGrid } from '@/features/home/ProductGrid';
 import { ProductShelf } from '@/features/home/ProductShelf';
 import { ScanTipCard } from '@/features/home/ScanTipCard';
@@ -63,7 +64,10 @@ function openProduct(productId: string) {
 export function HomeScreen() {
   const { colors } = useNjamTheme();
   const { member } = useAuth();
-  const catalogue = useCatalogue();
+  // Whose rules Home checks against. Empty means the default profile, which
+  // is what useCatalogue falls back to until someone is ticked.
+  const [checkingFor, setCheckingFor] = useState<string[]>([]);
+  const catalogue = useCatalogue(checkingFor);
   const { loaded, saved } = catalogue;
 
   const [query, setQuery] = useState('');
@@ -78,6 +82,9 @@ export function HomeScreen() {
         .catch(() => setRecent([]));
     }, []),
   );
+
+  const selectedIds = loaded && checkingFor.length === 0 ? [loaded.profile.id] : checkingFor;
+  const forWhom = loaded ? scopeName(loaded.profiles, selectedIds) : '';
 
   const searching = query.trim().length > 0;
   const results = applyFilters(catalogue.checked, saved, { query, verdictFilter: 'all', storeId: null, aisle: 'all' });
@@ -106,7 +113,7 @@ export function HomeScreen() {
         </View>
       </AskNjamHeader>
 
-      {loaded && <HomeScope name={loaded.profile.name} ruleCount={loaded.profile.rules.length} />}
+      {loaded && <HomeScope profiles={loaded.profiles} selectedIds={selectedIds} onChange={setCheckingFor} />}
 
       <View style={styles.searchRow}>
         <View style={styles.flex}>
@@ -141,7 +148,7 @@ export function HomeScreen() {
       {loaded && searching && (
         <>
           <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
-            {`${results.length} ${results.length === 1 ? 'product' : 'products'}, checked against ${loaded.profile.name}'s rules`}
+            {`${results.length} ${results.length === 1 ? 'product' : 'products'}, checked for ${forWhom}`}
           </Text>
           {results.length === 0 && (
             <EmptyState
@@ -197,7 +204,7 @@ export function HomeScreen() {
 
           {safe.length > 0 && (
             <ProductShelf
-              title={`Safe for ${loaded.profile.name}`}
+              title={`Safe for ${forWhom}`}
               onSeeAll={() => router.push({ pathname: '/aisle', params: { aisle: 'all', verdict: 'safe' } })}>
               {safe.map(tile)}
             </ProductShelf>
