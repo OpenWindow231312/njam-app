@@ -41,7 +41,7 @@ export function AisleScreen() {
   const [storeId, setStoreId] = useState<string | null>(params.store ?? null);
   const [filtering, setFiltering] = useState(false);
 
-  const shown = applyFilters(catalogue.checked, saved, { query: '', verdictFilter, storeId, aisle });
+  const shown = applyFilters(catalogue.checked, saved, { query: '', verdictFilter, storeId, aisle, browsing: true });
   const storeName = loaded?.stores.find((store) => store.id === storeId)?.name;
   // "all" is opened by Home's All bubble and its "Safe for you" shelf.
   const aisleName =

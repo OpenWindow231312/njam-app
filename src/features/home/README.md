@@ -25,6 +25,12 @@ swaps the shelves for the matching products in the two-column grid.
   product's verdict is decided once per set of rules and shared. A copy of
   the products is kept on the phone (`saved-catalogue.ts`, in parts of 100
   for Android's size limit) and shown while the fresh list downloads.
+  Cards load the 200 px Open Food Facts photo (`cardPhotoUrl`), and the
+  first 12 photos of every aisle are downloaded before it is opened.
+- Browsing (Home's shelves and every aisle page, but not your Saved list)
+  shows only products with a photo, a brand and a real name
+  (`readyToBrowse`), because a few Open Food Facts records carry their
+  barcode as the name. Search still finds every product.
 - Each card's verdict comes from the verdict engine with the household's
   default profile, the one a scan is recorded against. `HomeScope` names it.
   The card shows the verdict as its mark; tapping opens the full verdict.

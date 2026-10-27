@@ -62,6 +62,11 @@ export type Filters = {
   /** null means any store. */
   storeId: string | null;
   aisle: Aisle;
+  /**
+   * Browsing an aisle rather than searching: leaves out products that are not
+   * readyToBrowse. Your Saved list keeps every product, since you chose them.
+   */
+  browsing?: boolean;
 };
 
 /** How long the products are kept before they are fetched again. */
@@ -130,8 +135,9 @@ function fetchPhotosAhead(products: CatalogueProduct[]) {
   const takenPerAisle = new Map<string, number>();
   const urls: string[] = [];
   for (const product of products) {
+    // Only what an aisle page shows: readyToBrowse already needs a photo.
     const url = cardPhotoUrl(product.imageUrl);
-    if (!url) continue;
+    if (!url || !readyToBrowse(product)) continue;
     // The aisle's own count and All's count: a photo is wanted for either.
     const aisle = product.categoryId ?? 'none';
     const forAisle = (takenPerAisle.get(aisle) ?? 0) < PHOTOS_AHEAD_PER_AISLE;
@@ -217,10 +223,22 @@ function matchesVerdict(verdict: VerdictState, filter: VerdictFilter): boolean {
   return true;
 }
 
+/**
+ * Does this product look right when browsing (Home's shelves and the aisle
+ * pages)? It needs a photo, a brand and a real name: a few Open Food Facts
+ * records carry their barcode as the name. Search still finds the rest.
+ */
+export function readyToBrowse(product: CatalogueProduct): boolean {
+  const name = product.name.trim();
+  return Boolean(product.imageUrl) && Boolean(product.brand?.trim()) && name.length > 0 && !/^[\d\s]+$/.test(name);
+}
+
 /** The products that pass every filter, in catalogue order (A to Z). */
 export function applyFilters(checked: Checked[], saved: Set<string>, filters: Filters): Checked[] {
+  const skipIncomplete = filters.browsing === true && filters.aisle !== 'saved';
   return checked.filter(
     ({ product, verdict }) =>
+      (!skipIncomplete || readyToBrowse(product)) &&
       matchesSearch(product, filters.query) &&
       matchesVerdict(verdict, filters.verdictFilter) &&
       (filters.storeId === null || product.storeIds.includes(filters.storeId)) &&

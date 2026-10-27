@@ -47,8 +47,9 @@ export function SearchScreen() {
   const [filtering, setFiltering] = useState(false);
 
   const searching = query.trim().length > 0;
-  /** The products in one aisle that pass the filters, before any search. */
-  const inAisle = (aisle: Aisle) => applyFilters(catalogue.checked, saved, { query: '', verdictFilter, storeId, aisle });
+  /** The products in one aisle that pass the filters, as its page shows them. */
+  const inAisle = (aisle: Aisle) =>
+    applyFilters(catalogue.checked, saved, { query: '', verdictFilter, storeId, aisle, browsing: true });
   // The box shows each letter at once; the grid follows a moment later, so
   // filtering a thousand products never holds up the typing.
   const searchedFor = useDeferredValue(query);
