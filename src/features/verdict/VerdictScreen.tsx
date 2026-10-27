@@ -42,7 +42,15 @@
  */
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Screen } from '@/components/Screen';
@@ -55,6 +63,8 @@ import {
   LoadingMark,
   SegmentedControl,
   Snackbar,
+  TopBar,
+  useTopBarHeight,
   type VerdictReason,
 } from '@/components/design-system';
 import { AskNjamButton } from '@/features/ask-njam/AskNjamHeader';
@@ -373,8 +383,7 @@ export function VerdictScreen() {
     status.kind === 'shown' ? (
       <Shown shown={status.shown} />
     ) : (
-      <Screen scroll={false}>
-        <TopBar />
+      <Screen scroll={false} topBar={{ onBack: () => router.back() }}>
         <ScrollView contentContainerStyle={styles.content}>
           {status.kind === 'loading' && <Loading />}
 
@@ -404,15 +413,6 @@ export function VerdictScreen() {
   );
 }
 
-/** The back button, while the verdict is loading or could not be shown. */
-function TopBar() {
-  return (
-    <View style={styles.back}>
-      <IconButton icon="arrow_back" accessibilityLabel="Go back" onPress={() => router.back()} />
-    </View>
-  );
-}
-
 function Loading() {
   const { colors } = useNjamTheme();
   return (
@@ -438,6 +438,14 @@ function Shown({ shown }: { shown: Live | Past }) {
   const extras = shown.kind === 'live' ? shown.extras : null;
   const [saved, setSaved] = useState(extras?.saved ?? false);
   const [saveFailed, setSaveFailed] = useState(false);
+  const topBarHeight = useTopBarHeight();
+  // The drawer first rises DRAWER_TRAVEL to meet the top of its window, then
+  // the product name scrolls under that edge. A bar's height further on, the
+  // name has gone, so the TopBar shows it small, with its line.
+  const [headingGone, setHeadingGone] = useState(false);
+  function onDrawerScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    setHeadingGone(event.nativeEvent.contentOffset.y > DRAWER_TRAVEL + layout.appBarHeight);
+  }
 
   /** Saves or unsaves at once on screen, and puts it back if the database says no. */
   function toggleSave(productId: string) {
@@ -550,29 +558,34 @@ function Shown({ shown }: { shown: Live | Past }) {
 
   return (
     <View style={[styles.page, { backgroundColor: colors.surface }]}>
-      <View style={[styles.column, styles.resultTopBar, { paddingTop: insets.top + space.s3 }]}>
-        <IconButton icon="arrow_back" variant="raised" accessibilityLabel="Go back" onPress={() => router.back()} />
-        <View style={styles.topRight}>
-          {picker && (
-            <DropdownChip
-              label={`For ${picker.name}`}
-              accessibilityLabel={`Viewing for ${picker.name}. Change who this is checked for.`}
-              onPress={() => setPicking(true)}
-            />
-          )}
-          <AskNjamButton />
-        </View>
-      </View>
+      <TopBar
+        onBack={() => router.back()}
+        title={subject.name}
+        showTitle={headingGone}
+        showLine={headingGone}
+        trailing={
+          <>
+            {picker && (
+              <DropdownChip
+                label={`For ${picker.name}`}
+                accessibilityLabel={`Viewing for ${picker.name}. Change who this is checked for.`}
+                onPress={() => setPicking(true)}
+              />
+            )}
+            <AskNjamButton />
+          </>
+        }
+      />
 
       {/* Everything from the verdict tab down. */}
-      <View style={styles.stage}>
+      <View style={[styles.stage, { marginTop: topBarHeight + space.s6 }]}>
         <VerdictTab state={state} label={`${STATE_WORDS[state]} for ${profileName}`} summary={summary} />
         {/* Paper behind the lower half, so pulling past the end of the drawer shows paper, not the tab. */}
         <View style={[styles.paperUnder, { backgroundColor: colors.brandPaper }]} />
 
         {/* The window the drawer scrolls in. Its top edge is where the drawer stops. */}
         <View style={styles.window}>
-          <ScrollView contentContainerStyle={styles.windowContent}>
+          <ScrollView contentContainerStyle={styles.windowContent} onScroll={onDrawerScroll} scrollEventThrottle={16}>
             <View
               style={[
                 styles.drawer,
@@ -682,12 +695,6 @@ function ProductPhoto({
 }
 
 const styles = StyleSheet.create({
-  // Pull the back button out by the gap between its 48 hit area and its
-  // 24 icon, so the icon lines up with the screen gutter.
-  back: {
-    alignSelf: 'flex-start',
-    marginLeft: -(layout.touchTargetMin - icon.sizeMd) / 2,
-  },
   content: {
     gap: space.s6,
     paddingBottom: space.s6,
@@ -706,21 +713,9 @@ const styles = StyleSheet.create({
     maxWidth: layout.contentMaxWidth,
     alignSelf: 'center',
   },
-  // The raised back button sits on the gutter as a white circle, so it is not pulled out.
-  resultTopBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: layout.screenGutter,
-  },
-  topRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.s2,
-  },
+  // Its marginTop leaves room for the TopBar, which floats over the page.
   stage: {
     flex: 1,
-    marginTop: space.s6,
   },
   paperUnder: {
     position: 'absolute',
