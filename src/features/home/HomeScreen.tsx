@@ -14,6 +14,9 @@
  *       Saved by your household - left out until something is saved.
  *       Recently scanned        - left out until there is a scan.
  *
+ * The two product shelves only show products with a photo, a brand and a
+ * real name (see readyForShelf). Search and the aisle pages show them all.
+ *
  * Typing in the search swaps everything under it for the matching products,
  * two to a row, so searching still works without leaving Home. Clearing the
  * search brings the shelves back.
@@ -48,7 +51,7 @@ import { ProductGrid } from '@/features/home/ProductGrid';
 import { ProductShelf } from '@/features/home/ProductShelf';
 import { ScanTipCard } from '@/features/home/ScanTipCard';
 import { applyFilters, useCatalogue, type Checked } from '@/features/home/use-catalogue';
-import { cardPhotoUrl, packSize } from '@/features/verdict/catalogue';
+import { cardPhotoUrl, packSize, type CatalogueProduct } from '@/features/verdict/catalogue';
 import { fetchRecentScans, type ScanRecord } from '@/features/verdict/scans';
 import { icon, layout, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
@@ -60,6 +63,16 @@ const SHELF_SIZE = 8;
 function greeting(displayName: string | undefined): string {
   const firstName = displayName?.trim().split(/\s+/)[0];
   return firstName ? `Hi ${firstName}` : 'Hi there';
+}
+
+/**
+ * Does this product look right on a Home shelf? It needs a photo, a brand
+ * and a real name: a few Open Food Facts records carry their barcode as the
+ * name. The rest still show in Search and on the aisle pages.
+ */
+function readyForShelf(product: CatalogueProduct): boolean {
+  const name = product.name.trim();
+  return Boolean(product.imageUrl) && Boolean(product.brand?.trim()) && name.length > 0 && !/^[\d\s]+$/.test(name);
 }
 
 function openProduct(productId: string) {
@@ -95,9 +108,15 @@ export function HomeScreen() {
   // filtering a thousand products never holds up the typing.
   const searchedFor = useDeferredValue(query);
   const searching = query.trim().length > 0;
-  const results = applyFilters(catalogue.checked, saved, { query: searchedFor, verdictFilter: 'all', storeId: null, aisle: 'all' });
-  const safe = catalogue.checked.filter((item) => item.verdict === 'safe').slice(0, SHELF_SIZE);
-  const savedItems = catalogue.checked.filter((item) => saved.has(item.product.id)).slice(0, SHELF_SIZE);
+  const results = applyFilters(catalogue.checked, saved, {
+    query: searchedFor,
+    verdictFilter: 'all',
+    storeId: null,
+    aisle: 'all',
+  });
+  const onShelf = catalogue.checked.filter((item) => readyForShelf(item.product));
+  const safe = onShelf.filter((item) => item.verdict === 'safe').slice(0, SHELF_SIZE);
+  const savedItems = onShelf.filter((item) => saved.has(item.product.id)).slice(0, SHELF_SIZE);
 
   /** One catalogue product as a tile, with its verdict and bookmark. */
   const tile = ({ product, verdict }: Checked) => (
