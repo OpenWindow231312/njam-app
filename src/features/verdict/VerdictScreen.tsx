@@ -208,6 +208,8 @@ async function loadProduct(productId: string, barcode: string | undefined, membe
     fromOpenFoodFacts: product.source === 'open_food_facts',
     ingredients: product.ingredients,
     mayContain: product.mayContain,
+    // No nutrition table (or it failed to load) leaves nutrient limits at Caution.
+    nutrition: extras?.nutrition?.facts ?? null,
   };
   const verdict = decideVerdict(checked, profiles[0].rules);
 
@@ -255,6 +257,7 @@ async function loadLabel(
   const checked: VerdictProduct = {
     verified: false,
     readFromLabel: true,
+    readConfidence: read.confidence,
     ingredients: read.ingredients.map((item) => ({ ...item, canonicalName: null })),
     mayContain: read.mayContain,
   };

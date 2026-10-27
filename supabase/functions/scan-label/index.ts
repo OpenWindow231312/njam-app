@@ -20,7 +20,11 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
 import { ALLERGEN_SLUGS, validateFrontRead, validateLabelRead } from './validate.ts';
 
-const MODEL = 'gemini-flash-lite-latest';
+// A named version, not the "-latest" alias: an alias can move to a new model
+// without warning, which would change how labels are read overnight, and the
+// verdicts with them. Upgrading is a decision, made here. Same model as Ask
+// Njam's ghost text.
+const MODEL = 'gemini-3.5-flash-lite';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
 /** Gemini must answer inside this, or the person waits too long at the shelf. */

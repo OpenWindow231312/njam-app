@@ -178,7 +178,7 @@ the engine moves toward Caution, never toward Safe.
 
 **The AI interprets. The rules engine decides.**
 
-Njam uses Google Gemini (`gemini-flash-lite-latest`) in two places, both
+Njam uses Google Gemini (named versions: `gemini-3.5-flash-lite` and `gemini-3.8-flash`) in two places, both
 inside Supabase Edge Functions so the API key never reaches the phone.
 
 | Where | What Gemini does | What it never does |

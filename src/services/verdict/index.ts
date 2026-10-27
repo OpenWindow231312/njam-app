@@ -50,6 +50,11 @@ export type VerdictProduct = {
   /** True when this came straight from a label photo or typed label text. */
   readFromLabel: boolean;
   /**
+   * How sure the label reader was, for a label it just read. Anything below
+   * "high" caps the verdict at Caution: a word it misread could be the allergen.
+   */
+  readConfidence?: 'high' | 'medium' | 'low';
+  /**
    * True when the ingredient list came from Open Food Facts. A complete one
    * is trusted like a verified record; a thin one stays capped at Caution.
    */
@@ -57,6 +62,25 @@ export type VerdictProduct = {
   ingredients: VerdictIngredient[];
   /** Allergen slugs from a "may contain" line. */
   mayContain: string[];
+  /** The label's nutrition table, or null/absent when we have none. */
+  nutrition?: NutritionFacts | null;
+};
+
+/** A nutrition_facts column the engine can check a limit against. */
+export type NutrientColumn =
+  | 'energy_kj'
+  | 'protein_g'
+  | 'carbs_g'
+  | 'sugar_g'
+  | 'fat_g'
+  | 'sat_fat_g'
+  | 'fibre_g'
+  | 'sodium_mg';
+
+/** One row of nutrition_facts, as numbers. A column the label left out is absent. */
+export type NutritionFacts = {
+  basis: '100g' | '100ml' | 'serving';
+  values: Partial<Record<NutrientColumn, number>>;
 };
 
 /** A row from profile_rules. */
@@ -191,6 +215,19 @@ function checkAllergen(rule: ProfileRule, product: VerdictProduct): RuleOutcome 
     };
   }
   if (product.mayContain.includes(rule.target)) {
+    // For a severe allergy even a trace is dangerous (the onboarding promise),
+    // so a "may contain" line breaks the rule. Avoid and moderate stay Caution.
+    if (rule.severity === 'severe') {
+      return {
+        broken: {
+          icon: 'no_food',
+          text: `The label says it may contain ${word}. You marked ${word} as severe, so even a trace is too much.`,
+        },
+        unchecked: null,
+        detail: `The label says it may contain ${word}`,
+        matched: [],
+      };
+    }
     return {
       broken: null,
       unchecked: { icon: 'no_food', text: `The label says it may contain ${word}. ${yourRule(word, rule.severity)}` },
@@ -262,6 +299,99 @@ function checkENumber(rule: ProfileRule, product: VerdictProduct): RuleOutcome {
   };
 }
 
+/**
+ * Which nutrition_facts column a nutrient rule's target reads, and its unit.
+ * A nutrient rule's target must be one of these words.
+ */
+const NUTRIENT_COLUMNS: Record<string, { column: NutrientColumn; unit: 'kJ' | 'g' | 'mg' }> = {
+  energy: { column: 'energy_kj', unit: 'kJ' },
+  protein: { column: 'protein_g', unit: 'g' },
+  carbs: { column: 'carbs_g', unit: 'g' },
+  sugar: { column: 'sugar_g', unit: 'g' },
+  fat: { column: 'fat_g', unit: 'g' },
+  'saturated fat': { column: 'sat_fat_g', unit: 'g' },
+  fibre: { column: 'fibre_g', unit: 'g' },
+  sodium: { column: 'sodium_mg', unit: 'mg' },
+};
+
+const BASIS_WORDS: Record<NutritionFacts['basis'], string> = {
+  '100g': 'per 100 g',
+  '100ml': 'per 100 ml',
+  serving: 'per serving',
+};
+
+/**
+ * An amount moved from the label's unit into the rule's unit, so a sodium
+ * limit of 0.4 g can be checked against a label that says 400 mg. Null when
+ * the two units cannot be compared (kJ against g).
+ */
+function inUnit(amount: number, from: string, to: string): number | null {
+  if (from === to) return amount;
+  if (from === 'mg' && to === 'g') return amount / 1000;
+  if (from === 'g' && to === 'mg') return amount * 1000;
+  return null;
+}
+
+/** Rounds away floating point noise (0.1 + 0.2), so 400 mg is exactly 0.4 g. */
+function tidy(amount: number): number {
+  return Math.round(amount * 1000) / 1000;
+}
+
+function nutrientUnchecked(text: string, detail: string): RuleOutcome {
+  return { broken: null, unchecked: { icon: 'nutrition', text }, detail, matched: [] };
+}
+
+function checkNutrient(rule: ProfileRule, product: VerdictProduct): RuleOutcome {
+  const target = rule.target.trim().toLowerCase();
+  const nutrient = NUTRIENT_COLUMNS[target];
+  const limited = rule.threshold !== null && (rule.operator === 'lte' || rule.operator === 'gte');
+  if (!nutrient || !limited) {
+    return nutrientUnchecked(`We cannot check your ${rule.target} limit yet.`, 'We cannot check this kind of limit yet');
+  }
+
+  if (!product.nutrition) {
+    return nutrientUnchecked(
+      `We have no nutrition facts for this product, so we could not check your ${target} limit.`,
+      'We have no nutrition facts to check it against',
+    );
+  }
+
+  const listed = product.nutrition.values[nutrient.column];
+  if (listed === undefined) {
+    return nutrientUnchecked(
+      `The nutrition table does not list ${target}, so we could not check your limit.`,
+      `The label does not list ${target}`,
+    );
+  }
+
+  // Compare in the rule's own unit (a rule with no unit uses the label's).
+  const unit = rule.unit ?? nutrient.unit;
+  const converted = inUnit(listed, nutrient.unit, unit);
+  if (converted === null) {
+    return nutrientUnchecked(
+      `Your ${target} limit is in ${unit}, which we cannot compare with the label's ${nutrient.unit}.`,
+      `The label gives ${target} in ${nutrient.unit}`,
+    );
+  }
+
+  const amount = tidy(converted);
+  const limit = rule.threshold as number;
+  const basis = BASIS_WORDS[product.nutrition.basis];
+  const shown = `${amount} ${unit} ${target} ${basis}`;
+  const over = rule.operator === 'lte' && amount > limit;
+  const under = rule.operator === 'gte' && amount < limit;
+  if (over || under) {
+    const comparison = over ? `over your ${limit} ${unit} limit` : `under your ${limit} ${unit} minimum`;
+    return {
+      broken: { icon: 'nutrition', text: `${capitalise(shown)}, ${comparison}.` },
+      unchecked: null,
+      detail: capitalise(shown),
+      matched: [],
+    };
+  }
+  return { broken: null, unchecked: null, detail: capitalise(shown), matched: [] };
+}
+
 /** Checks one rule against the product. */
 function checkRule(rule: ProfileRule, product: VerdictProduct): RuleOutcome {
   // Only exclusions can be checked against an ingredient list today.
@@ -271,18 +401,7 @@ function checkRule(rule: ProfileRule, product: VerdictProduct): RuleOutcome {
     if (rule.type === 'e_number') return checkENumber(rule, product);
   }
 
-  if (rule.type === 'nutrient') {
-    // Nutrition facts are not loaded yet, so a limit cannot be checked.
-    return {
-      broken: null,
-      unchecked: {
-        icon: 'nutrition',
-        text: `We have no nutrition facts for this product, so we could not check your ${rule.target} limit.`,
-      },
-      detail: 'We have no nutrition facts to check it against',
-      matched: [],
-    };
-  }
+  if (rule.type === 'nutrient') return checkNutrient(rule, product);
 
   return {
     broken: null,
@@ -347,6 +466,15 @@ export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Ve
   const trusted = product.verified || (fromOpenFoodFacts && isCompleteList(product.ingredients));
   if (fromOpenFoodFacts && !trusted) {
     unchecked.push({ icon: 'info', text: 'The ingredient list from Open Food Facts looks incomplete.' });
+  }
+
+  // A label the reader was not sure of may have a word wrong or missing, so
+  // it cannot be Safe. A rule it plainly breaks still makes it Not safe.
+  if (product.readFromLabel && (product.readConfidence === 'low' || product.readConfidence === 'medium')) {
+    unchecked.push({
+      icon: 'info',
+      text: 'The label photo was hard to read, so we may have missed or misread an ingredient.',
+    });
   }
 
   // A severe allergy is where a misread label does the most harm, so for
