@@ -15,7 +15,9 @@
  * whenever it comes into focus, so a product another person in the
  * household saved shows up too. The products themselves are
  * the heavy part (a few megabytes), so they are kept in memory and fetched
- * again only after CATALOGUE_MAX_AGE_MS.
+ * again only after CATALOGUE_MAX_AGE_MS. A copy is also kept on the phone
+ * (saved-catalogue.ts), so the first screen after the app opens can show
+ * the products while the fresh list downloads.
  *
  * The small things (the people, aisles, stores and saved products) load
  * apart from the products, so a screen can draw its aisles and its "Checking
@@ -27,6 +29,7 @@ import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { fetchCategories, type Category } from '@/features/home/categories';
 import type { VerdictFilter } from '@/features/home/FilterSheet';
+import { readSavedCatalogue, saveCatalogue } from '@/features/home/saved-catalogue';
 import { fetchSavedProductIds, saveProduct, unsaveProduct } from '@/features/home/saved-products';
 import { fetchStores, type Store } from '@/features/home/stores';
 import { fetchHouseholdProfiles, type ActiveProfile } from '@/features/profile/active-profile';
@@ -73,7 +76,11 @@ function catalogueProducts(): Promise<CatalogueProduct[]> {
   if (cachedProducts && Date.now() - cachedProducts.fetchedAt < CATALOGUE_MAX_AGE_MS) {
     return cachedProducts.products;
   }
-  const products = fetchCatalogue();
+  const products = fetchCatalogue().then((list) => {
+    // Not awaited: the screen should not wait for the phone to finish writing.
+    void saveCatalogue(list);
+    return list;
+  });
   cachedProducts = { products, fetchedAt: Date.now() };
   // A failed fetch is not kept, so the next focus tries again.
   products.catch(() => {
@@ -218,6 +225,13 @@ export function useCatalogue(forProfileIds?: string[]) {
         setFailed(false);
       })
       .catch(fail);
+    // Nothing in memory yet (the app just opened): show the copy kept on the
+    // phone while the fresh list downloads, unless the fresh one wins.
+    if (!shared.products) {
+      readSavedCatalogue().then((list) => {
+        if (list && !shared.products) updateShared({ products: list });
+      });
+    }
     // Usually the same list as last time, from memory. Only a new list is
     // shared, so the verdicts already decided for it are kept.
     catalogueProducts()

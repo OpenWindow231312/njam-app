@@ -18,6 +18,13 @@ swaps the shelves for the matching products in the two-column grid.
   `ProductGrid` draws 40 cards at a time with a button for more.
   A product a shopper just scanned in is not here until an admin adds it to
   the feed from the review queue.
+- Speed: the people, aisles, stores and saved products load apart from the
+  products, so Home draws its aisles and "Checking for" pill straight away.
+  `useCatalogue` shares what it loaded across screens (an aisle page opens
+  with its products already there) and refreshes in the background. Each
+  product's verdict is decided once per set of rules and shared. A copy of
+  the products is kept on the phone (`saved-catalogue.ts`, in parts of 100
+  for Android's size limit) and shown while the fresh list downloads.
 - Each card's verdict comes from the verdict engine with the household's
   default profile, the one a scan is recorded against. `HomeScope` names it.
   The card shows the verdict as its mark; tapping opens the full verdict.
