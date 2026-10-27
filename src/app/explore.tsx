@@ -394,8 +394,8 @@ export default function ComponentPreviewScreen() {
           </State>
           <State label="Product grid cards: saved and not saved">
             <View style={styles.gridRow}>
-              <ProductGridCard name="Buttermilk Rusks" detail="Ouma · 500 g" verdict="unsafe" saved={saved} onPress={() => {}} onToggleSave={() => setSaved(!saved)} />
-              <ProductGridCard name="[PRODUCT NAME]" detail="[BRAND · 1 L]" verdict="caution" onPress={() => {}} onToggleSave={() => {}} />
+              <ProductGridCard name="Buttermilk Rusks" brand="Ouma" size="500 g" verdict="unsafe" saved={saved} onPress={() => {}} onToggleSave={() => setSaved(!saved)} />
+              <ProductGridCard name="[PRODUCT NAME]" brand="[BRAND]" size="1 L" verdict="caution" onPress={() => {}} onToggleSave={() => {}} />
             </View>
           </State>
           <State label="Product card: row">

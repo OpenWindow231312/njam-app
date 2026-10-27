@@ -15,7 +15,7 @@
  * comes from the verdict engine (AnswerBlocks.tsx).
  */
 import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentRef, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -91,7 +91,7 @@ export function AskNjamScreen() {
 
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   // Bumped whenever a different conversation is put on screen. An answer
   // that comes back for the old one is then dropped, not mixed in.
   const shownConversation = useRef(0);

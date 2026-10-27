@@ -54,7 +54,13 @@ function useCatalogueVerdict(productId: string, rules: ProfileRule[]): Checked {
           return;
         }
         const verdict = decideVerdict(
-          { verified: product.verified, readFromLabel: false, ingredients: product.ingredients, mayContain: product.mayContain },
+          {
+            verified: product.verified,
+            readFromLabel: false,
+            fromOpenFoodFacts: product.source === 'open_food_facts',
+            ingredients: product.ingredients,
+            mayContain: product.mayContain,
+          },
           rules,
         );
         setChecked({ kind: 'shown', product, verdict });
@@ -98,6 +104,7 @@ function ProductBlock({ productId, rules }: { productId: string; rules: ProfileR
         variant="identity"
         name={product.name}
         detail={productDetail(product)}
+        imageUrl={product.imageUrl ?? undefined}
         metaIcon={product.verified ? 'verified' : 'info'}
         metaText={product.verified ? 'Verified' : 'Not yet checked by our team'}
       />

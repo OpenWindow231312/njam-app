@@ -8,8 +8,8 @@
  *
  * The AI only interprets: it turns a label into a typed ingredient list,
  * and in Ask Njam it explains and suggests. It never decides a verdict.
- * That is src/services/verdict, which caps anything read here at Caution
- * because nobody has verified it.
+ * That is src/services/verdict, which says anything read here has not been
+ * checked by our team, and caps it at Caution for a severe allergy.
  */
 import { FunctionsHttpError } from '@supabase/supabase-js';
 

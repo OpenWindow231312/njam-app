@@ -162,7 +162,9 @@ This is the heart of the app and the part most likely to be wrong in a way that 
 - **Hybrid by design.** The AI _interprets_: ingredient to category, aliases, E-numbers,
   plain language. Deterministic code _decides_: numeric limits, hard allergen blocks.
 - **On conflict, the rules engine wins.** Always.
-- **An unverified AI-read record is capped at Caution. It can never be Safe.**
+- **An unverified record can be Safe or Not safe, but always says so.** Its verdict
+  carries a "not checked by our team" line. If the profile has a severe allergy, an
+  unverified record is capped at Caution and can never be Safe (decision 26 Oct 2026).
 - **Zero false Safe verdicts** is a stated project target, measured against a 50-product
   regression suite. A false Caution is a nuisance; a false Safe is a health incident.
   When in doubt, the engine degrades toward Caution, never toward Safe.

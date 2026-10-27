@@ -3,10 +3,9 @@
  *
  * It opens three ways, named by its route params:
  *   productId - a product from the catalogue (search, or a barcode scan).
- *   label     - an ingredient list just read by the AI (JSON of a LabelRead),
- *               with the barcode it was scanned under if there was one.
- *               `source` says where the text came from: a label photo (the
- *               default) or Open Food Facts, which also passes a `brand`.
+ *   label     - an ingredient list the AI just read from a label photo (JSON
+ *               of a LabelRead), with the barcode it was scanned under if
+ *               there was one.
  *               `photo` is the photo just taken (a file on the phone), shown
  *               in place of a packshot, since a label read is not saved.
  *   scanId    - a past scan from History, shown exactly as it was decided.
@@ -37,7 +36,9 @@
  * decided at the time, for the person it was decided for.
  *
  * This screen only shows the verdict. The verdict engine decides it, and
- * the engine caps anything read from a label at Caution.
+ * the engine flags anything our team has not checked (capped at Caution for
+ * a severe allergy), and decides a complete Open Food Facts list like a
+ * checked one.
  */
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -77,28 +78,22 @@ import { decideVerdict, type RuleCheck, type VerdictProduct, type VerdictState }
 import { icon, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
-type LabelSource = 'photo' | 'open-food-facts';
-
 type Params = {
   productId?: string;
   label?: string;
   barcode?: string;
-  source?: LabelSource;
-  brand?: string;
   photo?: string;
   scanId?: string;
 };
 
-/** How each label source is named on screen. Neither is ever verified. */
-const SOURCE_WORDS: Record<LabelSource, { note: string; fallbackName: string }> = {
-  photo: {
-    note: 'Read from your photo. Not yet checked by our team.',
-    fallbackName: 'Product from a label photo',
-  },
-  'open-food-facts': {
-    note: 'Found in Open Food Facts, a public database anyone can edit. Not yet checked by our team.',
-    fallbackName: 'Product from Open Food Facts',
-  },
+/**
+ * Where an unverified product's ingredient list came from, under its name.
+ * A complete Open Food Facts list is decided like a verified one (see
+ * isCompleteList in the verdict engine), so its note only says where it is from.
+ */
+const SOURCE_NOTES = {
+  labelPhoto: 'Read from your photo. Not yet checked by our team.',
+  openFoodFacts: 'From Open Food Facts, a public database of real labels that anyone can edit.',
 };
 
 /** The verdict word, at the start of the tab: "Not safe for Thabo". */
@@ -126,7 +121,7 @@ type Subject = {
   size: string | null;
   barcode: string | null;
   imageUrl: string | null;
-  /** In label order. Empty for a past scan, which stores only its reasons. */
+  /** In label order. Empty for a past label read that was never added. */
   ingredients: string[];
   /** Where the ingredient list came from, when nobody has verified it. */
   note: string | null;
@@ -164,6 +159,8 @@ type Past = {
   state: VerdictState;
   reasons: VerdictReason[];
   profileName: string;
+  /** The product's nutrition table, when the scan links to a catalogue product. */
+  nutrition: Nutrition | null;
   /** "Scanned 14/10/2026, 09:12. Your rules may have changed since." */
   sourceNote: string;
 };
@@ -206,6 +203,7 @@ async function loadProduct(productId: string, barcode: string | undefined, membe
   const checked: VerdictProduct = {
     verified: product.verified,
     readFromLabel: false,
+    fromOpenFoodFacts: product.source === 'open_food_facts',
     ingredients: product.ingredients,
     mayContain: product.mayContain,
   };
@@ -234,7 +232,7 @@ async function loadProduct(productId: string, barcode: string | undefined, membe
         : product.source === 'ai_label_read'
           ? 'Read from a label photo. Not yet checked by our team.'
           : product.source === 'open_food_facts'
-            ? SOURCE_WORDS['open-food-facts'].note
+            ? SOURCE_NOTES.openFoodFacts
             : 'Added by a shopper. Not yet checked by our team.',
     },
     product: checked,
@@ -244,20 +242,17 @@ async function loadProduct(productId: string, barcode: string | undefined, membe
   return live;
 }
 
-/** An ingredient list the AI just read: record the scan if it had a barcode. */
+/** An ingredient list the AI just read from a photo: record the scan if it had a barcode. */
 async function loadLabel(
   read: LabelRead,
-  source: LabelSource,
-  brand: string | undefined,
   barcode: string | undefined,
   photoUri: string | undefined,
   member: Member,
   profiles: ActiveProfile[],
 ) {
-  const words = SOURCE_WORDS[source];
   const checked: VerdictProduct = {
     verified: false,
-    readFromLabel: source === 'photo',
+    readFromLabel: true,
     ingredients: read.ingredients.map((item) => ({ ...item, canonicalName: null })),
     mayContain: read.mayContain,
   };
@@ -277,13 +272,13 @@ async function loadLabel(
   const live: Live = {
     kind: 'live',
     subject: {
-      name: read.productName ?? words.fallbackName,
-      brand: brand ?? null,
+      name: read.productName ?? 'Product from a label photo',
+      brand: null,
       size: null,
       barcode: barcode ?? null,
       imageUrl: photoUri ?? null,
       ingredients: read.ingredients.map((item) => item.name),
-      note: words.note,
+      note: SOURCE_NOTES.labelPhoto,
     },
     product: checked,
     profiles,
@@ -292,10 +287,16 @@ async function loadLabel(
   return live;
 }
 
-/** A past scan, as it was stored. */
+/**
+ * A past scan: its verdict and reasons as they were stored, with the
+ * ingredients and nutrition read again from the product it links to. A
+ * label read that was never added has no product, so it shows the verdict only.
+ */
 async function loadPastScan(scanId: string) {
   const scan = await fetchScan(scanId);
   if (!scan) throw new Error('Scan not found');
+  const product = scan.productId ? await fetchProductById(scan.productId).catch(() => null) : null;
+  const nutrition = product ? await fetchNutrition(product.id).catch(() => null) : null;
   const past: Past = {
     kind: 'past',
     subject: {
@@ -304,12 +305,13 @@ async function loadPastScan(scanId: string) {
       size: null,
       barcode: scan.barcode,
       imageUrl: scan.productImageUrl,
-      ingredients: [],
+      ingredients: product ? ingredientNames(product) : [],
       note: null,
     },
     state: scan.verdict,
     reasons: scan.reasons,
     profileName: scan.profileName ?? 'your profile',
+    nutrition,
     sourceNote: `Scanned ${new Date(scan.scannedAt).toLocaleString()}. Your rules may have changed since.`,
   };
   return past;
@@ -342,8 +344,6 @@ export function VerdictScreen() {
         }
         const live = await loadLabel(
           read,
-          params.source ?? 'photo',
-          params.brand,
           params.barcode,
           params.photo,
           current,
@@ -365,7 +365,7 @@ export function VerdictScreen() {
         console.warn('Could not show the verdict', error);
         setStatus({ kind: 'failed' });
       });
-  }, [member, params.productId, params.label, params.barcode, params.source, params.brand, params.photo, params.scanId, attempt]);
+  }, [member, params.productId, params.label, params.barcode, params.photo, params.scanId, attempt]);
 
   return (
     // The result fills the whole screen edge to edge, so it skips Screen's
@@ -516,8 +516,10 @@ function Shown({ shown }: { shown: Live | Past }) {
         }
       />
     ) : null;
-  // A label read or a past scan has no nutrition table; the card says so.
-  const nutrition = <NutritionCard nutrition={extras?.nutrition ?? null} startOpen />;
+  // A label read, or a product with no nutrition table yet: the card says so.
+  const nutrition = (
+    <NutritionCard nutrition={shown.kind === 'past' ? shown.nutrition : (extras?.nutrition ?? null)} startOpen />
+  );
   const stores = extras ? <AvailableAt stores={extras.stores} edgeInset={space.s6} /> : null;
   const ingredients =
     subject.ingredients.length > 0 ? (
@@ -528,9 +530,10 @@ function Shown({ shown }: { shown: Live | Past }) {
         note={subject.note}
       />
     ) : (
-      // A past scan stores its verdict and reasons, not the list itself.
+      // A past label read that was never added (no barcode, or scanned before
+      // every scan added its product): no product to read the list from again.
       <Text style={[typography.body, { color: colors.inkMuted }]}>
-        This scan kept its verdict and reasons, not the ingredient list.
+        This product was not added to Njam, so we kept its verdict and reasons but not the ingredient list.
       </Text>
     );
   // Everyone in the household, for a live result. Left out when you are the
