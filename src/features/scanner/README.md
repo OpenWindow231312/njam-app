@@ -7,9 +7,11 @@ truly works on a physical phone through Expo Go.
   `xxl`), which fills the screen: the TabBar hides on this tab and the close
   button goes back to Home.
 - **Nothing is read until the shutter is pressed** (`ShutterButton`). The
-  photo freezes on the panel, a lime line sweeps the brackets while
-  `scanFromURLAsync` reads the barcode from it, and `BarcodeReadout` floats
-  the number up above them.
+  photo freezes on the panel, a lime line sweeps the brackets while the live
+  camera reads the barcode (its `onBarcodeScanned` listens only for a moment
+  after the press), and `BarcodeReadout` floats the number up above them.
+  Reading the photo with `scanFromURLAsync` is only a fallback: on iOS it
+  finds QR codes alone, so it cannot read a grocery barcode.
 - **Found** (in `products`, or saved from Open Food Facts by the
   `import-open-food-facts` function): `FoundProduct` shows its name under the
   brackets for `motion.resultHold`, then the Verdict screen opens.
