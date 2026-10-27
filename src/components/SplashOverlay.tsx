@@ -5,7 +5,7 @@
  * overlay has drawn the mark filling the screen in the same lime, the native
  * splash is hidden, so the hand-over is invisible. Then, in order: the mark
  * takes one bite out of the corner and pulls back to the logo, "Njam" floats
- * up beneath it, the tagline floats up under that, and the whole
+ * up beneath it, the two tagline lines float up under that, and the whole
  * thing holds still for a moment. The overlay fades out once that is done and
  * the app is `ready` (fonts loaded and the session known), whichever comes last.
  *
@@ -118,10 +118,14 @@ export function SplashOverlay({ ready }: SplashOverlayProps) {
         style={[typography.displayXl, styles.wordmark, { color: colors.inkInverse }, wordStyle]}>
         Njam
       </Animated.Text>
-      <Animated.Text
-        style={[typography.bodyL, styles.tagline, { color: colors.inkInverse }, taglineStyle]}>
-        Scan it. Know it. Eat it.
-      </Animated.Text>
+      <Animated.View style={[styles.tagline, taglineStyle]}>
+        <Animated.Text style={[typography.bodyL, styles.taglineLine, { color: colors.inkInverse }]}>
+          Know if you can njam it.
+        </Animated.Text>
+        <Animated.Text style={[typography.caption, styles.taglineLine, styles.caption, { color: colors.inkInverse }]}>
+          Allergy and diet checks for every label.
+        </Animated.Text>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -139,6 +143,12 @@ const styles = StyleSheet.create({
   },
   tagline: {
     marginTop: space.s2,
+    paddingHorizontal: space.s6,
+  },
+  taglineLine: {
     textAlign: 'center',
+  },
+  caption: {
+    marginTop: space.s1,
   },
 });
