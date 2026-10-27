@@ -546,22 +546,6 @@ function Shown({ shown }: { shown: Live | Past }) {
 
   return (
     <View style={[styles.page, { backgroundColor: colors.surface }]}>
-      <TopBar
-        onBack={() => router.back()}
-        trailing={
-          <>
-            {picker && (
-              <DropdownChip
-                label={`For ${picker.name}`}
-                accessibilityLabel={`Viewing for ${picker.name}. Change who this is checked for.`}
-                onPress={() => setPicking(true)}
-              />
-            )}
-            <AskNjamButton />
-          </>
-        }
-      />
-
       {/* Everything from the verdict tab down. */}
       <View style={[styles.stage, { marginTop: topBarHeight + space.s6 }]}>
         <VerdictTab state={state} label={`${STATE_WORDS[state]} for ${profileName}`} summary={summary} />
@@ -610,6 +594,25 @@ function Shown({ shown }: { shown: Live | Past }) {
           </ScrollView>
         </View>
       </View>
+
+      {/* After the stage, so it is drawn over it: the bar floats, and React
+          Native paints later siblings on top. Drawn first, the drawer covered
+          "For ..." and "Ask Njam" and the fade under the bar. */}
+      <TopBar
+        onBack={() => router.back()}
+        trailing={
+          <>
+            {picker && (
+              <DropdownChip
+                label={`For ${picker.name}`}
+                accessibilityLabel={`Viewing for ${picker.name}. Change who this is checked for.`}
+                onPress={() => setPicking(true)}
+              />
+            )}
+            <AskNjamButton />
+          </>
+        }
+      />
 
       {picker && viewingId && (
         <ProfilePicker
