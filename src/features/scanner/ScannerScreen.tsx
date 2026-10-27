@@ -6,14 +6,19 @@
  * without knowing whether anything had happened. Now:
  *
  *   1. Scan a barcode. The shutter takes a photo, which freezes on the panel
- *      with a buzz. A lime line sweeps the brackets while the barcode is read
- *      from the photo, then its number floats up above them, digit by digit,
- *      while we look it up. Found: the product's name shows under the
- *      brackets for a moment (motion.resultHold), then its Verdict opens.
+ *      with a buzz. A lime line sweeps the brackets while the barcode is read,
+ *      then its number floats up above them, digit by digit, while we look it
+ *      up. Found: the product's name shows under the brackets for a moment
+ *      (motion.resultHold), then its Verdict opens.
  *
- *   2. If the barcode will not read. There is no timer: reading a photo takes
- *      under a second, so a miss shows straight away as a message card ("We
- *      could not read that barcode") with what to try. A second miss in a row
+ *      The barcode is read by the live camera, which only listens for
+ *      LIVE_READ_WINDOW after the shutter press. Reading the frozen photo is
+ *      only a fallback: on iOS, scanFromURLAsync looks for QR codes alone and
+ *      never finds a grocery barcode, which made every scan a miss.
+ *
+ *   2. If the barcode will not read. Once the live read gives up, the miss
+ *      shows as a message card ("We could not read that barcode") with what
+ *      to try. A second miss in a row
  *      opens a drawer to type the number instead. "Find this product" turns
  *      into a loading button while it looks; the drawer closes once it knows.
  *      The keyboard button beside the torch opens the same drawer straight
@@ -82,6 +87,13 @@ const GROCERY_BARCODES = ['ean13', 'ean8', 'upc_a', 'upc_e'] as const;
 
 /** Lower quality keeps the photo small enough to send; text stays legible. */
 const PHOTO_QUALITY = 0.5;
+
+/**
+ * How long the live camera looks for a barcode after the shutter press, in
+ * milliseconds. A barcode in view reads in a fraction of a second; this is
+ * how long a miss takes to show.
+ */
+const LIVE_READ_WINDOW = 1500;
 
 /** Misses in a row before the drawer to type the number opens by itself. */
 const MISSES_BEFORE_TYPING = 2;
@@ -264,6 +276,21 @@ async function findProduct(barcode: string): Promise<Found | null> {
   return { productId: importedId, name: imported?.name ?? null, detail: imported ? productDetail(imported) : '' };
 }
 
+/**
+ * Reads a barcode from a photo already taken. The fallback when the live
+ * camera saw none. Works on Android; on iOS it only finds QR codes, so it
+ * returns null for groceries.
+ */
+async function readBarcodeFromPhoto(photo: Taken): Promise<string | null> {
+  try {
+    const found = await scanFromURLAsync(photo.uri, [...GROCERY_BARCODES]);
+    return found[0]?.data ?? null;
+  } catch (error) {
+    console.warn('Could not read a barcode from the photo', error);
+    return null;
+  }
+}
+
 function openVerdict(productId: string, barcode: string) {
   router.push({ pathname: '/verdict', params: { productId, barcode } });
 }
@@ -285,6 +312,10 @@ export function ScannerScreen() {
 
   // Barcode photos in a row that had no barcode we could read.
   const misses = useRef(0);
+  // While the live camera is listening for a barcode: whether it listens, and
+  // the function that ends the listening with what it saw (null for nothing).
+  const [listening, setListening] = useState(false);
+  const liveRead = useRef<((barcode: string | null) => void) | null>(null);
   // The drawer to type the number, what has been typed, and whether it is looking.
   const [typing, setTyping] = useState(false);
   // Whether the drawer opened after misses, or from the keyboard button.
@@ -317,6 +348,7 @@ export function ScannerScreen() {
       setMode({ kind: 'aim', missed: false });
       return () => {
         if (holdTimer.current) clearTimeout(holdTimer.current);
+        liveRead.current?.(null);
         setTorchOn(false);
         setTyping(false);
       };
@@ -344,23 +376,41 @@ export function ScannerScreen() {
     }
   }
 
-  /** The shutter on a barcode: photograph it, then read the barcode from the photo. */
+  /**
+   * Switches on the live camera's barcode reader and resolves with the first
+   * grocery barcode it sees, or null after LIVE_READ_WINDOW. The camera keeps
+   * running under the frozen photo, so it still sees what you are holding.
+   */
+  function readLiveBarcode(): Promise<string | null> {
+    // Only one listener at a time: end any earlier one empty-handed.
+    liveRead.current?.(null);
+    setListening(true);
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => finish(null), LIVE_READ_WINDOW);
+      function finish(barcode: string | null) {
+        clearTimeout(timer);
+        liveRead.current = null;
+        setListening(false);
+        resolve(barcode);
+      }
+      liveRead.current = finish;
+    });
+  }
+
+  /** The shutter on a barcode: photograph it while the live camera reads the barcode. */
   async function photographBarcode() {
     if (mode.kind !== 'aim') return;
+    // Starts listening with the press, so it reads while the photo is taken.
+    const live = readLiveBarcode();
     const photo = await takePhoto();
     if (!photo) {
+      liveRead.current?.(null);
       setProblem(CAMERA_FAILED);
       return;
     }
     setMode({ kind: 'reading-barcode', photo });
 
-    let barcode: string | undefined;
-    try {
-      const found = await scanFromURLAsync(photo.uri, [...GROCERY_BARCODES]);
-      barcode = found[0]?.data;
-    } catch (error) {
-      console.warn('Could not read a barcode from the photo', error);
-    }
+    const barcode = (await live) ?? (await readBarcodeFromPhoto(photo));
 
     if (barcode) {
       misses.current = 0;
@@ -673,6 +723,9 @@ export function ScannerScreen() {
           // Only run the camera while this tab is on screen.
           active={focused}
           enableTorch={torchOn}
+          // Reads barcodes only while a shutter press is listening for one.
+          barcodeScannerSettings={{ barcodeTypes: [...GROCERY_BARCODES] }}
+          onBarcodeScanned={listening ? (result) => liveRead.current?.(result.data) : undefined}
         />
       </ScanFrame>
 
