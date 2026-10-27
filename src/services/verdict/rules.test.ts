@@ -84,3 +84,60 @@ describe('how sure the label reader was', () => {
     assert.equal(decideVerdict(labelRead('low', ['black tea']), [avoidCaffeine]).state, 'unsafe');
   });
 });
+
+describe('nutrient limits', () => {
+  function limit(target: string, operator: 'lte' | 'gte', threshold: number, unit: string | null): ProfileRule {
+    return { type: 'nutrient', target, operator, threshold, unit, severity: null };
+  }
+  const sugarUpTo10g = limit('sugar', 'lte', 10, 'g');
+  const withFacts = (values: NonNullable<VerdictProduct['nutrition']>['values']) =>
+    product({ nutrition: { basis: '100g', values } });
+
+  test('a product under the limit is Safe', () => {
+    const verdict = decideVerdict(withFacts({ sugar_g: 4.2 }), [sugarUpTo10g]);
+    assert.equal(verdict.state, 'safe');
+    assert.equal(verdict.checks[0].outcome, 'met');
+    assert.equal(verdict.checks[0].detail, '4.2 g sugar per 100 g');
+  });
+
+  test('exactly on the limit is still within it', () => {
+    assert.equal(decideVerdict(withFacts({ sugar_g: 10 }), [sugarUpTo10g]).state, 'safe');
+  });
+
+  test('a product over the limit is Not safe, with the number and the limit', () => {
+    const verdict = decideVerdict(withFacts({ sugar_g: 12.4 }), [sugarUpTo10g]);
+    assert.equal(verdict.state, 'unsafe');
+    assert.equal(verdict.reasons[0].text, '12.4 g sugar per 100 g, over your 10 g limit.');
+  });
+
+  test('a minimum the product falls short of is Not safe', () => {
+    const verdict = decideVerdict(withFacts({ fibre_g: 3 }), [limit('fibre', 'gte', 6, 'g')]);
+    assert.equal(verdict.state, 'unsafe');
+    assert.equal(verdict.reasons[0].text, '3 g fibre per 100 g, under your 6 g minimum.');
+  });
+
+  test('a limit in g is checked against sodium in mg', () => {
+    assert.equal(decideVerdict(withFacts({ sodium_mg: 400 }), [limit('sodium', 'lte', 0.4, 'g')]).state, 'safe');
+    assert.equal(decideVerdict(withFacts({ sodium_mg: 410 }), [limit('sodium', 'lte', 0.4, 'g')]).state, 'unsafe');
+  });
+
+  test('a product with no nutrition facts stays Caution', () => {
+    const verdict = decideVerdict(product(), [sugarUpTo10g]);
+    assert.equal(verdict.state, 'caution');
+    assert.equal(verdict.checks[0].outcome, 'unchecked');
+  });
+
+  test('a table that leaves the nutrient out stays Caution', () => {
+    const verdict = decideVerdict(withFacts({ fat_g: 2 }), [sugarUpTo10g]);
+    assert.equal(verdict.state, 'caution');
+    assert.match(verdict.reasons[0].text, /does not list sugar/);
+  });
+
+  test('a nutrient the engine does not know stays Caution', () => {
+    assert.equal(decideVerdict(withFacts({ sugar_g: 1 }), [limit('caffeine', 'lte', 50, 'mg')]).state, 'caution');
+  });
+
+  test('a unit that cannot be compared stays Caution', () => {
+    assert.equal(decideVerdict(withFacts({ energy_kj: 900 }), [limit('energy', 'lte', 200, 'kcal')]).state, 'caution');
+  });
+});

@@ -24,6 +24,13 @@ The rules:
 - **A label read with medium or low confidence is capped at Caution**, with a
   reason line saying the photo was hard to read. A rule it plainly breaks still
   makes it Not safe.
+- **Nutrient limits are checked against `nutrition_facts`.** A rule's target is
+  one of `energy`, `protein`, `carbs`, `sugar`, `fat`, `saturated fat`, `fibre`
+  or `sodium`, with `lte` (a limit) or `gte` (a minimum). A limit in g is
+  checked against sodium in mg. No nutrition table, a table that leaves the
+  nutrient out, or a unit that cannot be compared (kcal against kJ) is Caution.
+  Only the Verdict screen loads nutrition facts today, so Home and Ask Njam
+  still show a nutrient rule as Caution.
 - **Degrade toward Caution, never toward Safe.** A false Caution is a nuisance; a
   false Safe is a health incident. Zero false Safe verdicts is the project target.
 - **Follow the alias chain** (`ingredients.canonical_id`) before checking a rule,

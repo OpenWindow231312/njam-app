@@ -4,8 +4,11 @@
  *
  * Only the nutrients the label gave are returned, in the order a South
  * African label prints them. A product with no row has no nutrition facts yet.
+ * The same row also comes back as numbers (facts), for the verdict engine to
+ * check nutrient limits against.
  */
 import { supabase } from '@/lib/supabase';
+import type { NutrientColumn, NutritionFacts } from '@/services/verdict';
 
 export type NutrientLine = {
   /** "Carbohydrate", "of which total sugar". */
@@ -18,6 +21,8 @@ export type Nutrition = {
   /** "Per 100 g", "Per 100 ml" or "Per serving". */
   basis: string;
   lines: NutrientLine[];
+  /** The same row as numbers, for the verdict engine. */
+  facts: NutritionFacts;
 };
 
 const BASIS_WORDS: Record<string, string> = {
@@ -27,7 +32,7 @@ const BASIS_WORDS: Record<string, string> = {
 };
 
 // Column, how it reads, and its unit. The order is the label's order.
-const NUTRIENTS: { column: string; name: string; unit: string }[] = [
+const NUTRIENTS: { column: NutrientColumn; name: string; unit: string }[] = [
   { column: 'energy_kj', name: 'Energy', unit: 'kJ' },
   { column: 'protein_g', name: 'Protein', unit: 'g' },
   { column: 'carbs_g', name: 'Carbohydrate', unit: 'g' },
@@ -48,9 +53,17 @@ export async function fetchNutrition(productId: string): Promise<Nutrition | nul
   if (!data) return null;
 
   const row = data as Record<string, number | string | null>;
-  const lines = NUTRIENTS.flatMap((nutrient) => {
+  const lines: NutrientLine[] = [];
+  const values: NutritionFacts['values'] = {};
+  for (const nutrient of NUTRIENTS) {
     const value = row[nutrient.column];
-    return value === null || value === undefined ? [] : [{ name: nutrient.name, amount: `${value} ${nutrient.unit}` }];
-  });
-  return { basis: BASIS_WORDS[String(row.per_basis)] ?? 'Per 100 g', lines };
+    if (value === null || value === undefined) continue;
+    lines.push({ name: nutrient.name, amount: `${value} ${nutrient.unit}` });
+    // Numeric columns come back from PostgREST as numbers, but read them as
+    // numbers either way, and leave out anything that is not one.
+    const amount = Number(value);
+    if (Number.isFinite(amount)) values[nutrient.column] = amount;
+  }
+  const basis = row.per_basis === '100ml' || row.per_basis === 'serving' ? row.per_basis : '100g';
+  return { basis: BASIS_WORDS[basis], lines, facts: { basis, values } };
 }
