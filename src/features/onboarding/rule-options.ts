@@ -37,8 +37,18 @@ export const SUGGESTED_E_NUMBERS: { code: string; name: string }[] = [
 /** E100 to E1521, with an optional letter: E150d, E160a. */
 export const E_NUMBER_PATTERN = /^E\d{3,4}[A-Z]?$/;
 
-export const SEVERITY_CHOICES: { value: AllergySeverity; label: string }[] = [
-  { value: null, label: 'Avoid' },
-  { value: 'moderate', label: 'Moderate' },
-  { value: 'severe', label: 'Severe' },
+/**
+ * The three allergy levels, each with what it means in plain words, as the
+ * info button in SeverityPicker shows them. Every level blocks a product that
+ * contains the allergen; only Severe changes a verdict as well (an unchecked
+ * ingredient list can never be Safe, see services/verdict).
+ */
+export const SEVERITY_CHOICES: { value: AllergySeverity; label: string; meaning: string }[] = [
+  { value: null, label: 'Avoid', meaning: 'You leave it out of your food, for a diet or a mild intolerance.' },
+  { value: 'moderate', label: 'Moderate', meaning: 'Eating it makes you ill, but a trace does not.' },
+  {
+    value: 'severe',
+    label: 'Severe',
+    meaning: 'Even a trace is dangerous. A product our team has not checked can never be Safe for you.',
+  },
 ];
