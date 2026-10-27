@@ -16,6 +16,8 @@
  *      could not read that barcode") with what to try. A second miss in a row
  *      opens a drawer to type the number instead. "Find this product" turns
  *      into a loading button while it looks; the drawer closes once it knows.
+ *      The keyboard button beside the torch opens the same drawer straight
+ *      away, for when the camera will not work at all.
  *
  *   3. Looking it up. Our catalogue first. If it is not there, the
  *      import-open-food-facts function tries Open Food Facts, a public
@@ -285,6 +287,9 @@ export function ScannerScreen() {
   const misses = useRef(0);
   // The drawer to type the number, what has been typed, and whether it is looking.
   const [typing, setTyping] = useState(false);
+  // Whether the drawer opened after misses, or from the keyboard button.
+  // Only after misses does its title say the barcode would not read.
+  const [typingAfterMiss, setTypingAfterMiss] = useState(false);
   const [typed, setTyped] = useState('');
   const [typedError, setTypedError] = useState<string | undefined>();
   const [finding, setFinding] = useState(false);
@@ -366,7 +371,7 @@ export function ScannerScreen() {
     // A miss: say what to try. The second miss in a row opens the drawer.
     misses.current += 1;
     setMode({ kind: 'aim', missed: true });
-    if (misses.current >= MISSES_BEFORE_TYPING) openTyping();
+    if (misses.current >= MISSES_BEFORE_TYPING) openTyping(true);
   }
 
   /** Looks up a barcode read from a photo, showing its number as it goes. */
@@ -399,7 +404,8 @@ export function ScannerScreen() {
     holdTimer.current = setTimeout(() => openVerdict(found.productId, barcode), motion.resultHold);
   }
 
-  function openTyping() {
+  function openTyping(afterMiss: boolean) {
+    setTypingAfterMiss(afterMiss);
     setTyped('');
     setTypedError(undefined);
     setTyping(true);
@@ -601,6 +607,9 @@ export function ScannerScreen() {
         onClose={() => router.navigate('/')}
         torchOn={torchOn}
         onToggleTorch={() => setTorchOn((on) => !on)}
+        // Only while aiming: once a photo is being read or a product added,
+        // typing a number would cut across it.
+        onTypeBarcode={mode.kind === 'aim' ? () => openTyping(false) : undefined}
         message={messageFor(mode)}
         hint={hintFor(mode)}
         target={targetFor(mode)}
@@ -669,8 +678,12 @@ export function ScannerScreen() {
 
       <BottomSheet
         visible={typing}
-        title="We could not read the barcode"
-        subtitle="Type the numbers under the bars instead. There are usually 13."
+        title={typingAfterMiss ? 'We could not read the barcode' : 'Type the barcode'}
+        subtitle={
+          typingAfterMiss
+            ? 'Type the numbers under the bars instead. There are usually 13.'
+            : 'Type the numbers under the bars. There are usually 13.'
+        }
         onClose={closeTyping}
         footer={
           <>
