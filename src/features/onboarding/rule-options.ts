@@ -37,8 +37,21 @@ export const SUGGESTED_E_NUMBERS: { code: string; name: string }[] = [
 /** E100 to E1521, with an optional letter: E150d, E160a. */
 export const E_NUMBER_PATTERN = /^E\d{3,4}[A-Z]?$/;
 
-export const SEVERITY_CHOICES: { value: AllergySeverity; label: string }[] = [
-  { value: null, label: 'Avoid' },
-  { value: 'moderate', label: 'Moderate' },
-  { value: 'severe', label: 'Severe' },
+/**
+ * Each level and what it does, in the words onboarding shows. Kept true to
+ * the verdict engine: Avoid and Moderate are checked the same way, and only
+ * Severe changes a verdict (an unchecked list can never be Safe).
+ */
+export const SEVERITY_CHOICES: { value: AllergySeverity; label: string; meaning: string }[] = [
+  { value: null, label: 'Avoid', meaning: 'Any product that lists it comes back Not safe.' },
+  {
+    value: 'moderate',
+    label: 'Moderate',
+    meaning: 'Checked the same way as Avoid. It tells your household to take more care.',
+  },
+  {
+    value: 'severe',
+    label: 'Severe',
+    meaning: 'Checked the same way, and a product our team has not checked is never called Safe.',
+  },
 ];

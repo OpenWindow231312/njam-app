@@ -24,6 +24,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import {
   Button,
+  IconButton,
   LoadingMark,
   OptionButton,
   RuleChip,
@@ -95,6 +96,7 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [showLevels, setShowLevels] = useState(false);
 
   // A new account's member row is created just after sign-up, so this waits
   // for it. In edit mode your current rules fill the screen.
@@ -261,10 +263,30 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
               you are looking. At the bottom of the page it was easy to miss. */}
           {chosenAllergens.length > 0 && (
             <View style={styles.block}>
-              <SectionHeader variant="simple" headline="How strict is each one?" />
+              <View style={styles.headingRow}>
+                <View style={styles.heading}>
+                  <SectionHeader variant="simple" headline="How strict is each one?" />
+                </View>
+                <IconButton
+                  icon="info"
+                  accessibilityLabel={showLevels ? 'Hide what each level means' : 'Show what each level means'}
+                  selected={showLevels}
+                  onPress={() => setShowLevels((shown) => !shown)}
+                />
+              </View>
               <Text style={[typography.body, { color: colors.inkMuted }]}>
                 Every level blocks the allergen. The level tells your household how careful to be.
               </Text>
+              {showLevels && (
+                <View style={styles.levels}>
+                  {SEVERITY_CHOICES.map((choice) => (
+                    <View key={choice.label}>
+                      <Text style={[typography.title, { color: colors.ink }]}>{choice.label}</Text>
+                      <Text style={[typography.body, { color: colors.inkMuted }]}>{choice.meaning}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
               {chosenAllergens.map((slug) => (
                 <View key={slug} style={styles.severityRow}>
                   <Text style={[typography.title, { color: colors.ink }]}>{capitalise(allergenWord(slug))}</Text>
@@ -440,6 +462,17 @@ const styles = StyleSheet.create({
     gap: space.s2,
   },
   block: {
+    gap: space.s3,
+  },
+  headingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s2,
+  },
+  heading: {
+    flex: 1,
+  },
+  levels: {
     gap: space.s3,
   },
   severityRow: {
