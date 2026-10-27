@@ -13,7 +13,8 @@
  *      keeps the time, the battery and the tab icons readable over any
  *      picture, and softens the steps between the blur bands.
  *
- * This is the one sanctioned gradient in the product UI (CLAUDE.md rule 3).
+ * One of the two sanctioned gradients in the product UI, with the fade under
+ * the TopBar (CLAUDE.md rule 3).
  *
  * It only draws. It ignores touches, so whatever sits on top of it (the
  * TabBar) and whatever scrolls under it keep working. On phones that cannot

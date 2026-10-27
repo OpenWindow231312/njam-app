@@ -81,8 +81,10 @@ Do not invent one.
    return later. Still read colours from the hook, never hard-code them.
 3. **No gradients in the product UI.** Every surface, fill, chip and button is a flat
    token. Gradients are fine in the pitch deck, mockups and promo art, never in the app.
-   The one exception (v1.9): `FrostedStrip`, the fade behind the status bar and the
-   TabBar, fades from clear to `surface` so content blurs in gradually, as on iOS.
+   Two exceptions, both fading between `surface` and clear: `FrostedStrip` (v1.9), the
+   fade behind the status bar and the TabBar, so content blurs in gradually, as on iOS;
+   and the fade under the `TopBar` (v1.15, `layout.topBarFade`), so content scrolling
+   under the bar has no hard line.
 4. **Page and cards.** Every screen's background is `surface` (`#EDF2E9`), always,
    including the scanner and behind sheets. Never a dark green or dark camera-style page
    background. Cards, fields and unselected options sit on white `surfaceRaised`

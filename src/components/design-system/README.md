@@ -17,7 +17,7 @@ Built so far (v1.5, 30 Sep 2026, from the "Njam UI v1.4" canvas):
 | People and scope | `Avatar`, `HouseholdBar`, `ScopePill` |
 | Stores | `StoreLogo` (a shop's square logo filling a round badge, storefront icon until one is uploaded) |
 | Scanner | `ScanFrame` (close, torch, brackets, hint, scan line), `ShutterButton` (ready, busy), `CameraMessage` (the one message card on the camera) |
-| Structure | `SectionHeader` (full, simple, shelf), `ListGroup` + `ListRow`, `StepProgress`, `TabBar`, `TopBar` (27 Oct 2026: pinned, solid, back button always in one place; a line and a small title appear once you scroll), `FrostedStrip` (v1.9: the frosted fade behind the status bar and the TabBar) |
+| Structure | `SectionHeader` (full, simple, shelf), `ListGroup` + `ListRow`, `StepProgress`, `TabBar`, `TopBar` (27 Oct 2026: pinned, solid, back button always in one place, a short fade below it instead of a line; on aisles a small title appears once you scroll, and on Your scans and Profile the whole bar fades in), `FrostedStrip` (v1.9: the frosted fade behind the status bar and the TabBar) |
 | Feedback | `Snackbar`, `EmptyState`, `ConfirmDialog`, `BottomSheet`, `LoadingMark` |
 | AI | `NjamMark`, `AiAvatar`, `ChatBubble`, `ChatComposer` (with optional ghost text) |
 
