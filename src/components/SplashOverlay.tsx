@@ -119,10 +119,10 @@ export function SplashOverlay({ ready }: SplashOverlayProps) {
         Njam
       </Animated.Text>
       <Animated.View style={[styles.tagline, taglineStyle]}>
-        <Animated.Text style={[typography.bodyL, styles.taglineLine, { color: colors.inkInverse }]}>
+        <Animated.Text style={[typography.headline, styles.taglineLine, { color: colors.inkInverse }]}>
           Know if you can njam it.
         </Animated.Text>
-        <Animated.Text style={[typography.caption, styles.taglineLine, styles.caption, { color: colors.inkInverse }]}>
+        <Animated.Text style={[typography.bodyL, styles.taglineLine, styles.caption, { color: colors.inkInverse }]}>
           Allergy and diet checks for every label.
         </Animated.Text>
       </Animated.View>
