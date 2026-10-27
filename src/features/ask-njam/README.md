@@ -25,6 +25,6 @@ E-number is, and what to eat instead.
 - No medical advice: Njam says so and suggests a doctor or dietitian.
 - Entry points: on Home, `AskNjamRow`, a white row under the search bar. On
   Search and History, `AskNjamHeader`, a small tonal "Ask Njam" pill led by
-  the Njam circle, in a row above the headline (and `AskNjamButton` on the
-  Verdict top bar). Not on the Scanner or Profile. It was the round AiAvatar
+  the Njam circle, in a row above the headline (and `AskNjamButton` in the
+  top bar of Verdict, Aisle and Alternatives). Not on the Scanner or Profile. It was the round AiAvatar
   alone until the 27 Oct user test, where it read as a profile picture.

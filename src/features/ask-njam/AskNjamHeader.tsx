@@ -36,7 +36,7 @@ export function AskNjamHeader({ children }: { children: ReactNode }) {
   );
 }
 
-/** The labelled pill on its own, for screens with no SectionHeader (the Verdict screen's top bar). */
+/** The labelled pill on its own, for the top bar of Verdict, Aisle and Alternatives. */
 export function AskNjamButton() {
   return (
     <Button
