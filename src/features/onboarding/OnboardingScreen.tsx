@@ -24,7 +24,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import {
   Button,
-  IconButton,
   LoadingMark,
   OptionButton,
   RuleChip,
@@ -226,13 +225,12 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
   const showBack = step === 2 || (step === 1 && mode === 'edit');
 
   return (
-    <Screen>
-      {step !== 'ready' && (
-        <View style={styles.topBar}>
-          {showBack && <IconButton icon="arrow_back" accessibilityLabel="Go back" onPress={goBack} />}
-          <StepProgress step={step} total={TOTAL_STEPS} />
-        </View>
-      )}
+    <Screen
+      topBar={
+        step === 'ready'
+          ? undefined
+          : { onBack: showBack ? goBack : undefined, middle: <StepProgress step={step} total={TOTAL_STEPS} /> }
+      }>
 
       {step === 1 && (
         <>
@@ -433,11 +431,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: space.s3,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.s2,
   },
   chips: {
     flexDirection: 'row',
