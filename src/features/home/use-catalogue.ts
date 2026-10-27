@@ -10,26 +10,35 @@
  * Checked for several people, a product gets the worst of their verdicts:
  * it is only Safe if it is Safe for every one of them.
  *
- * It reloads whenever its screen comes back into focus, so a product saved
- * on one screen shows as saved on the others. The products themselves are
+ * What it loads is shared by every screen that uses it. A screen opening
+ * shows what is already there at once, and reloads in the background
+ * whenever it comes into focus, so a product another person in the
+ * household saved shows up too. The products themselves are
  * the heavy part (a few megabytes), so they are kept in memory and fetched
- * again only after CATALOGUE_MAX_AGE_MS.
+ * again only after CATALOGUE_MAX_AGE_MS. A copy is also kept on the phone
+ * (saved-catalogue.ts), so the first screen after the app opens can show
+ * the products while the fresh list downloads.
+ *
+ * The small things (the people, aisles, stores and saved products) load
+ * apart from the products, so a screen can draw its aisles and its "Checking
+ * for" pill while the products are still downloading.
  */
+import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { fetchCategories, type Category } from '@/features/home/categories';
 import type { VerdictFilter } from '@/features/home/FilterSheet';
+import { readSavedCatalogue, saveCatalogue } from '@/features/home/saved-catalogue';
 import { fetchSavedProductIds, saveProduct, unsaveProduct } from '@/features/home/saved-products';
 import { fetchStores, type Store } from '@/features/home/stores';
 import { fetchHouseholdProfiles, type ActiveProfile } from '@/features/profile/active-profile';
-import { fetchCatalogue, type CatalogueProduct } from '@/features/verdict/catalogue';
+import { cardPhotoUrl, fetchCatalogue, type CatalogueProduct } from '@/features/verdict/catalogue';
 import { decideVerdict, type VerdictState } from '@/services/verdict';
 
-/** Everything loaded before a screen can draw its grid. */
-export type Loaded = {
-  products: CatalogueProduct[];
+/** The small things, quick to load, that a screen can draw before the products. */
+export type Basics = {
   /** The household's default profile. */
   profile: ActiveProfile;
   /** Everyone in the household, the default profile first. */
@@ -37,6 +46,9 @@ export type Loaded = {
   categories: Category[];
   stores: Store[];
 };
+
+/** Everything loaded before a screen can draw its grid. */
+export type Loaded = Basics & { products: CatalogueProduct[] };
 
 /** A product with its verdict for the people it was checked for. */
 export type Checked = { product: CatalogueProduct; verdict: VerdictState };
@@ -50,6 +62,11 @@ export type Filters = {
   /** null means any store. */
   storeId: string | null;
   aisle: Aisle;
+  /**
+   * Browsing an aisle rather than searching: leaves out products that are not
+   * readyToBrowse. Your Saved list keeps every product, since you chose them.
+   */
+  browsing?: boolean;
 };
 
 /** How long the products are kept before they are fetched again. */
@@ -65,7 +82,11 @@ function catalogueProducts(): Promise<CatalogueProduct[]> {
   if (cachedProducts && Date.now() - cachedProducts.fetchedAt < CATALOGUE_MAX_AGE_MS) {
     return cachedProducts.products;
   }
-  const products = fetchCatalogue();
+  const products = fetchCatalogue().then((list) => {
+    // Not awaited: the screen should not wait for the phone to finish writing.
+    void saveCatalogue(list);
+    return list;
+  });
   cachedProducts = { products, fetchedAt: Date.now() };
   // A failed fetch is not kept, so the next focus tries again.
   products.catch(() => {
@@ -74,9 +95,72 @@ function catalogueProducts(): Promise<CatalogueProduct[]> {
   return products;
 }
 
-async function loadCatalogue(householdId: string): Promise<{ loaded: Loaded; saved: Set<string> }> {
-  const [products, profiles, categories, stores, saved] = await Promise.all([
-    catalogueProducts(),
+/**
+ * What the last load found, shared by every screen. householdId says whose
+ * it is, so signing in to another household never shows the last one's
+ * people or saved products. Only updateShared changes it, which tells every
+ * screen showing it to draw again.
+ */
+type Shared = {
+  householdId: string | null;
+  basics: Basics | null;
+  products: CatalogueProduct[] | null;
+  saved: Set<string>;
+};
+
+let shared: Shared = { householdId: null, basics: null, products: null, saved: new Set() };
+const listeners = new Set<() => void>();
+
+function updateShared(change: Partial<Shared>) {
+  shared = { ...shared, ...change };
+  listeners.forEach((listener) => listener());
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/** How many photos to fetch ahead for each aisle: about its first screenful. */
+const PHOTOS_AHEAD_PER_AISLE = 12;
+
+/**
+ * Downloads the first photos of every aisle (and of All) onto the phone
+ * before anyone opens it, so an aisle page draws its photos at once. About
+ * 120 small photos, roughly 1 MB. A photo that fails just loads later.
+ */
+function fetchPhotosAhead(products: CatalogueProduct[]) {
+  const takenPerAisle = new Map<string, number>();
+  const urls: string[] = [];
+  for (const product of products) {
+    // Only what an aisle page shows: readyToBrowse already needs a photo.
+    const url = cardPhotoUrl(product.imageUrl);
+    if (!url || !readyToBrowse(product)) continue;
+    // The aisle's own count and All's count: a photo is wanted for either.
+    const aisle = product.categoryId ?? 'none';
+    const forAisle = (takenPerAisle.get(aisle) ?? 0) < PHOTOS_AHEAD_PER_AISLE;
+    const forAll = (takenPerAisle.get('all') ?? 0) < PHOTOS_AHEAD_PER_AISLE;
+    if (!forAisle && !forAll) continue;
+    takenPerAisle.set(aisle, (takenPerAisle.get(aisle) ?? 0) + 1);
+    takenPerAisle.set('all', (takenPerAisle.get('all') ?? 0) + 1);
+    urls.push(url);
+  }
+  Image.prefetch(urls, 'memory-disk').catch(() => {});
+}
+
+/** Shares a new product list with every screen and starts on its photos. */
+function shareProducts(products: CatalogueProduct[]) {
+  updateShared({ products });
+  fetchPhotosAhead(products);
+}
+
+/** One empty set for "nothing saved yet", so it is the same object each draw. */
+const NOTHING_SAVED = new Set<string>();
+
+async function loadBasics(householdId: string): Promise<{ basics: Basics; saved: Set<string> }> {
+  const [profiles, categories, stores, saved] = await Promise.all([
     fetchHouseholdProfiles(householdId),
     fetchCategories(),
     fetchStores(),
@@ -85,7 +169,7 @@ async function loadCatalogue(householdId: string): Promise<{ loaded: Loaded; sav
   // fetchHouseholdProfiles puts the default profile first.
   const profile = profiles[0];
   if (!profile) throw new Error('No diet profile');
-  return { loaded: { products, profile, profiles, categories, stores }, saved };
+  return { basics: { profile, profiles, categories, stores }, saved };
 }
 
 /** Does a product's name or brand contain what was typed? Ignores case. */
@@ -102,16 +186,59 @@ function worstOf(verdicts: VerdictState[]): VerdictState {
   return verdicts.reduce((worst, next) => (VERDICT_RANK[next] > VERDICT_RANK[worst] ? next : worst), 'safe');
 }
 
+/**
+ * The verdicts already decided, shared by every screen, so opening an aisle
+ * or Search does not decide a thousand products again. They are kept by the
+ * rules they were decided against, written out as text: a fresh copy of the
+ * same rules (each focus reloads the profiles) finds the same verdicts, and
+ * a changed rule finds nothing and decides again. New products empty it.
+ */
+let decided: { products: CatalogueProduct[]; byRules: Map<string, Checked[]> } | null = null;
+
+/** Every product with the worst of its verdicts for these people. */
+function checkAll(products: CatalogueProduct[], checkFor: ActiveProfile[]): Checked[] {
+  if (decided?.products !== products) decided = { products, byRules: new Map() };
+  const rulesKey = JSON.stringify(checkFor.map((profile) => profile.rules));
+  const known = decided.byRules.get(rulesKey);
+  if (known) return known;
+
+  const checked = products.map((product) => {
+    const facts = {
+      verified: product.verified,
+      readFromLabel: false,
+      fromOpenFoodFacts: product.source === 'open_food_facts',
+      ingredients: product.ingredients,
+      mayContain: product.mayContain,
+    };
+    const verdicts = checkFor.map((profile) => decideVerdict(facts, profile.rules).state);
+    return { product, verdict: worstOf(verdicts) };
+  });
+  decided.byRules.set(rulesKey, checked);
+  return checked;
+}
+
 function matchesVerdict(verdict: VerdictState, filter: VerdictFilter): boolean {
   if (filter === 'safe') return verdict === 'safe';
   if (filter === 'notUnsafe') return verdict !== 'unsafe';
   return true;
 }
 
+/**
+ * Does this product look right when browsing (Home's shelves and the aisle
+ * pages)? It needs a photo, a brand and a real name: a few Open Food Facts
+ * records carry their barcode as the name. Search still finds the rest.
+ */
+export function readyToBrowse(product: CatalogueProduct): boolean {
+  const name = product.name.trim();
+  return Boolean(product.imageUrl) && Boolean(product.brand?.trim()) && name.length > 0 && !/^[\d\s]+$/.test(name);
+}
+
 /** The products that pass every filter, in catalogue order (A to Z). */
 export function applyFilters(checked: Checked[], saved: Set<string>, filters: Filters): Checked[] {
+  const skipIncomplete = filters.browsing === true && filters.aisle !== 'saved';
   return checked.filter(
     ({ product, verdict }) =>
+      (!skipIncomplete || readyToBrowse(product)) &&
       matchesSearch(product, filters.query) &&
       matchesVerdict(verdict, filters.verdictFilter) &&
       (filters.storeId === null || product.storeIds.includes(filters.storeId)) &&
@@ -126,48 +253,62 @@ export function applyFilters(checked: Checked[], saved: Set<string>, filters: Fi
  */
 export function useCatalogue(forProfileIds?: string[]) {
   const { member } = useAuth();
-  const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const householdId = member?.householdId;
+  const snapshot = useSyncExternalStore(subscribe, () => shared);
+  const mine = snapshot.householdId === householdId;
+  const basics = mine ? snapshot.basics : null;
+  const saved = mine ? snapshot.saved : NOTHING_SAVED;
+  const products = snapshot.products;
   const [failed, setFailed] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
 
-  const householdId = member?.householdId;
   const reload = useCallback(() => {
     if (!householdId) return;
-    loadCatalogue(householdId)
+    const fail = (error: unknown) => {
+      console.warn('Could not load the catalogue', error);
+      setFailed(true);
+    };
+    // Two loads side by side, not one after the other: the small one
+    // usually lands first and lets the screen draw its aisles.
+    loadBasics(householdId)
       .then((result) => {
-        setLoaded(result.loaded);
-        setSaved(result.saved);
+        updateShared({ householdId, basics: result.basics, saved: result.saved });
         setFailed(false);
       })
-      .catch((error) => {
-        console.warn('Could not load the catalogue', error);
-        setFailed(true);
+      .catch(fail);
+    // Nothing in memory yet (the app just opened): show the copy kept on the
+    // phone while the fresh list downloads, unless the fresh one wins.
+    if (!shared.products) {
+      readSavedCatalogue().then((list) => {
+        if (list && !shared.products) shareProducts(list);
       });
+    }
+    // Usually the same list as last time, from memory. Only a new list is
+    // shared, so the verdicts already decided for it are kept.
+    catalogueProducts()
+      .then((list) => {
+        if (list !== shared.products) shareProducts(list);
+      })
+      .catch(fail);
   }, [householdId]);
+
+  // null until both halves are in. Kept as one object for the screens.
+  const loaded = useMemo<Loaded | null>(
+    () => (basics && products ? { ...basics, products } : null),
+    [basics, products],
+  );
 
   useFocusEffect(reload);
 
   // A string key, so a new array with the same ids does not decide again.
   const forKey = (forProfileIds ?? []).join(',');
 
-  // Decide every product once per load (or change of people), not on every
-  // key typed in a search.
+  // Not on every key typed in a search. checkAll also remembers across
+  // screens and reloads, so this is only slow the first time.
   const checked = useMemo<Checked[]>(() => {
     if (!loaded) return [];
     const wanted = loaded.profiles.filter((profile) => forKey.split(',').includes(profile.id));
-    const checkFor = wanted.length > 0 ? wanted : [loaded.profile];
-    return loaded.products.map((product) => {
-      const facts = {
-        verified: product.verified,
-        readFromLabel: false,
-        fromOpenFoodFacts: product.source === 'open_food_facts',
-        ingredients: product.ingredients,
-        mayContain: product.mayContain,
-      };
-      const verdicts = checkFor.map((profile) => decideVerdict(facts, profile.rules).state);
-      return { product, verdict: worstOf(verdicts) };
-    });
+    return checkAll(loaded.products, wanted.length > 0 ? wanted : [loaded.profile]);
   }, [loaded, forKey]);
 
   /** Saves or unsaves at once on screen, and puts it back if the database says no. */
@@ -179,14 +320,15 @@ export function useCatalogue(forProfileIds?: string[]) {
       else next.add(productId);
       return next;
     };
-    setSaved(flip);
+    updateShared({ saved: flip(shared.saved) });
     (wasSaved ? unsaveProduct(productId) : saveProduct(productId)).catch(() => {
-      setSaved(flip);
+      updateShared({ saved: flip(shared.saved) });
       setSaveFailed(true);
     });
   }
 
   return {
+    basics,
     loaded,
     checked,
     saved,

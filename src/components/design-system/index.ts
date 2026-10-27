@@ -4,6 +4,7 @@
  */
 export { BottomSheet } from './BottomSheet';
 export { Button } from './Button';
+export { CameraMessage } from './CameraMessage';
 export { Icon } from './Icon';
 export { ListGroup, ListRow } from './ListRow';
 export { LoadingMark } from './LoadingMark';
@@ -34,6 +35,7 @@ export { ProductTile } from './ProductTile';
 export { RuleChip, type Severity } from './RuleChip';
 export { ScanFrame } from './ScanFrame';
 export { ScopePill } from './ScopePill';
+export { ShutterButton } from './ShutterButton';
 export { Slider } from './Slider';
 export { Snackbar } from './Snackbar';
 export { StepProgress } from './StepProgress';

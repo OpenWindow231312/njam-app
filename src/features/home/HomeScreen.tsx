@@ -14,16 +14,24 @@
  *       Saved by your household - left out until something is saved.
  *       Recently scanned        - left out until there is a scan.
  *
+ * The two product shelves only show products with a photo, a brand and a
+ * real name (readyToBrowse in use-catalogue.ts), as the aisle pages do.
+ * Search shows them all.
+ *
  * Typing in the search swaps everything under it for the matching products,
  * two to a row, so searching still works without leaving Home. Clearing the
  * search brings the shelves back.
+ *
+ * The greeting, search bar, scan button, "Checking for" pill and aisle
+ * bubbles draw as soon as the small things are in (useCatalogue's basics).
+ * Only the shelves wait for the products.
  *
  * Loading, verdicts and saving come from useCatalogue, shared with Search
  * and the aisle page. The catalogue is small, so it is searched on the
  * phone, with no request per letter typed.
  */
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useDeferredValue, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
@@ -43,8 +51,8 @@ import { HomeScope, scopeName } from '@/features/home/HomeScope';
 import { ProductGrid } from '@/features/home/ProductGrid';
 import { ProductShelf } from '@/features/home/ProductShelf';
 import { ScanTipCard } from '@/features/home/ScanTipCard';
-import { applyFilters, useCatalogue, type Checked } from '@/features/home/use-catalogue';
-import { packSize } from '@/features/verdict/catalogue';
+import { applyFilters, readyToBrowse, useCatalogue, type Checked } from '@/features/home/use-catalogue';
+import { cardPhotoUrl, packSize } from '@/features/verdict/catalogue';
 import { fetchRecentScans, type ScanRecord } from '@/features/verdict/scans';
 import { icon, layout, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
@@ -69,7 +77,7 @@ export function HomeScreen() {
   // is what useCatalogue falls back to until someone is ticked.
   const [checkingFor, setCheckingFor] = useState<string[]>([]);
   const catalogue = useCatalogue(checkingFor);
-  const { loaded, saved } = catalogue;
+  const { basics, loaded, saved } = catalogue;
 
   const [query, setQuery] = useState('');
   const [recent, setRecent] = useState<ScanRecord[]>([]);
@@ -84,13 +92,22 @@ export function HomeScreen() {
     }, []),
   );
 
-  const selectedIds = loaded && checkingFor.length === 0 ? [loaded.profile.id] : checkingFor;
-  const forWhom = loaded ? scopeName(loaded.profiles, selectedIds) : '';
+  const selectedIds = basics && checkingFor.length === 0 ? [basics.profile.id] : checkingFor;
+  const forWhom = basics ? scopeName(basics.profiles, selectedIds) : '';
 
+  // The box shows each letter at once; the grid follows a moment later, so
+  // filtering a thousand products never holds up the typing.
+  const searchedFor = useDeferredValue(query);
   const searching = query.trim().length > 0;
-  const results = applyFilters(catalogue.checked, saved, { query, verdictFilter: 'all', storeId: null, aisle: 'all' });
-  const safe = catalogue.checked.filter((item) => item.verdict === 'safe').slice(0, SHELF_SIZE);
-  const savedItems = catalogue.checked.filter((item) => saved.has(item.product.id)).slice(0, SHELF_SIZE);
+  const results = applyFilters(catalogue.checked, saved, {
+    query: searchedFor,
+    verdictFilter: 'all',
+    storeId: null,
+    aisle: 'all',
+  });
+  const onShelf = catalogue.checked.filter((item) => readyToBrowse(item.product));
+  const safe = onShelf.filter((item) => item.verdict === 'safe').slice(0, SHELF_SIZE);
+  const savedItems = onShelf.filter((item) => saved.has(item.product.id)).slice(0, SHELF_SIZE);
 
   /** One catalogue product as a tile, with its verdict and bookmark. */
   const tile = ({ product, verdict }: Checked) => (
@@ -100,7 +117,7 @@ export function HomeScreen() {
       brand={product.brand}
       size={packSize(product)}
       verdict={verdict}
-      imageUrl={product.imageUrl}
+      imageUrl={cardPhotoUrl(product.imageUrl)}
       saved={saved.has(product.id)}
       onPress={() => openProduct(product.id)}
       onToggleSave={() => catalogue.toggleSave(product.id)}
@@ -120,7 +137,7 @@ export function HomeScreen() {
           </View>
         </AskNjamHeader>
 
-        {loaded && <HomeScope profiles={loaded.profiles} selectedIds={selectedIds} onChange={setCheckingFor} />}
+        {basics && <HomeScope profiles={basics.profiles} selectedIds={selectedIds} onChange={setCheckingFor} />}
       </View>
 
       <View style={styles.searchRow}>
@@ -145,13 +162,6 @@ export function HomeScreen() {
         />
       </View>
 
-      {!loaded && !catalogue.failed && (
-        <View style={styles.loading}>
-          <LoadingMark size={icon.sizeMd} color={colors.brandForest} />
-          <Text style={[typography.body, { color: colors.inkMuted }]}>Checking the catalogue against your rules</Text>
-        </View>
-      )}
-
       {/* Searching: the matching products take the shelves' place. */}
       {loaded && searching && (
         <>
@@ -172,44 +182,54 @@ export function HomeScreen() {
         </>
       )}
 
+      {basics && !searching && (
+        <View style={styles.aisles}>
+          <SectionHeader
+            variant="shelf"
+            headline="Shop by aisle"
+            actionLabel="See all"
+            onAction={() => router.navigate('/search')}
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.bleed}
+            contentContainerStyle={styles.bubbleRow}>
+            <CategoryBubble
+              icon="grid_view"
+              label="All"
+              active
+              onPress={() => router.push({ pathname: '/aisle', params: { aisle: 'all' } })}
+            />
+            <CategoryBubble
+              icon="bookmark"
+              label="Saved"
+              onPress={() => router.push({ pathname: '/aisle', params: { aisle: 'saved' } })}
+            />
+            {basics.categories.map((category) => (
+              <CategoryBubble
+                key={category.id}
+                icon={category.icon}
+                label={category.name}
+                onPress={() => router.push({ pathname: '/aisle', params: { aisle: category.id } })}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {!searching && <ScanTipCard />}
+
+      {/* Only the products wait: everything above is already drawn. */}
+      {!loaded && !catalogue.failed && (
+        <View style={styles.loading}>
+          <LoadingMark size={icon.sizeMd} color={colors.brandForest} />
+          <Text style={[typography.body, { color: colors.inkMuted }]}>Checking the catalogue against your rules</Text>
+        </View>
+      )}
+
       {loaded && !searching && (
         <>
-          <View style={styles.aisles}>
-            <SectionHeader
-              variant="shelf"
-              headline="Shop by aisle"
-              actionLabel="See all"
-              onAction={() => router.navigate('/search')}
-            />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.bleed}
-              contentContainerStyle={styles.bubbleRow}>
-              <CategoryBubble
-                icon="grid_view"
-                label="All"
-                active
-                onPress={() => router.push({ pathname: '/aisle', params: { aisle: 'all' } })}
-              />
-              <CategoryBubble
-                icon="bookmark"
-                label="Saved"
-                onPress={() => router.push({ pathname: '/aisle', params: { aisle: 'saved' } })}
-              />
-              {loaded.categories.map((category) => (
-                <CategoryBubble
-                  key={category.id}
-                  icon={category.icon}
-                  label={category.name}
-                  onPress={() => router.push({ pathname: '/aisle', params: { aisle: category.id } })}
-                />
-              ))}
-            </ScrollView>
-          </View>
-
-          <ScanTipCard />
-
           {safe.length > 0 && (
             <ProductShelf
               title={`Safe for ${forWhom}`}
@@ -234,7 +254,7 @@ export function HomeScreen() {
                   name={scan.productName ?? 'Product from a label photo'}
                   brand={scan.productBrand}
                   verdict={scan.verdict}
-                  imageUrl={scan.productImageUrl}
+                  imageUrl={cardPhotoUrl(scan.productImageUrl)}
                   onPress={() => router.push({ pathname: '/verdict', params: { scanId: scan.id } })}
                 />
               ))}

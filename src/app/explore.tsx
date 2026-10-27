@@ -30,6 +30,7 @@ import {
   MemberVerdict,
   OptionButton,
   PhotoStepCard,
+  CameraMessage,
   CategoryBubble,
   ProductCard,
   ProductGridCard,
@@ -37,6 +38,7 @@ import {
   RuleChip,
   ScanFrame,
   ScopePill,
+  ShutterButton,
   SectionHeader,
   SegmentedControl,
   Slider,
@@ -419,14 +421,36 @@ export default function ComponentPreviewScreen() {
               onSelect={setScope}
             />
           </State>
-          <State label="Camera panel: scope pill, torch, hint, fallback">
+          <State label="Scope pill">
+            <ScopePill people={['Anika', 'Thabo', 'Lindi']} label="Checking for 3 people" onPress={() => {}} />
+          </State>
+          <State label="Camera panel: close, torch, hint, shutter">
             <View style={styles.scanner}>
               <ScanFrame
-                scope={<ScopePill people={['Anika', 'Thabo', 'Lindi']} label="Checking for 3 people" onPress={() => {}} />}
+                onClose={() => {}}
                 torchOn={torch}
                 onToggleTorch={() => setTorch(!torch)}
-                hint="Point at a barcode. It scans by itself."
-                bottomAction={<Button label="Type the barcode instead" icon="keyboard" variant="outlined" onPress={() => {}} />}
+                hint="Fit the barcode inside the frame"
+                bottomAction={<ShutterButton accessibilityLabel="Take a photo of the barcode" onPress={() => {}} />}
+              />
+            </View>
+          </State>
+          <State label="Camera panel: message card, busy shutter">
+            <View style={styles.scanner}>
+              <ScanFrame
+                onClose={() => {}}
+                torchOn={torch}
+                onToggleTorch={() => setTorch(!torch)}
+                message={
+                  <CameraMessage
+                    icon="info"
+                    title="We could not read that barcode"
+                    body="Hold your phone still, a little closer, with the barcode flat and out of glare."
+                  />
+                }
+                hint="Reading the barcode"
+                scanning
+                bottomAction={<ShutterButton accessibilityLabel="Reading your photo" busy onPress={() => {}} />}
               />
             </View>
           </State>

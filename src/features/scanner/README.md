@@ -1,19 +1,27 @@
 # Scanner
 
-Point the camera at a barcode and get a verdict. This is the core feature, and it
-only truly works on a physical phone through Expo Go.
+Photograph a barcode and get a verdict. This is the core feature, and it only
+truly works on a physical phone through Expo Go.
 
-- Uses `expo-camera`. The `ScanFrame` component owns the viewfinder (radius `xxl`,
-  the area outside it dimmed with `opacity.scanDim`).
-- **The scope pill is mandatory.** It shows which household profile the scan runs
-  against. A scan against the wrong profile is the worst failure mode in the app.
-- On a read: look up the barcode in `products`. If missing, ask the
-  `import-open-food-facts` function to fetch it from Open Food Facts; it saves
-  the product (no AI, no extra photo) and its verdict opens. If Open Food Facts
-  does not have it either, ask for a label photo, then the front of the pack,
-  to add the product (see `src/features/add-product`).
-- A barcode scans by itself, with no tap. Every photo (label or front) is
-  checked before it is used: the shutter buzzes and freezes the photo on the
-  panel, with "Retake" and "Use this photo".
-- Hands the product and active profile to `src/services/verdict`, then routes to
-  the verdict screen.
+- Uses `expo-camera`. The `ScanFrame` component owns the viewfinder (radius
+  `xxl`), which fills the screen: the TabBar hides on this tab and the close
+  button goes back to Home.
+- **Nothing is read until the shutter is pressed** (`ShutterButton`). The
+  photo freezes on the panel, a lime line sweeps the brackets while
+  `scanFromURLAsync` reads the barcode from it, and `BarcodeReadout` floats
+  the number up above them.
+- **Found** (in `products`, or saved from Open Food Facts by the
+  `import-open-food-facts` function): `FoundProduct` shows its name under the
+  brackets for `motion.resultHold`, then the Verdict screen opens.
+- **If the barcode will not read**, a `CameraMessage` says what to try. A
+  second miss in a row opens a `BottomSheet` to type the number instead
+  (`parseTypedBarcode` in `barcode.ts`). "Find this product" shows it is
+  looking; the sheet closes once it knows. The sheet also offers "No barcode?
+  Photograph the ingredient list", for a label-only verdict that is not saved.
+- **Not in Njam yet**: a photo of the front of the pack, checked with "Retake"
+  and "Use this photo", then a photo of the ingredient list, which is read
+  straight away with no check. The name is read off the front while you take
+  the second photo. The product is added unverified (see
+  `src/features/add-product`) and its verdict opens.
+- The message card is always in the same place: just under the close and
+  torch buttons.

@@ -14,7 +14,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Button, ProductGridCard } from '@/components/design-system';
 import type { Checked } from '@/features/home/use-catalogue';
-import { packSize } from '@/features/verdict/catalogue';
+import { cardPhotoUrl, packSize } from '@/features/verdict/catalogue';
 import { space } from '@/theme/tokens';
 
 type ProductGridProps = {
@@ -50,7 +50,7 @@ export function ProductGrid({ items, saved, onToggleSave }: ProductGridProps) {
               brand={product.brand}
               size={packSize(product)}
               verdict={verdict}
-              imageUrl={product.imageUrl}
+              imageUrl={cardPhotoUrl(product.imageUrl)}
               saved={saved.has(product.id)}
               onPress={() => router.push({ pathname: '/verdict', params: { productId: product.id } })}
               onToggleSave={() => onToggleSave(product.id)}
