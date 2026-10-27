@@ -18,6 +18,10 @@
  * two to a row, so searching still works without leaving Home. Clearing the
  * search brings the shelves back.
  *
+ * The greeting, search bar, scan button, "Checking for" pill and aisle
+ * bubbles draw as soon as the small things are in (useCatalogue's basics).
+ * Only the shelves wait for the products.
+ *
  * Loading, verdicts and saving come from useCatalogue, shared with Search
  * and the aisle page. The catalogue is small, so it is searched on the
  * phone, with no request per letter typed.
@@ -69,7 +73,7 @@ export function HomeScreen() {
   // is what useCatalogue falls back to until someone is ticked.
   const [checkingFor, setCheckingFor] = useState<string[]>([]);
   const catalogue = useCatalogue(checkingFor);
-  const { loaded, saved } = catalogue;
+  const { basics, loaded, saved } = catalogue;
 
   const [query, setQuery] = useState('');
   const [recent, setRecent] = useState<ScanRecord[]>([]);
@@ -84,8 +88,8 @@ export function HomeScreen() {
     }, []),
   );
 
-  const selectedIds = loaded && checkingFor.length === 0 ? [loaded.profile.id] : checkingFor;
-  const forWhom = loaded ? scopeName(loaded.profiles, selectedIds) : '';
+  const selectedIds = basics && checkingFor.length === 0 ? [basics.profile.id] : checkingFor;
+  const forWhom = basics ? scopeName(basics.profiles, selectedIds) : '';
 
   const searching = query.trim().length > 0;
   const results = applyFilters(catalogue.checked, saved, { query, verdictFilter: 'all', storeId: null, aisle: 'all' });
@@ -120,7 +124,7 @@ export function HomeScreen() {
           </View>
         </AskNjamHeader>
 
-        {loaded && <HomeScope profiles={loaded.profiles} selectedIds={selectedIds} onChange={setCheckingFor} />}
+        {basics && <HomeScope profiles={basics.profiles} selectedIds={selectedIds} onChange={setCheckingFor} />}
       </View>
 
       <View style={styles.searchRow}>
@@ -145,13 +149,6 @@ export function HomeScreen() {
         />
       </View>
 
-      {!loaded && !catalogue.failed && (
-        <View style={styles.loading}>
-          <LoadingMark size={icon.sizeMd} color={colors.brandForest} />
-          <Text style={[typography.body, { color: colors.inkMuted }]}>Checking the catalogue against your rules</Text>
-        </View>
-      )}
-
       {/* Searching: the matching products take the shelves' place. */}
       {loaded && searching && (
         <>
@@ -172,44 +169,54 @@ export function HomeScreen() {
         </>
       )}
 
+      {basics && !searching && (
+        <View style={styles.aisles}>
+          <SectionHeader
+            variant="shelf"
+            headline="Shop by aisle"
+            actionLabel="See all"
+            onAction={() => router.navigate('/search')}
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.bleed}
+            contentContainerStyle={styles.bubbleRow}>
+            <CategoryBubble
+              icon="grid_view"
+              label="All"
+              active
+              onPress={() => router.push({ pathname: '/aisle', params: { aisle: 'all' } })}
+            />
+            <CategoryBubble
+              icon="bookmark"
+              label="Saved"
+              onPress={() => router.push({ pathname: '/aisle', params: { aisle: 'saved' } })}
+            />
+            {basics.categories.map((category) => (
+              <CategoryBubble
+                key={category.id}
+                icon={category.icon}
+                label={category.name}
+                onPress={() => router.push({ pathname: '/aisle', params: { aisle: category.id } })}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {!searching && <ScanTipCard />}
+
+      {/* Only the products wait: everything above is already drawn. */}
+      {!loaded && !catalogue.failed && (
+        <View style={styles.loading}>
+          <LoadingMark size={icon.sizeMd} color={colors.brandForest} />
+          <Text style={[typography.body, { color: colors.inkMuted }]}>Checking the catalogue against your rules</Text>
+        </View>
+      )}
+
       {loaded && !searching && (
         <>
-          <View style={styles.aisles}>
-            <SectionHeader
-              variant="shelf"
-              headline="Shop by aisle"
-              actionLabel="See all"
-              onAction={() => router.navigate('/search')}
-            />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.bleed}
-              contentContainerStyle={styles.bubbleRow}>
-              <CategoryBubble
-                icon="grid_view"
-                label="All"
-                active
-                onPress={() => router.push({ pathname: '/aisle', params: { aisle: 'all' } })}
-              />
-              <CategoryBubble
-                icon="bookmark"
-                label="Saved"
-                onPress={() => router.push({ pathname: '/aisle', params: { aisle: 'saved' } })}
-              />
-              {loaded.categories.map((category) => (
-                <CategoryBubble
-                  key={category.id}
-                  icon={category.icon}
-                  label={category.name}
-                  onPress={() => router.push({ pathname: '/aisle', params: { aisle: category.id } })}
-                />
-              ))}
-            </ScrollView>
-          </View>
-
-          <ScanTipCard />
-
           {safe.length > 0 && (
             <ProductShelf
               title={`Safe for ${forWhom}`}

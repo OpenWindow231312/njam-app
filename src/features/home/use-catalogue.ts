@@ -14,6 +14,10 @@
  * on one screen shows as saved on the others. The products themselves are
  * the heavy part (a few megabytes), so they are kept in memory and fetched
  * again only after CATALOGUE_MAX_AGE_MS.
+ *
+ * The small things (the people, aisles, stores and saved products) load
+ * apart from the products, so a screen can draw its aisles and its "Checking
+ * for" pill while the products are still downloading.
  */
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -27,9 +31,8 @@ import { fetchHouseholdProfiles, type ActiveProfile } from '@/features/profile/a
 import { fetchCatalogue, type CatalogueProduct } from '@/features/verdict/catalogue';
 import { decideVerdict, type VerdictState } from '@/services/verdict';
 
-/** Everything loaded before a screen can draw its grid. */
-export type Loaded = {
-  products: CatalogueProduct[];
+/** The small things, quick to load, that a screen can draw before the products. */
+export type Basics = {
   /** The household's default profile. */
   profile: ActiveProfile;
   /** Everyone in the household, the default profile first. */
@@ -37,6 +40,9 @@ export type Loaded = {
   categories: Category[];
   stores: Store[];
 };
+
+/** Everything loaded before a screen can draw its grid. */
+export type Loaded = Basics & { products: CatalogueProduct[] };
 
 /** A product with its verdict for the people it was checked for. */
 export type Checked = { product: CatalogueProduct; verdict: VerdictState };
@@ -74,9 +80,8 @@ function catalogueProducts(): Promise<CatalogueProduct[]> {
   return products;
 }
 
-async function loadCatalogue(householdId: string): Promise<{ loaded: Loaded; saved: Set<string> }> {
-  const [products, profiles, categories, stores, saved] = await Promise.all([
-    catalogueProducts(),
+async function loadBasics(householdId: string): Promise<{ basics: Basics; saved: Set<string> }> {
+  const [profiles, categories, stores, saved] = await Promise.all([
     fetchHouseholdProfiles(householdId),
     fetchCategories(),
     fetchStores(),
@@ -85,7 +90,7 @@ async function loadCatalogue(householdId: string): Promise<{ loaded: Loaded; sav
   // fetchHouseholdProfiles puts the default profile first.
   const profile = profiles[0];
   if (!profile) throw new Error('No diet profile');
-  return { loaded: { products, profile, profiles, categories, stores }, saved };
+  return { basics: { profile, profiles, categories, stores }, saved };
 }
 
 /** Does a product's name or brand contain what was typed? Ignores case. */
@@ -126,7 +131,8 @@ export function applyFilters(checked: Checked[], saved: Set<string>, filters: Fi
  */
 export function useCatalogue(forProfileIds?: string[]) {
   const { member } = useAuth();
-  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [basics, setBasics] = useState<Basics | null>(null);
+  const [products, setProducts] = useState<CatalogueProduct[] | null>(null);
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [failed, setFailed] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
@@ -134,17 +140,27 @@ export function useCatalogue(forProfileIds?: string[]) {
   const householdId = member?.householdId;
   const reload = useCallback(() => {
     if (!householdId) return;
-    loadCatalogue(householdId)
+    const fail = (error: unknown) => {
+      console.warn('Could not load the catalogue', error);
+      setFailed(true);
+    };
+    // Two loads side by side, not one after the other: the small one
+    // usually lands first and lets the screen draw its aisles.
+    loadBasics(householdId)
       .then((result) => {
-        setLoaded(result.loaded);
+        setBasics(result.basics);
         setSaved(result.saved);
         setFailed(false);
       })
-      .catch((error) => {
-        console.warn('Could not load the catalogue', error);
-        setFailed(true);
-      });
+      .catch(fail);
+    catalogueProducts().then(setProducts).catch(fail);
   }, [householdId]);
+
+  // null until both halves are in. Kept as one object for the screens.
+  const loaded = useMemo<Loaded | null>(
+    () => (basics && products ? { ...basics, products } : null),
+    [basics, products],
+  );
 
   useFocusEffect(reload);
 
@@ -187,6 +203,7 @@ export function useCatalogue(forProfileIds?: string[]) {
   }
 
   return {
+    basics,
     loaded,
     checked,
     saved,
