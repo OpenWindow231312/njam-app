@@ -257,23 +257,8 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
             </View>
           </View>
 
-          <View style={styles.block}>
-            <Text style={[typography.overline, { color: colors.inkMuted }]}>Diets</Text>
-            <View style={styles.chips}>
-              {DIETS.map((diet) => (
-                <RuleChip
-                  key={diet.label}
-                  label={diet.label}
-                  selected={dietIsOn(diet, rules.allergies)}
-                  onToggle={() => toggleDiet(diet)}
-                />
-              ))}
-            </View>
-            <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
-              A diet marks what it rules out, so dairy-free adds milk to your list.
-            </Text>
-          </View>
-
+          {/* Straight under the chips, so a tick shows its level choice where
+              you are looking. At the bottom of the page it was easy to miss. */}
           {chosenAllergens.length > 0 && (
             <View style={styles.block}>
               <SectionHeader variant="simple" headline="How strict is each one?" />
@@ -297,6 +282,23 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
               ))}
             </View>
           )}
+
+          <View style={styles.block}>
+            <Text style={[typography.overline, { color: colors.inkMuted }]}>Diets</Text>
+            <View style={styles.chips}>
+              {DIETS.map((diet) => (
+                <RuleChip
+                  key={diet.label}
+                  label={diet.label}
+                  selected={dietIsOn(diet, rules.allergies)}
+                  onToggle={() => toggleDiet(diet)}
+                />
+              ))}
+            </View>
+            <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
+              A diet marks what it rules out, so dairy-free adds milk to your list.
+            </Text>
+          </View>
 
           <Button
             label={chosenAllergens.length > 0 ? 'Next: anything else you avoid' : 'None of these'}
