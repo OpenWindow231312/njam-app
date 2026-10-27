@@ -14,7 +14,10 @@
  * and size never truncate. Njam is not a price comparison app, so price is
  * never the main detail.
  */
-import { Image, StyleSheet, Text, View } from 'react-native';
+// expo-image, not React Native's Image: it keeps each photo on the phone, so
+// a card seen before draws its photo at once instead of downloading it again.
+import { Image } from 'expo-image';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
 import { VerdictMark, type VerdictState } from '@/components/design-system/VerdictMark';
@@ -74,7 +77,13 @@ export function ProductCard({
           { width: thumbSize, height: thumbSize, backgroundColor: colors.surfaceSunken },
         ]}>
         {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.image} accessibilityIgnoresInvertColors />
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.image}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            accessibilityIgnoresInvertColors
+          />
         ) : (
           <Icon name="inventory_2" color={colors.lineStrong} />
         )}

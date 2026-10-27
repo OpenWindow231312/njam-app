@@ -24,7 +24,10 @@
  * screen-reader label says it in words. The full verdict with its reasons is
  * one tap away.
  */
-import { Image, StyleSheet, Text, View } from 'react-native';
+// expo-image, not React Native's Image: it keeps each photo on the phone, so
+// a card seen before draws its photo at once instead of downloading it again.
+import { Image } from 'expo-image';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
 import { PressableSurface } from '@/components/design-system/PressableSurface';
@@ -76,7 +79,13 @@ export function ProductGridCard({
       ]}>
       <View style={[styles.photo, { backgroundColor: colors.surfaceMedia }]}>
         {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" accessibilityIgnoresInvertColors />
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.image}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            accessibilityIgnoresInvertColors
+          />
         ) : (
           <Icon name="inventory_2" size="xl" color={colors.inkSubtle} />
         )}
