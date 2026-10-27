@@ -10,8 +10,10 @@
  * Checked for several people, a product gets the worst of their verdicts:
  * it is only Safe if it is Safe for every one of them.
  *
- * It reloads whenever its screen comes back into focus, so a product saved
- * on one screen shows as saved on the others. The products themselves are
+ * What it loads is shared by every screen that uses it. A screen opening
+ * shows what is already there at once, and reloads in the background
+ * whenever it comes into focus, so a product another person in the
+ * household saved shows up too. The products themselves are
  * the heavy part (a few megabytes), so they are kept in memory and fetched
  * again only after CATALOGUE_MAX_AGE_MS.
  *
@@ -20,7 +22,7 @@
  * for" pill while the products are still downloading.
  */
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { fetchCategories, type Category } from '@/features/home/categories';
@@ -79,6 +81,37 @@ function catalogueProducts(): Promise<CatalogueProduct[]> {
   });
   return products;
 }
+
+/**
+ * What the last load found, shared by every screen. householdId says whose
+ * it is, so signing in to another household never shows the last one's
+ * people or saved products. Only updateShared changes it, which tells every
+ * screen showing it to draw again.
+ */
+type Shared = {
+  householdId: string | null;
+  basics: Basics | null;
+  products: CatalogueProduct[] | null;
+  saved: Set<string>;
+};
+
+let shared: Shared = { householdId: null, basics: null, products: null, saved: new Set() };
+const listeners = new Set<() => void>();
+
+function updateShared(change: Partial<Shared>) {
+  shared = { ...shared, ...change };
+  listeners.forEach((listener) => listener());
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/** One empty set for "nothing saved yet", so it is the same object each draw. */
+const NOTHING_SAVED = new Set<string>();
 
 async function loadBasics(householdId: string): Promise<{ basics: Basics; saved: Set<string> }> {
   const [profiles, categories, stores, saved] = await Promise.all([
@@ -162,13 +195,15 @@ export function applyFilters(checked: Checked[], saved: Set<string>, filters: Fi
  */
 export function useCatalogue(forProfileIds?: string[]) {
   const { member } = useAuth();
-  const [basics, setBasics] = useState<Basics | null>(null);
-  const [products, setProducts] = useState<CatalogueProduct[] | null>(null);
-  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const householdId = member?.householdId;
+  const snapshot = useSyncExternalStore(subscribe, () => shared);
+  const mine = snapshot.householdId === householdId;
+  const basics = mine ? snapshot.basics : null;
+  const saved = mine ? snapshot.saved : NOTHING_SAVED;
+  const products = snapshot.products;
   const [failed, setFailed] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
 
-  const householdId = member?.householdId;
   const reload = useCallback(() => {
     if (!householdId) return;
     const fail = (error: unknown) => {
@@ -179,12 +214,17 @@ export function useCatalogue(forProfileIds?: string[]) {
     // usually lands first and lets the screen draw its aisles.
     loadBasics(householdId)
       .then((result) => {
-        setBasics(result.basics);
-        setSaved(result.saved);
+        updateShared({ householdId, basics: result.basics, saved: result.saved });
         setFailed(false);
       })
       .catch(fail);
-    catalogueProducts().then(setProducts).catch(fail);
+    // Usually the same list as last time, from memory. Only a new list is
+    // shared, so the verdicts already decided for it are kept.
+    catalogueProducts()
+      .then((list) => {
+        if (list !== shared.products) updateShared({ products: list });
+      })
+      .catch(fail);
   }, [householdId]);
 
   // null until both halves are in. Kept as one object for the screens.
@@ -215,9 +255,9 @@ export function useCatalogue(forProfileIds?: string[]) {
       else next.add(productId);
       return next;
     };
-    setSaved(flip);
+    updateShared({ saved: flip(shared.saved) });
     (wasSaved ? unsaveProduct(productId) : saveProduct(productId)).catch(() => {
-      setSaved(flip);
+      updateShared({ saved: flip(shared.saved) });
       setSaveFailed(true);
     });
   }
