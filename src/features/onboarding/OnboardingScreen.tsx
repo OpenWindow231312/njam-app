@@ -192,7 +192,9 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
   }
 
   function goBack() {
-    if (step === 2) setStep(1);
+    // From the ready screen your rules are already saved; saving again replaces them.
+    if (step === 'ready') setStep(2);
+    else if (step === 2) setStep(1);
     else router.back();
   }
 
@@ -224,14 +226,30 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
   }
 
   // There is nothing behind the first step of first-run to go back to.
-  const showBack = step === 2 || (step === 1 && mode === 'edit');
+  const showBack = step !== 1 || mode === 'edit';
 
   return (
     <Screen
       topBar={
         step === 'ready'
-          ? undefined
+          ? { onBack: goBack }
           : { onBack: showBack ? goBack : undefined, middle: <StepProgress step={step} total={TOTAL_STEPS} /> }
+      }
+      footer={
+        step === 'ready' ? (
+          <>
+            <Button
+              label="Go to Home"
+              loading={busy}
+              loadingLabel="Opening Njam"
+              onPress={goHome}
+              size="large"
+              fullWidth
+            />
+            {/* Your rules are saved, so changing them now replaces them. */}
+            <Button label="Change my rules" variant="text" onPress={() => setStep(1)} fullWidth />
+          </>
+        ) : undefined
       }>
 
       {step === 1 && (
@@ -410,8 +428,11 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
         </>
       )}
 
+      {/* One View with no gap of its own: the SectionHeader already leaves
+          space under itself, and Screen's gap on top of that left a hole
+          between the deck and your rules (as on Home). */}
       {step === 'ready' && (
-        <>
+        <View>
           <SectionHeader
             headline="Your profile is ready"
             deck={
@@ -421,19 +442,7 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
             }
           />
           <RuleGroups rules={toRows(rules)} />
-          <View style={styles.block}>
-            <Button
-              label="Go to Home"
-              loading={busy}
-              loadingLabel="Opening Njam"
-              onPress={goHome}
-              size="large"
-              fullWidth
-            />
-            {/* Your rules are saved, so changing them now replaces them. */}
-            <Button label="Change my rules" variant="text" onPress={() => setStep(1)} fullWidth />
-          </View>
-        </>
+        </View>
       )}
 
       {failure && (
