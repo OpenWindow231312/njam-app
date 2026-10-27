@@ -24,7 +24,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { IconButton } from '@/components/design-system/IconButton';
-import { border, layout, motion, radius, space, typography } from '@/theme/tokens';
+import { border, layout, motion, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type ScanFrameProps = {
@@ -130,7 +130,9 @@ export function ScanFrame({
 /**
  * The scan line: one flat lime bar (accent, never a gradient) that sweeps
  * down through the brackets and starts again, once every motion.loadingTurn,
- * while a photo is read. With "reduce motion" on it holds still in the middle.
+ * while a photo is read. Behind it, the part it has passed takes a flat lime
+ * wash (accent at opacity.scanRead), so you can see the photo being read
+ * line by line. With "reduce motion" on both hold still at the middle.
  */
 function ScanLine() {
   const { colors } = useNjamTheme();
@@ -159,6 +161,14 @@ function ScanLine() {
 
   return (
     <View style={StyleSheet.absoluteFill} onLayout={(event) => setHeight(event.nativeEvent.layout.height)}>
+      {/* Grows down from the top edge with the line: scaleY from the top. */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          styles.readWash,
+          { backgroundColor: colors.accent, transform: [{ scaleY: progress }] },
+        ]}
+      />
       <Animated.View style={[styles.scanLine, { backgroundColor: colors.accent, transform: [{ translateY }] }]} />
     </View>
   );
@@ -227,6 +237,13 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: space.s6 - space.s3,
     marginTop: space.s6,
+  },
+  // Inside the bracket stroke, like the line, with the brackets' rounding.
+  readWash: {
+    margin: layout.scanBracketStroke,
+    borderRadius: layout.scanBracketRadius,
+    opacity: opacity.scanRead,
+    transformOrigin: 'top',
   },
   // Inset by the bracket stroke so the line never pokes past the corners.
   scanLine: {

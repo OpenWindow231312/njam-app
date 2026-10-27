@@ -3,7 +3,8 @@
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
  * v1.14 (27 Oct 2026): motion.resultHold, how long the scanner shows the
- * product it found before the Verdict screen opens.
+ * product it found before the Verdict screen opens, and opacity.scanRead, the
+ * lime wash over the part of a photo the scan line has passed.
  * v1.13 (21 Oct 2026): the camera scanner redesign. layout.shutterSize for the
  * round ShutterButton and smoother scan brackets (scanBracketStroke 5 to 3 and
  * a new scanBracketRadius).
@@ -702,6 +703,8 @@ export const opacity = {
   disabled: 0.38,
   /** The darkened camera area outside the scan frame. */
   scanDim: 0.62,
+  /** The accent wash over the part of a photo the scan line has read (v1.14). */
+  scanRead: 0.24,
   /** Ripple peak on a tonal or text button. */
   press: 0.12,
 } as const;
