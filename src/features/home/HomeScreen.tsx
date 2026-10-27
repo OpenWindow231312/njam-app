@@ -27,7 +27,7 @@
  * phone, with no request per letter typed.
  */
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useDeferredValue, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
@@ -91,8 +91,11 @@ export function HomeScreen() {
   const selectedIds = basics && checkingFor.length === 0 ? [basics.profile.id] : checkingFor;
   const forWhom = basics ? scopeName(basics.profiles, selectedIds) : '';
 
+  // The box shows each letter at once; the grid follows a moment later, so
+  // filtering a thousand products never holds up the typing.
+  const searchedFor = useDeferredValue(query);
   const searching = query.trim().length > 0;
-  const results = applyFilters(catalogue.checked, saved, { query, verdictFilter: 'all', storeId: null, aisle: 'all' });
+  const results = applyFilters(catalogue.checked, saved, { query: searchedFor, verdictFilter: 'all', storeId: null, aisle: 'all' });
   const safe = catalogue.checked.filter((item) => item.verdict === 'safe').slice(0, SHELF_SIZE);
   const savedItems = catalogue.checked.filter((item) => saved.has(item.product.id)).slice(0, SHELF_SIZE);
 

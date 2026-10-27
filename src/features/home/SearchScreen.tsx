@@ -13,7 +13,7 @@
  * Loading, verdicts and saving come from useCatalogue, shared with Home.
  */
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useDeferredValue, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
@@ -49,7 +49,10 @@ export function SearchScreen() {
   const searching = query.trim().length > 0;
   /** The products in one aisle that pass the filters, before any search. */
   const inAisle = (aisle: Aisle) => applyFilters(catalogue.checked, saved, { query: '', verdictFilter, storeId, aisle });
-  const results = applyFilters(catalogue.checked, saved, { query, verdictFilter, storeId, aisle: 'all' });
+  // The box shows each letter at once; the grid follows a moment later, so
+  // filtering a thousand products never holds up the typing.
+  const searchedFor = useDeferredValue(query);
+  const results = applyFilters(catalogue.checked, saved, { query: searchedFor, verdictFilter, storeId, aisle: 'all' });
   const storeName = loaded?.stores.find((store) => store.id === storeId)?.name;
 
   function openAisle(aisle: Aisle) {
