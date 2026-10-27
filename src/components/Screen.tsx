@@ -9,6 +9,10 @@
  * Screens you open from another one pass `topBar`: Screen pins a TopBar
  * over the page instead of the frosted strip, and tells it when the
  * headline has scrolled away, so it can show the title.
+ *
+ * A screen whose main buttons must stay in reach passes `footer`: Screen
+ * pins it under the page, above the phone's bottom inset, and only the
+ * content above it scrolls.
  */
 import { useState, type ReactNode } from 'react';
 import {
@@ -42,17 +46,23 @@ type ScreenProps = {
     middle?: ReactNode;
     trailing?: ReactNode;
   };
+  /** Buttons pinned to the bottom of the screen, under the scrolling content. */
+  footer?: ReactNode;
 };
 
-export function Screen({ children, scroll = true, withTabBar = false, topBar }: ScreenProps) {
+export function Screen({ children, scroll = true, withTabBar = false, topBar, footer }: ScreenProps) {
   const { colors } = useNjamTheme();
   const insets = useSafeAreaInsets();
   // The TabBar floats tabBarInset above the phone's own bottom inset (the
   // home indicator strip on iPhones), so the room under the content must
   // include that inset too, or the last item hides behind the bar.
+  // A footer takes care of the bottom inset itself, so the content above it
+  // needs only a little room.
   const bottomRoom = withTabBar
     ? layout.tabBarHeight + layout.tabBarInset + insets.bottom + space.s4
-    : space.s8;
+    : footer
+      ? space.s4
+      : space.s8;
 
   // Content starts below the status bar, but may scroll up behind it,
   // where the frosted strip blurs it (v1.8). With a pinned TopBar, it
@@ -91,6 +101,9 @@ export function Screen({ children, scroll = true, withTabBar = false, topBar }: 
             {children}
           </View>
         )}
+        {footer && (
+          <View style={[styles.column, styles.footer, { paddingBottom: insets.bottom + space.s4 }]}>{footer}</View>
+        )}
       </KeyboardAvoidingView>
       {/* Exactly as tall as the status bar, so the fade happens behind it.
           A pinned TopBar covers the status bar itself, so it needs none. */}
@@ -110,5 +123,9 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: layout.screenGutter,
     gap: space.s6,
+  },
+  footer: {
+    gap: space.s3,
+    paddingTop: space.s3,
   },
 });

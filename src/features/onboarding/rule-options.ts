@@ -38,17 +38,18 @@ export const SUGGESTED_E_NUMBERS: { code: string; name: string }[] = [
 export const E_NUMBER_PATTERN = /^E\d{3,4}[A-Z]?$/;
 
 /**
- * The three allergy levels, each with what it means in plain words, as the
- * info button in SeverityPicker shows them. Every level blocks a product that
- * contains the allergen; only Severe changes a verdict as well (an unchecked
- * ingredient list can never be Safe, see services/verdict).
+ * Each level and what it does, in the words onboarding shows. Every level blocks a product that contains the allergen; Avoid and Moderate are checked the same way, and only Severe changes a verdict as well (an unchecked ingredient list can never be Safe).
  */
 export const SEVERITY_CHOICES: { value: AllergySeverity; label: string; meaning: string }[] = [
-  { value: null, label: 'Avoid', meaning: 'You leave it out of your food, for a diet or a mild intolerance.' },
-  { value: 'moderate', label: 'Moderate', meaning: 'Eating it makes you ill, but a trace does not.' },
+  { value: null, label: 'Avoid', meaning: 'Any product that lists it comes back Not safe.' },
+  {
+    value: 'moderate',
+    label: 'Moderate',
+    meaning: 'Checked the same way as Avoid. It tells your household to take more care.',
+  },
   {
     value: 'severe',
     label: 'Severe',
-    meaning: 'Even a trace is dangerous. A product our team has not checked can never be Safe for you.',
+    meaning: 'Even a trace is dangerous. A product our team has not checked can never be Safe for you.'
   },
 ];

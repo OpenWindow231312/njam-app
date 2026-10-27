@@ -16,12 +16,20 @@ scan against an empty profile is close to useless, so onboarding earns its place
      shortcut for the allergens it rules out (gluten-free is gluten, dairy-free
      is milk, egg-free is egg, nut-free is peanuts and tree nuts) and is saved
      as those allergen rules, so the engine checks it with the same aliases.
+     Each allergy's level shows straight under the allergy chips, and an info
+     button says what each level does. The words match the engine: Avoid and
+     Moderate are checked the same way, and Severe also stops a list our team
+     has not checked from ever coming back Safe.
   2. **Anything else you avoid**: ingredients and E-numbers on one screen.
      Suggestions are names the catalogue already knows; anything else can be
      typed (E-numbers are checked against `E` plus three or four digits and an
      optional letter).
   3. **Your profile is ready**: the saved rules (`RuleGroups`, shared with
-     Profile), "Go to Home" and "Change my rules".
+     Profile), with "Go to Home" and "Change my rules" pinned to the bottom
+     (Screen's `footer`). Back returns to step 2.
+- On a new account the catalogue starts downloading as soon as onboarding
+  opens (`warmCatalogue` in `use-catalogue.ts`), so Home usually has its
+  products by the time you get there.
 - Nothing is saved until the end of step 2. `my-rules.ts` writes the new
   `profile_rules` rows first and only then deletes the old ones, so a failed
   save can never leave you with fewer allergies than before.

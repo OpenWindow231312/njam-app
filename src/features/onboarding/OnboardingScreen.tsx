@@ -24,6 +24,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import {
   Button,
+  IconButton,
   LoadingMark,
   OptionButton,
   RuleChip,
@@ -34,6 +35,7 @@ import {
   type Severity,
 } from '@/components/design-system';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { warmCatalogue } from '@/features/home/use-catalogue';
 import {
   loadMyRules,
   saveMyRules,
@@ -95,6 +97,14 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [showLevels, setShowLevels] = useState(false);
+
+  // While you set your rules, the catalogue downloads in the background, so
+  // Home has its products ready when you get there. Edit mode comes from
+  // Profile, where the catalogue is already loaded.
+  useEffect(() => {
+    if (mode === 'first-run') warmCatalogue();
+  }, [mode]);
 
   // A new account's member row is created just after sign-up, so this waits
   // for it. In edit mode your current rules fill the screen.
@@ -190,7 +200,9 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
   }
 
   function goBack() {
-    if (step === 2) setStep(1);
+    // From the ready screen your rules are already saved; saving again replaces them.
+    if (step === 'ready') setStep(2);
+    else if (step === 2) setStep(1);
     else router.back();
   }
 
@@ -222,14 +234,30 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
   }
 
   // There is nothing behind the first step of first-run to go back to.
-  const showBack = step === 2 || (step === 1 && mode === 'edit');
+  const showBack = step !== 1 || mode === 'edit';
 
   return (
     <Screen
       topBar={
         step === 'ready'
-          ? undefined
+          ? { onBack: goBack }
           : { onBack: showBack ? goBack : undefined, middle: <StepProgress step={step} total={TOTAL_STEPS} /> }
+      }
+      footer={
+        step === 'ready' ? (
+          <>
+            <Button
+              label="Go to Home"
+              loading={busy}
+              loadingLabel="Opening Njam"
+              onPress={goHome}
+              size="large"
+              fullWidth
+            />
+            {/* Your rules are saved, so changing them now replaces them. */}
+            <Button label="Change my rules" variant="text" onPress={() => setStep(1)} fullWidth />
+          </>
+        ) : undefined
       }>
 
       {step === 1 && (
@@ -257,29 +285,34 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
             </View>
           </View>
 
-          <View style={styles.block}>
-            <Text style={[typography.overline, { color: colors.inkMuted }]}>Diets</Text>
-            <View style={styles.chips}>
-              {DIETS.map((diet) => (
-                <RuleChip
-                  key={diet.label}
-                  label={diet.label}
-                  selected={dietIsOn(diet, rules.allergies)}
-                  onToggle={() => toggleDiet(diet)}
-                />
-              ))}
-            </View>
-            <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
-              A diet marks what it rules out, so dairy-free adds milk to your list.
-            </Text>
-          </View>
-
+          {/* Straight under the chips, so a tick shows its level choice where
+              you are looking. At the bottom of the page it was easy to miss. */}
           {chosenAllergens.length > 0 && (
             <View style={styles.block}>
-              <SectionHeader variant="simple" headline="How strict is each one?" />
+              <View style={styles.headingRow}>
+                <View style={styles.heading}>
+                  <SectionHeader variant="simple" headline="How strict is each one?" />
+                </View>
+                <IconButton
+                  icon="info"
+                  accessibilityLabel={showLevels ? 'Hide what each level means' : 'Show what each level means'}
+                  selected={showLevels}
+                  onPress={() => setShowLevels((shown) => !shown)}
+                />
+              </View>
               <Text style={[typography.body, { color: colors.inkMuted }]}>
                 Every level blocks the allergen. The level tells your household how careful to be.
               </Text>
+              {showLevels && (
+                <View style={styles.levels}>
+                  {SEVERITY_CHOICES.map((choice) => (
+                    <View key={choice.label}>
+                      <Text style={[typography.title, { color: colors.ink }]}>{choice.label}</Text>
+                      <Text style={[typography.body, { color: colors.inkMuted }]}>{choice.meaning}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
               {chosenAllergens.map((slug) => (
                 <View key={slug} style={styles.severityRow}>
                   <Text style={[typography.title, { color: colors.ink }]}>{capitalise(allergenWord(slug))}</Text>
@@ -297,6 +330,23 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
               ))}
             </View>
           )}
+
+          <View style={styles.block}>
+            <Text style={[typography.overline, { color: colors.inkMuted }]}>Diets</Text>
+            <View style={styles.chips}>
+              {DIETS.map((diet) => (
+                <RuleChip
+                  key={diet.label}
+                  label={diet.label}
+                  selected={dietIsOn(diet, rules.allergies)}
+                  onToggle={() => toggleDiet(diet)}
+                />
+              ))}
+            </View>
+            <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
+              A diet marks what it rules out, so dairy-free adds milk to your list.
+            </Text>
+          </View>
 
           <Button
             label={chosenAllergens.length > 0 ? 'Next: anything else you avoid' : 'None of these'}
@@ -386,8 +436,11 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
         </>
       )}
 
+      {/* One View with no gap of its own: the SectionHeader already leaves
+          space under itself, and Screen's gap on top of that left a hole
+          between the deck and your rules (as on Home). */}
       {step === 'ready' && (
-        <>
+        <View>
           <SectionHeader
             headline="Your profile is ready"
             deck={
@@ -397,19 +450,7 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
             }
           />
           <RuleGroups rules={toRows(rules)} />
-          <View style={styles.block}>
-            <Button
-              label="Go to Home"
-              loading={busy}
-              loadingLabel="Opening Njam"
-              onPress={goHome}
-              size="large"
-              fullWidth
-            />
-            {/* Your rules are saved, so changing them now replaces them. */}
-            <Button label="Change my rules" variant="text" onPress={() => setStep(1)} fullWidth />
-          </View>
-        </>
+        </View>
       )}
 
       {failure && (
@@ -438,6 +479,17 @@ const styles = StyleSheet.create({
     gap: space.s2,
   },
   block: {
+    gap: space.s3,
+  },
+  headingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s2,
+  },
+  heading: {
+    flex: 1,
+  },
+  levels: {
     gap: space.s3,
   },
   severityRow: {
