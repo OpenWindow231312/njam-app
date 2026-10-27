@@ -5,21 +5,23 @@
  *   barcode - the camera reads a barcode, we look it up in the catalogue and
  *             open the Verdict screen for that product.
  *   Open Food Facts - a barcode we do not know is looked up in Open Food
- *             Facts, a public database. Its ingredient text is read by the
- *             AI service. Our team has not checked it, and the verdict says so.
+ *             Facts, a public database. If it has the ingredient list, the
+ *             product is saved to the catalogue straight away, with Open
+ *             Food Facts' own photo, and its Verdict screen opens. No AI and
+ *             no extra photo. See open-food-facts.ts.
  *   label   - if neither knows the barcode (or there is none), you
  *             photograph the ingredient list. The AI service reads it and
  *             the Verdict screen shows the result, which says our team has not
  *             checked it.
  *
- * Whenever a barcode is not in our catalogue (found in Open Food Facts, or
- * read from a label photo), Njam asks for one more photo: the front of the
- * pack. The AI reads the name off it, the product is added to the catalogue
- * (unverified) with the photos, and its Verdict screen opens with the photo,
- * like any other product. The next person who scans it finds it straight
- * away. It stays out of the feed until an admin adds it. The front photo is
- * not optional: without it the product is not saved, and the scan could not
- * show its ingredients and nutrition again from History.
+ * When a label photo was read for a barcode we did not know, Njam asks for
+ * one more photo: the front of the pack. The AI reads the name off it, the
+ * product is added to the catalogue (unverified) with the photos, and its
+ * Verdict screen opens with the photo, like any other product. The next
+ * person who scans it finds it straight away. It stays out of the feed until
+ * an admin adds it. The front photo is not optional: without it the product
+ * is not saved, and the scan could not show its ingredients again from
+ * History.
  *
  * Every photo is checked before it is used: the shutter freezes the photo on
  * the panel (with a buzz), and you choose "Use this photo" or "Retake". In
@@ -46,9 +48,8 @@ import { Button, EmptyState, ScanFrame, ScopePill, Snackbar } from '@/components
 import { ProductExistsError, addProduct } from '@/features/add-product/add-product';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { fetchActiveProfile, type ActiveProfile } from '@/features/profile/active-profile';
-import { fetchFromOpenFoodFacts, readOpenFoodFactsProduct } from '@/features/scanner/open-food-facts';
+import { importFromOpenFoodFacts } from '@/features/scanner/open-food-facts';
 import { fetchProductByBarcode } from '@/features/verdict/catalogue';
-import type { NutritionFacts } from '@/features/verdict/nutrition';
 import { currentDeviceSettings } from '@/lib/device-settings';
 import { hapticSuccess } from '@/lib/haptics';
 import { LabelReadError, readFront, readLabel, type LabelRead } from '@/services/ai';
@@ -62,21 +63,13 @@ const PHOTO_QUALITY = 0.5;
 
 const CAMERA_FAILED = 'The camera did not return a photo. Try again.';
 
-/** Where the ingredient list came from, as the Verdict screen names it. */
-type LabelSource = 'photo' | 'open-food-facts';
-
 /** A photo just taken: the file on the phone, to show, and its base64, to send. */
 type Taken = { uri: string; base64: string };
 
-/** An ingredient list we have, waiting for the front of the pack. */
+/** An ingredient list read from a label photo, waiting for the front of the pack. */
 type FrontStep = {
   barcode: string;
   read: LabelRead;
-  source: LabelSource;
-  /** The brand Open Food Facts gave, if the front photo does not show one. */
-  brand: string | null;
-  /** Open Food Facts' nutrition table, saved with the product. null for a label photo. */
-  nutrition: NutritionFacts | null;
 };
 
 type Mode =
@@ -105,9 +98,7 @@ function hintFor(mode: Mode): string {
     case 'reading':
       return 'Reading the label';
     case 'front':
-      return mode.source === 'open-food-facts'
-        ? 'We found the ingredients. Now photograph the front of the pack, with the name inside the frame.'
-        : 'Now the front of the pack. Fit the product name inside the frame, then tap Photograph the front.';
+      return 'Now the front of the pack. Fit the product name inside the frame, then tap Photograph the front.';
     case 'check-front':
       return 'Can you read the product name? Use this photo, or retake it.';
     case 'adding':
@@ -186,21 +177,18 @@ export function ScannerScreen() {
 
   /**
    * Tries Open Food Facts for a barcode our catalogue does not have.
-   * Returns true if it found the ingredients, and moves on to the front
-   * photo so the product can be added. Any failure here (offline, a slow
-   * reply, no ingredient list) just returns false, so the scanner falls back
-   * to asking for a label photo instead of showing an error.
+   * Returns true if it found the product: it is now saved to the catalogue,
+   * and its verdict opens. Any failure here (offline, a slow reply, no
+   * ingredient list) just returns false, so the scanner falls back to asking
+   * for a label photo instead of showing an error.
    */
   async function openFromOpenFoodFacts(barcode: string): Promise<boolean> {
     try {
-      const found = await fetchFromOpenFoodFacts(barcode);
-      if (!found) return false;
-      const read = await readOpenFoodFactsProduct(found);
-      if (!read) return false;
+      const productId = await importFromOpenFoodFacts(barcode);
+      if (!productId) return false;
 
       hapticSuccess();
-      labelPhoto.current = null;
-      setMode({ kind: 'front', barcode, read, source: 'open-food-facts', brand: found.brand, nutrition: found.nutrition });
+      router.push({ pathname: '/verdict', params: { productId, barcode } });
       return true;
     } catch (error) {
       console.warn('Open Food Facts lookup failed', error);
@@ -250,7 +238,7 @@ export function ScannerScreen() {
       // with its photo to show on the verdict.
       if (barcode && read.readable) {
         labelPhoto.current = photo;
-        setMode({ kind: 'front', barcode, read, source: 'photo', brand: null, nutrition: null });
+        setMode({ kind: 'front', barcode, read });
         return;
       }
       openLabelVerdict(read, { barcode, photoUri: photo.uri });
@@ -280,13 +268,7 @@ export function ScannerScreen() {
   /** The shutter on the front of the pack: freeze it, then check it. */
   async function photographFront() {
     if (mode.kind !== 'front') return;
-    const step: FrontStep = {
-      barcode: mode.barcode,
-      read: mode.read,
-      source: mode.source,
-      brand: mode.brand,
-      nutrition: mode.nutrition,
-    };
+    const step: FrontStep = { barcode: mode.barcode, read: mode.read };
     setNotice(null);
     const photo = await takePhoto();
     if (photo) setMode({ kind: 'check-front', ...step, photo });
@@ -302,8 +284,8 @@ export function ScannerScreen() {
    */
   async function addWithFront(step: FrontStep, photo: Taken) {
     if (!member) return;
-    // A label read needs its photo saved with it; Open Food Facts has none.
-    if (step.source === 'photo' && !labelPhoto.current) return;
+    // The label photo is saved with the product, for the review queue.
+    if (!labelPhoto.current) return;
     const { barcode, read } = step;
     setNotice(null);
     setMode({ kind: 'adding', ...step, photo });
@@ -319,12 +301,10 @@ export function ScannerScreen() {
       const productId = await addProduct({
         userId: member.id,
         barcode,
-        front: { ...front, name: front.name, brand: front.brand ?? step.brand },
+        front: { ...front, name: front.name },
         label: read,
-        source: step.source === 'photo' ? 'ai_label_read' : 'open_food_facts',
-        nutrition: step.nutrition,
         frontPhotoBase64: photo.base64,
-        labelPhotoBase64: labelPhoto.current?.base64 ?? null,
+        labelPhotoBase64: labelPhoto.current.base64,
       });
       labelPhoto.current = null;
       hapticSuccess();
@@ -407,32 +387,12 @@ export function ScannerScreen() {
               <Button
                 label="Retake"
                 variant="outlined"
-                onPress={() =>
-                  setMode({
-                    kind: 'front',
-                    barcode: mode.barcode,
-                    read: mode.read,
-                    source: mode.source,
-                    brand: mode.brand,
-                    nutrition: mode.nutrition,
-                  })
-                }
+                onPress={() => setMode({ kind: 'front', barcode: mode.barcode, read: mode.read })}
               />
               <Button
                 label="Use this photo"
                 icon="check"
-                onPress={() =>
-                  addWithFront(
-                    {
-                      barcode: mode.barcode,
-                      read: mode.read,
-                      source: mode.source,
-                      brand: mode.brand,
-                      nutrition: mode.nutrition,
-                    },
-                    mode.photo,
-                  )
-                }
+                onPress={() => addWithFront({ barcode: mode.barcode, read: mode.read }, mode.photo)}
               />
             </View>
           ) : mode.kind === 'adding' ? (

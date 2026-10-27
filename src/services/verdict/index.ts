@@ -18,7 +18,11 @@
  *      reasons say our team has not checked the list. The one exception: if
  *      the profile has a severe allergy, an unverified list is capped at
  *      Caution, because a misread label there could send someone to hospital.
- *   4. Safe only when every rule was checked and none was broken.
+ *   4. Open Food Facts records are decided by how complete they are (see
+ *      isCompleteList). A complete one was typed in from the real label, so
+ *      it is decided like a verified one. A thin one is always Caution,
+ *      whatever the profile, because the missing part may hold the allergen.
+ *   5. Safe only when every rule was checked and none was broken.
  *
  * When unsure, it says Caution. A false Caution is a nuisance; a false Safe
  * is a health incident.
@@ -45,6 +49,11 @@ export type VerdictProduct = {
   verified: boolean;
   /** True when this came straight from a label photo or typed label text. */
   readFromLabel: boolean;
+  /**
+   * True when the ingredient list came from Open Food Facts. A complete one
+   * is trusted like a verified record; a thin one stays capped at Caution.
+   */
+  fromOpenFoodFacts?: boolean;
   ingredients: VerdictIngredient[];
   /** Allergen slugs from a "may contain" line. */
   mayContain: string[];
@@ -283,6 +292,23 @@ function checkRule(rule: ProfileRule, product: VerdictProduct): RuleOutcome {
   };
 }
 
+/** Fewer real ingredients than this, and an Open Food Facts list looks cut short. */
+export const MIN_COMPLETE_INGREDIENTS = 3;
+
+/**
+ * Does this ingredient list look like a whole label? Counts each ingredient
+ * once, and leaves out the "milk (declared allergen)" lines added from the
+ * allergen tags, because those are not on the label's list. "Nuttikrust"
+ * with one ingredient is not a whole label; a rusk has at least flour, fat
+ * and sugar.
+ */
+export function isCompleteList(ingredients: { name: string }[]): boolean {
+  const names = new Set(
+    ingredients.map((item) => item.name).filter((name) => !name.endsWith('(declared allergen)')),
+  );
+  return names.size >= MIN_COMPLETE_INGREDIENTS;
+}
+
 export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Verdict {
   const broken: VerdictReason[] = [];
   const unchecked: VerdictReason[] = [];
@@ -315,10 +341,18 @@ export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Ve
     unchecked.push({ icon: 'info', text: 'Your profile has no rules yet, so there was nothing to check.' });
   }
 
+  // An Open Food Facts list (never a photo read) is trusted when complete.
+  // A thin one cannot be Safe for anyone.
+  const fromOpenFoodFacts = product.fromOpenFoodFacts === true && !product.readFromLabel;
+  const trusted = product.verified || (fromOpenFoodFacts && isCompleteList(product.ingredients));
+  if (fromOpenFoodFacts && !trusted) {
+    unchecked.push({ icon: 'info', text: 'The ingredient list from Open Food Facts looks incomplete.' });
+  }
+
   // A severe allergy is where a misread label does the most harm, so for
   // that profile a list our team has not checked still cannot be Safe.
   const hasSevereRule = rules.some((rule) => rule.severity === 'severe');
-  const capped = !product.verified && hasSevereRule;
+  const capped = !trusted && hasSevereRule;
 
   let state: VerdictState;
   if (broken.length > 0) state = 'unsafe';
@@ -332,7 +366,7 @@ export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Ve
 
   // Every verdict on an unverified list says so, last, and the reason limit
   // never cuts it off. It is saved with the scan, so a reopened scan says it too.
-  if (!product.verified) {
+  if (!trusted) {
     const notChecked = product.readFromLabel
       ? 'We read this list from your photo, and our team has not checked it yet.'
       : 'Our team has not checked this ingredient list yet.';

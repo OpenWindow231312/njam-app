@@ -2,7 +2,7 @@
  * useCatalogue: everything Home, Search and an aisle page need to show
  * products with their verdicts, in one hook so the three screens agree.
  *
- * It loads the whole catalogue (a few dozen products for now), every
+ * It loads the whole catalogue (about a thousand products), every
  * profile in the household, the aisles, the stores and the household's
  * saved products. It decides each product's verdict once per load with the
  * default profile, the same profile a scan is recorded against, unless the
@@ -11,7 +11,9 @@
  * it is only Safe if it is Safe for every one of them.
  *
  * It reloads whenever its screen comes back into focus, so a product saved
- * on one screen shows as saved on the others.
+ * on one screen shows as saved on the others. The products themselves are
+ * the heavy part (a few megabytes), so they are kept in memory and fetched
+ * again only after CATALOGUE_MAX_AGE_MS.
  */
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -50,9 +52,31 @@ export type Filters = {
   aisle: Aisle;
 };
 
+/** How long the products are kept before they are fetched again. */
+const CATALOGUE_MAX_AGE_MS = 10 * 60 * 1000;
+
+/**
+ * The products, shared by Home, Search and every aisle page. The promise is
+ * kept rather than the list, so two screens opening at once share one fetch.
+ */
+let cachedProducts: { products: Promise<CatalogueProduct[]>; fetchedAt: number } | null = null;
+
+function catalogueProducts(): Promise<CatalogueProduct[]> {
+  if (cachedProducts && Date.now() - cachedProducts.fetchedAt < CATALOGUE_MAX_AGE_MS) {
+    return cachedProducts.products;
+  }
+  const products = fetchCatalogue();
+  cachedProducts = { products, fetchedAt: Date.now() };
+  // A failed fetch is not kept, so the next focus tries again.
+  products.catch(() => {
+    cachedProducts = null;
+  });
+  return products;
+}
+
 async function loadCatalogue(householdId: string): Promise<{ loaded: Loaded; saved: Set<string> }> {
   const [products, profiles, categories, stores, saved] = await Promise.all([
-    fetchCatalogue(),
+    catalogueProducts(),
     fetchHouseholdProfiles(householdId),
     fetchCategories(),
     fetchStores(),
@@ -137,6 +161,7 @@ export function useCatalogue(forProfileIds?: string[]) {
       const facts = {
         verified: product.verified,
         readFromLabel: false,
+        fromOpenFoodFacts: product.source === 'open_food_facts',
         ingredients: product.ingredients,
         mayContain: product.mayContain,
       };

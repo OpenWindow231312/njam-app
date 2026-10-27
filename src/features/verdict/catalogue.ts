@@ -7,7 +7,7 @@
  * already knowing it is milk.
  */
 import { supabase } from '@/lib/supabase';
-import type { VerdictIngredient } from '@/services/verdict';
+import { isCompleteList, type VerdictIngredient } from '@/services/verdict';
 
 export type CatalogueProduct = {
   id: string;
@@ -141,21 +141,44 @@ export async function fetchProductByBarcode(barcode: string): Promise<CatalogueP
   return data ? toProduct(data as unknown as ProductRow) : null;
 }
 
+/** Supabase returns at most this many rows per request. */
+const ROWS_PER_REQUEST = 1000;
+
+/** A name shorter than this ("f") is a placeholder, not a product name. */
+const MIN_NAME_LENGTH = 4;
+
 /**
- * The verified catalogue, A to Z, for the grid on Home. It holds a few dozen
- * products for now, so Home loads them all once and filters on the phone.
- * When the catalogue grows past a few hundred, this needs paging.
+ * Should this product show on Home? Verified ones always do. So does an Open
+ * Food Facts product with a real name and a whole ingredient list. A thin one
+ * stays hidden, though the scanner still finds it by barcode (as Caution).
+ */
+function isShownOnHome(product: CatalogueProduct): boolean {
+  if (product.verified) return true;
+  return product.name.trim().length >= MIN_NAME_LENGTH && isCompleteList(product.ingredients);
+}
+
+/**
+ * The catalogue for the grid on Home, A to Z: verified products and complete
+ * Open Food Facts ones, about a thousand. Home loads them all once and
+ * filters on the phone, so this reads them in pages of a thousand rows.
  */
 export async function fetchCatalogue(): Promise<CatalogueProduct[]> {
-  // Verified only: a product someone just added is not in the feed until an
-  // admin adds it from the review queue. Its scanner still finds it by barcode.
-  const { data, error } = await supabase
-    .from('products')
-    .select(PRODUCT_COLUMNS)
-    .eq('verified', true)
-    .order('name');
-  if (error) throw error;
-  return (data as unknown as ProductRow[]).map(toProduct);
+  // A product a shopper just added is not in the feed until an admin verifies
+  // it from the review queue. Its scanner still finds it by barcode.
+  const rows: ProductRow[] = [];
+  for (let from = 0; ; from += ROWS_PER_REQUEST) {
+    const { data, error } = await supabase
+      .from('products')
+      .select(PRODUCT_COLUMNS)
+      .or('verified.eq.true,source.eq.open_food_facts')
+      .order('name')
+      .order('id')
+      .range(from, from + ROWS_PER_REQUEST - 1);
+    if (error) throw error;
+    rows.push(...(data as unknown as ProductRow[]));
+    if (data.length < ROWS_PER_REQUEST) break;
+  }
+  return rows.map(toProduct).filter(isShownOnHome);
 }
 
 /**

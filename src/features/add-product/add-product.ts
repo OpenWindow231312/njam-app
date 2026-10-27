@@ -7,18 +7,16 @@
  * not checked it (Caution for a severe allergy) and it stays out of the feed until an admin adds it from the
  * review queue.
  *
- * The ingredient list comes from a label photo, or from Open Food Facts,
- * which has no label photo to keep.
+ * The ingredient list comes from a label photo. (A product Open Food Facts
+ * has is saved by the import-open-food-facts Edge Function instead.)
  *
- * Three steps:
+ * Two steps:
  *   1. The photos go to Storage, in a folder named after you. The Storage
  *      policy refuses any other folder.
  *   2. add_product (a database function) saves the product, its ingredients
  *      and their order in one transaction, so a product can never be saved
  *      with half its ingredient list.
- *   3. For a product from Open Food Facts, its nutrition table is saved.
  */
-import { saveNutrition, type NutritionFacts } from '@/features/verdict/nutrition';
 import { supabase } from '@/lib/supabase';
 import type { FrontRead, LabelRead } from '@/services/ai';
 
@@ -51,20 +49,14 @@ export async function addProduct(input: {
   barcode: string;
   front: FrontRead & { name: string };
   label: LabelRead;
-  /** Where the ingredient list came from. */
-  source: 'ai_label_read' | 'open_food_facts';
-  /** From Open Food Facts. null for a label photo, which has no nutrition table. */
-  nutrition: NutritionFacts | null;
   frontPhotoBase64: string;
-  /** null when the ingredients came from Open Food Facts. */
-  labelPhotoBase64: string | null;
+  labelPhotoBase64: string;
 }): Promise<string> {
   // The time keeps each upload's name new, so a photo is never overwritten.
   const prefix = `${input.userId}/${input.barcode}-${Date.now()}`;
-  const labelPhoto = input.labelPhotoBase64;
   const [imageUrl, labelImageUrl] = await Promise.all([
     uploadPhoto(`${prefix}-front.jpg`, input.frontPhotoBase64),
-    labelPhoto ? uploadPhoto(`${prefix}-label.jpg`, labelPhoto) : Promise.resolve(null),
+    uploadPhoto(`${prefix}-label.jpg`, input.labelPhotoBase64),
   ]);
 
   const { data, error } = await supabase.rpc('add_product', {
@@ -75,7 +67,7 @@ export async function addProduct(input: {
     p_label_image_url: labelImageUrl,
     p_may_contain: input.label.mayContain,
     p_ingredients: input.label.ingredients,
-    p_source: input.source,
+    p_source: 'ai_label_read',
   });
 
   if (error) {
@@ -85,14 +77,5 @@ export async function addProduct(input: {
     }
     throw error;
   }
-
-  // After the product, because the database only lets you add nutrition to
-  // a product you added. If it fails, the product stays saved without it.
-  const productId = data as string;
-  if (input.nutrition) {
-    await saveNutrition(productId, input.nutrition).catch((nutritionError) =>
-      console.warn('Could not save the nutrition table', nutritionError),
-    );
-  }
-  return productId;
+  return data as string;
 }

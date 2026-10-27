@@ -9,12 +9,17 @@
 import { supabase } from '@/lib/supabase';
 import { fetchProductById, type CatalogueProduct } from '@/features/verdict/catalogue';
 
-/** Unverified products, oldest first, each with its ingredient list. */
+/**
+ * Unverified products, oldest first, each with its ingredient list. Open
+ * Food Facts products are left out: there are about a thousand, and the
+ * engine already decides them by how complete their list is.
+ */
 export async function fetchUnverifiedProducts(): Promise<CatalogueProduct[]> {
   const { data, error } = await supabase
     .from('products')
     .select('id')
     .eq('verified', false)
+    .neq('source', 'open_food_facts')
     .order('created_at', { ascending: true });
   if (error) throw error;
 

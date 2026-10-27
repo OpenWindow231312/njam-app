@@ -114,6 +114,9 @@ without reading every label.
 - **Keep a history.** Every scan is saved and reopens exactly as it was
   decided.
 
+The catalogue holds about a thousand South African products, most of them
+imported from [Open Food Facts](https://openfoodfacts.org) with no AI involved.
+
 ---
 
 ## Screens
@@ -151,18 +154,25 @@ flowchart LR
     A["Scan a barcode<br/>(scope pill: whose rules)"] --> B{"In the Njam<br/>catalogue?"}
     B -- yes --> V["Rules engine"]
     B -- no --> C{"On Open Food<br/>Facts?"}
-    C -- yes --> V
+    C -- yes --> S["Saved to the<br/>catalogue"]
+    S --> V
     C -- no --> D["Photograph the<br/>ingredient list"]
     D --> E["Gemini reads<br/>the label"]
     E --> V
     V --> R["Safe, Caution or Not safe<br/>with reasons"]
 ```
 
-Anything from Open Food Facts or a label photo is unverified. It can still
-be **Safe** or **Not safe**, and its verdict says our team has not checked
-the list. If your profile has a severe allergy, an unverified list is capped
-at **Caution**, because a misread label is most dangerous there. When in
-doubt, the engine moves toward Caution, never toward Safe.
+A product from Open Food Facts is saved to the catalogue on its first scan,
+so the next scan finds it straight away. Its list is judged by how complete
+it is: with at least three ingredients it is decided like a verified product.
+With fewer, it is always **Caution**, because the missing part may hold your
+allergen, and it is hidden from Home.
+
+A label photo, or a product a shopper added, is unverified. It can still be
+**Safe** or **Not safe**, and its verdict says our team has not checked the
+list. If your profile has a severe allergy, an unverified list is capped at
+**Caution**, because a misread label is most dangerous there. When in doubt,
+the engine moves toward Caution, never toward Safe.
 
 ## The AI
 
@@ -289,7 +299,7 @@ Food Facts or ask for a label photo.
 
 ### 3. Backend: the Edge Functions
 
-Store the Gemini key as a secret, then deploy the three functions:
+Store the Gemini key as a secret, then deploy the four functions:
 
 ```bash
 npx supabase secrets set GEMINI_API_KEY=<your-gemini-key>
@@ -305,6 +315,19 @@ npx supabase functions deploy ask-njam --project-ref <your-project-ref>
 
 ```bash
 npx supabase functions deploy delete-account --project-ref <your-project-ref>
+```
+
+```bash
+npx supabase functions deploy import-open-food-facts --project-ref <your-project-ref>
+```
+
+To fill the catalogue, import South African products from Open Food Facts.
+It asks for an admin's email and password in the terminal (never stored),
+then imports 50 products a page. It is safe to run again: a barcode already
+in the catalogue is skipped.
+
+```bash
+node --env-file=.env scripts/import-open-food-facts.mjs
 ```
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are
@@ -397,7 +420,8 @@ where id = (select id from auth.users where email = 'you@example.com');
 npm test
 ```
 
-There are 36 automated tests covering ingredient aliases and alternatives.
+There are 50 automated tests covering ingredient aliases, alternatives and
+how Open Food Facts records are decided.
 They run with Node's built-in test runner.
 
 [`docs/TESTING.md`](docs/TESTING.md) holds the core flow checklist, the bug

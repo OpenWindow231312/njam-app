@@ -12,7 +12,9 @@ nuisance; a false Safe is a health incident.
 
 ## 1. Reading a label (`scan-label`)
 
-**Input:** a label photo, or ingredient text (typed, or from Open Food Facts).
+**Input:** a label photo, or typed ingredient text. Open Food Facts records
+no longer go through the AI: since 27 Oct 2026 they are mapped by plain rules
+in `import-open-food-facts`.
 
 **Prompt design** (`supabase/functions/scan-label/index.ts`):
 
