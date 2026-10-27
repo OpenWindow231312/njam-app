@@ -3,10 +3,11 @@
  * (18 Oct 2026), after the deal shelves on Sixty60.
  *
  * Top to bottom:
- *   - "Hi Anika, check your food", with Ask Njam on the right.
+ *   - "Hi Anika, check your food", with nothing beside it.
  *   - whose rules the verdicts are for: "Checking for Anika".
  *     Tapping it opens a tick list of everyone in the household.
  *   - the search bar, with the filter button on its right, as on Search.
+ *   - Ask Njam, a white row (AskNjamRow).
  *   - "Shop by aisle": round aisle bubbles. Each opens that aisle's page.
  *   - a tip card that sends you to the scanner.
  *   - three shelves that scroll sideways, each with See all:
@@ -47,7 +48,7 @@ import {
   Snackbar,
   TextField,
 } from '@/components/design-system';
-import { AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
+import { AskNjamRow } from '@/features/ask-njam/AskNjamRow';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { FilteredBy } from '@/features/home/FilteredBy';
 import { FilterSheet, type VerdictFilter } from '@/features/home/FilterSheet';
@@ -159,12 +160,12 @@ export function HomeScreen() {
           space.s7 under itself, and Screen's gap on top of that pushed the
           scope pill too far from the headline. */}
       <View>
-        <AskNjamHeader>
-          <View style={styles.heading}>
-            <Text style={[typography.title, { color: colors.brandForestMid }]}>{greeting(member?.displayName)}</Text>
-            <SectionHeader headline="Check your food" />
-          </View>
-        </AskNjamHeader>
+        {/* Nothing beside the headline, so it stays on one line. Ask Njam
+            is the row under the search bar instead (option C, 27 Oct). */}
+        <View style={styles.heading}>
+          <Text style={[typography.title, { color: colors.brandForestMid }]}>{greeting(member?.displayName)}</Text>
+          <SectionHeader headline="Check your food" />
+        </View>
 
         {basics && <HomeScope profiles={basics.profiles} selectedIds={selectedIds} onChange={setCheckingFor} />}
       </View>
@@ -202,6 +203,8 @@ export function HomeScreen() {
           setStoreId(null);
         }}
       />
+
+      {!searching && <AskNjamRow />}
 
       {/* Searching or filtering: the matching products take the shelves' place. */}
       {loaded && searching && (
