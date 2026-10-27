@@ -97,7 +97,7 @@ export function AdminReviewScreen() {
   }
 
   return (
-    <Screen topBar={{ onBack: () => router.back(), title: 'Review queue' }}>
+    <Screen topBar={{ onBack: () => router.back() }}>
 
       <SectionHeader
         headline="Review queue"

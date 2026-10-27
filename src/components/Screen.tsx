@@ -7,8 +7,8 @@
  * item is not hidden behind the floating TabBar.
  *
  * Screens you open from another one pass `topBar`: Screen pins a TopBar
- * over the page instead of the frosted strip, and tells it when content has
- * scrolled under it (the line) and when the headline has gone (the title).
+ * over the page instead of the frosted strip, and tells it when the
+ * headline has scrolled away, so it can show the title.
  */
 import { useState, type ReactNode } from 'react';
 import {
@@ -35,7 +35,10 @@ type ScreenProps = {
   /** The pinned bar with the back button. Its title is the page's headline. */
   topBar?: {
     onBack?: () => void;
+    /** Leave out to keep the bar empty; only aisles and tab screens show one. */
     title?: string;
+    /** Tab screens: no bar until the headline has gone, then it fades in with the title. */
+    hideUntilScrolled?: boolean;
     middle?: ReactNode;
     trailing?: ReactNode;
   };
@@ -52,22 +55,20 @@ export function Screen({ children, scroll = true, withTabBar = false, topBar }: 
     : space.s8;
 
   // Content starts below the status bar, but may scroll up behind it,
-  // where the frosted strip blurs it (v1.8). With a TopBar, it starts
-  // below the bar instead and scrolls up behind that.
-  const topRoom = topBar ? insets.top + layout.appBarHeight + space.s2 : insets.top + space.s6;
+  // where the frosted strip blurs it (v1.8). With a pinned TopBar, it
+  // starts below the bar instead and scrolls up behind that. A bar hidden
+  // until you scroll takes no room, so the page starts where it always did.
+  const pinnedBar = topBar && !topBar.hideUntilScrolled;
+  const topRoom = pinnedBar ? insets.top + layout.appBarHeight + space.s2 : insets.top + space.s6;
 
-  // Two yes/no answers for the TopBar, not the scroll distance itself: React
+  // A yes/no answer for the TopBar, not the scroll distance itself: React
   // skips setting a value that has not changed, so the page only re-renders
-  // when the line or the title actually has to change, not on every frame.
-  const [scrolled, setScrolled] = useState(false);
+  // when the title actually has to change, not on every frame. Scrolled a
+  // whole bar's height, the headline has gone under the bar, so the bar
+  // takes over its title.
   const [headlineGone, setHeadlineGone] = useState(false);
   function onScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    const y = event.nativeEvent.contentOffset.y;
-    // Anything at all under the bar: show its edge.
-    setScrolled(y > 0);
-    // Scrolled a whole bar's height: by then the headline, which starts just
-    // below the bar, has gone under it, so the bar takes over its title.
-    setHeadlineGone(y > layout.appBarHeight);
+    setHeadlineGone(event.nativeEvent.contentOffset.y > layout.appBarHeight);
   }
 
   return (
@@ -79,7 +80,7 @@ export function Screen({ children, scroll = true, withTabBar = false, topBar }: 
           <ScrollView
             keyboardShouldPersistTaps="handled"
             onScroll={topBar ? onScroll : undefined}
-            // One scroll event per frame is enough to fade the bar on time.
+            // One scroll event per frame is enough to fade the title on time.
             scrollEventThrottle={16}
             contentContainerStyle={[styles.column, { paddingTop: topRoom, paddingBottom: bottomRoom }]}>
             {children}
@@ -90,12 +91,10 @@ export function Screen({ children, scroll = true, withTabBar = false, topBar }: 
           </View>
         )}
       </KeyboardAvoidingView>
-      {topBar ? (
-        <TopBar {...topBar} showLine={scrolled} showTitle={headlineGone} />
-      ) : (
-        // Exactly as tall as the status bar, so the fade happens behind it.
-        <FrostedStrip edge="top" height={insets.top} />
-      )}
+      {/* Exactly as tall as the status bar, so the fade happens behind it.
+          A pinned TopBar covers the status bar itself, so it needs none. */}
+      {!pinnedBar && <FrostedStrip edge="top" height={insets.top} />}
+      {topBar && <TopBar {...topBar} showTitle={headlineGone} />}
     </View>
   );
 }

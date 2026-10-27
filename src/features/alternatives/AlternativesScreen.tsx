@@ -46,7 +46,7 @@ export function AlternativesScreen() {
   const profileName = loaded?.profile.name ?? 'you';
 
   return (
-    <Screen topBar={{ onBack: () => router.back(), title: `Instead of ${name}` }}>
+    <Screen topBar={{ onBack: () => router.back() }}>
 
       <SectionHeader
         headline={`Instead of ${name}`}

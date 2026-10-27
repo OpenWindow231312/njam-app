@@ -42,15 +42,7 @@
  */
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import {
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Screen } from '@/components/Screen';
@@ -439,13 +431,6 @@ function Shown({ shown }: { shown: Live | Past }) {
   const [saved, setSaved] = useState(extras?.saved ?? false);
   const [saveFailed, setSaveFailed] = useState(false);
   const topBarHeight = useTopBarHeight();
-  // The drawer first rises DRAWER_TRAVEL to meet the top of its window, then
-  // the product name scrolls under that edge. A bar's height further on, the
-  // name has gone, so the TopBar shows it small, with its line.
-  const [headingGone, setHeadingGone] = useState(false);
-  function onDrawerScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    setHeadingGone(event.nativeEvent.contentOffset.y > DRAWER_TRAVEL + layout.appBarHeight);
-  }
 
   /** Saves or unsaves at once on screen, and puts it back if the database says no. */
   function toggleSave(productId: string) {
@@ -560,9 +545,6 @@ function Shown({ shown }: { shown: Live | Past }) {
     <View style={[styles.page, { backgroundColor: colors.surface }]}>
       <TopBar
         onBack={() => router.back()}
-        title={subject.name}
-        showTitle={headingGone}
-        showLine={headingGone}
         trailing={
           <>
             {picker && (
@@ -585,7 +567,7 @@ function Shown({ shown }: { shown: Live | Past }) {
 
         {/* The window the drawer scrolls in. Its top edge is where the drawer stops. */}
         <View style={styles.window}>
-          <ScrollView contentContainerStyle={styles.windowContent} onScroll={onDrawerScroll} scrollEventThrottle={16}>
+          <ScrollView contentContainerStyle={styles.windowContent}>
             <View
               style={[
                 styles.drawer,

@@ -13,7 +13,7 @@ export default function PersonRules() {
   const { profileId, name } = useLocalSearchParams<{ profileId: string; name: string }>();
 
   return (
-    <Screen topBar={{ onBack: () => router.back(), title: `${name}'s rules` }}>
+    <Screen topBar={{ onBack: () => router.back() }}>
       <SectionHeader headline={`${name}'s rules`} deck="Every scan you run for them is checked against these." />
       <RulesTab profileId={profileId} />
     </Screen>
