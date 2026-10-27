@@ -35,6 +35,7 @@ import {
   type Severity,
 } from '@/components/design-system';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { warmCatalogue } from '@/features/home/use-catalogue';
 import {
   loadMyRules,
   saveMyRules,
@@ -97,6 +98,13 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
   const [failure, setFailure] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [showLevels, setShowLevels] = useState(false);
+
+  // While you set your rules, the catalogue downloads in the background, so
+  // Home has its products ready when you get there. Edit mode comes from
+  // Profile, where the catalogue is already loaded.
+  useEffect(() => {
+    if (mode === 'first-run') warmCatalogue();
+  }, [mode]);
 
   // A new account's member row is created just after sign-up, so this waits
   // for it. In edit mode your current rules fill the screen.

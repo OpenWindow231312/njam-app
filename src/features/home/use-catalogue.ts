@@ -96,6 +96,16 @@ function catalogueProducts(): Promise<CatalogueProduct[]> {
 }
 
 /**
+ * Starts downloading the products before any screen needs them. Onboarding
+ * calls it on a new account: there is no copy on the phone yet, so without
+ * it Home would only start the download when it opens. Home then picks up
+ * the same fetch from cachedProducts. A failure is left for Home to retry.
+ */
+export function warmCatalogue() {
+  catalogueProducts().catch(() => {});
+}
+
+/**
  * What the last load found, shared by every screen. householdId says whose
  * it is, so signing in to another household never shows the last one's
  * people or saved products. Only updateShared changes it, which tells every
