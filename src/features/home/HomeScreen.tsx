@@ -26,6 +26,8 @@
  * bubbles draw as soon as the small things are in (useCatalogue's basics).
  * Only the shelves wait for the products.
  *
+ * Saving a product shows a snackbar, "Saved for your household", with Undo.
+ *
  * Loading, verdicts and saving come from useCatalogue, shared with Search
  * and the aisle page. The catalogue is small, so it is searched on the
  * phone, with no request per letter typed.
@@ -80,6 +82,24 @@ export function HomeScreen() {
 
   const [query, setQuery] = useState('');
   const [recent, setRecent] = useState<ScanRecord[]>([]);
+  // The product just saved, so the snackbar can say so and offer Undo.
+  // A filled bookmark alone was too small to notice (user test, 27 Oct).
+  const [justSaved, setJustSaved] = useState<string | null>(null);
+
+  // Stable, because Snackbar restarts its timer whenever onDismiss changes.
+  const dismissSaved = useCallback(() => setJustSaved(null), []);
+
+  /** Saves or unsaves, and only a save gets the snackbar. */
+  function toggleSave(productId: string) {
+    const saving = !saved.has(productId);
+    catalogue.toggleSave(productId);
+    setJustSaved(saving ? productId : null);
+  }
+
+  function undoSave() {
+    if (justSaved) catalogue.toggleSave(justSaved);
+    setJustSaved(null);
+  }
 
   // Read again each time Home comes into view, so a scan you just made shows.
   // If it fails, the shelf simply stays hidden: it is a shortcut, not the point of Home.
@@ -119,7 +139,7 @@ export function HomeScreen() {
       imageUrl={cardPhotoUrl(product.imageUrl)}
       saved={saved.has(product.id)}
       onPress={() => openProduct(product.id)}
-      onToggleSave={() => catalogue.toggleSave(product.id)}
+      onToggleSave={() => toggleSave(product.id)}
     />
   );
 
@@ -169,7 +189,7 @@ export function HomeScreen() {
               onAction={() => router.navigate('/scan')}
             />
           )}
-          <ProductGrid items={results} saved={saved} onToggleSave={catalogue.toggleSave} />
+          <ProductGrid items={results} saved={saved} onToggleSave={toggleSave} />
         </>
       )}
 
@@ -261,6 +281,19 @@ export function HomeScreen() {
           actionLabel="Retry"
           onAction={catalogue.reload}
           onDismiss={catalogue.dismissFailed}
+        />
+      )}
+
+      {/* Keyed by product, so saving a second one starts a fresh timer.
+          Left out if the save failed: that snackbar says what happened. */}
+      {justSaved && !catalogue.saveFailed && (
+        <Snackbar
+          key={justSaved}
+          icon="bookmark"
+          message="Saved for your household."
+          actionLabel="Undo"
+          onAction={undoSave}
+          onDismiss={dismissSaved}
         />
       )}
 
