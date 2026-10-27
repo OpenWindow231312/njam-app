@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/design-system';
+import { formatBarcode } from '@/features/scanner/barcode';
 import { motion, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -22,12 +23,6 @@ type BarcodeReadoutProps = {
   /** true once the lookup has finished: the icon becomes a check. */
   done?: boolean;
 };
-
-/** EAN-13 is printed as 1, 6 and 6 digits: "6 001234 000017". Other lengths stay as they are. */
-export function formatBarcode(barcode: string): string {
-  if (barcode.length !== 13) return barcode;
-  return `${barcode.slice(0, 1)} ${barcode.slice(1, 7)} ${barcode.slice(7)}`;
-}
 
 /** Where the first `count` digits end in a grouped number, skipping the spaces. */
 function indexAfterDigits(grouped: string, count: number): number {
