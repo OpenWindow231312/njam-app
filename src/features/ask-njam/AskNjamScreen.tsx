@@ -198,7 +198,7 @@ export function AskNjamScreen() {
         <View
           style={[
             styles.column,
-            { paddingTop: insets.top + space.s2, paddingBottom: keyboardOpen ? space.s2 : insets.bottom + space.s4 },
+            { paddingTop: insets.top, paddingBottom: keyboardOpen ? space.s2 : insets.bottom + space.s4 },
           ]}>
           {/* Back on the left, Ask Njam in the middle (tap it for your
               conversations, as in ChatGPT or Claude), a new chat on the right. */}
@@ -325,7 +325,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.screenGutter,
     gap: space.s3,
   },
+  // As tall as the TopBar on every other screen, so the back button sits in
+  // the same place. Ask Njam keeps its own header for the tappable title.
   header: {
+    height: layout.appBarHeight,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
