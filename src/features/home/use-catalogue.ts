@@ -107,6 +107,37 @@ function worstOf(verdicts: VerdictState[]): VerdictState {
   return verdicts.reduce((worst, next) => (VERDICT_RANK[next] > VERDICT_RANK[worst] ? next : worst), 'safe');
 }
 
+/**
+ * The verdicts already decided, shared by every screen, so opening an aisle
+ * or Search does not decide a thousand products again. They are kept by the
+ * rules they were decided against, written out as text: a fresh copy of the
+ * same rules (each focus reloads the profiles) finds the same verdicts, and
+ * a changed rule finds nothing and decides again. New products empty it.
+ */
+let decided: { products: CatalogueProduct[]; byRules: Map<string, Checked[]> } | null = null;
+
+/** Every product with the worst of its verdicts for these people. */
+function checkAll(products: CatalogueProduct[], checkFor: ActiveProfile[]): Checked[] {
+  if (decided?.products !== products) decided = { products, byRules: new Map() };
+  const rulesKey = JSON.stringify(checkFor.map((profile) => profile.rules));
+  const known = decided.byRules.get(rulesKey);
+  if (known) return known;
+
+  const checked = products.map((product) => {
+    const facts = {
+      verified: product.verified,
+      readFromLabel: false,
+      fromOpenFoodFacts: product.source === 'open_food_facts',
+      ingredients: product.ingredients,
+      mayContain: product.mayContain,
+    };
+    const verdicts = checkFor.map((profile) => decideVerdict(facts, profile.rules).state);
+    return { product, verdict: worstOf(verdicts) };
+  });
+  decided.byRules.set(rulesKey, checked);
+  return checked;
+}
+
 function matchesVerdict(verdict: VerdictState, filter: VerdictFilter): boolean {
   if (filter === 'safe') return verdict === 'safe';
   if (filter === 'notUnsafe') return verdict !== 'unsafe';
@@ -167,23 +198,12 @@ export function useCatalogue(forProfileIds?: string[]) {
   // A string key, so a new array with the same ids does not decide again.
   const forKey = (forProfileIds ?? []).join(',');
 
-  // Decide every product once per load (or change of people), not on every
-  // key typed in a search.
+  // Not on every key typed in a search. checkAll also remembers across
+  // screens and reloads, so this is only slow the first time.
   const checked = useMemo<Checked[]>(() => {
     if (!loaded) return [];
     const wanted = loaded.profiles.filter((profile) => forKey.split(',').includes(profile.id));
-    const checkFor = wanted.length > 0 ? wanted : [loaded.profile];
-    return loaded.products.map((product) => {
-      const facts = {
-        verified: product.verified,
-        readFromLabel: false,
-        fromOpenFoodFacts: product.source === 'open_food_facts',
-        ingredients: product.ingredients,
-        mayContain: product.mayContain,
-      };
-      const verdicts = checkFor.map((profile) => decideVerdict(facts, profile.rules).state);
-      return { product, verdict: worstOf(verdicts) };
-    });
+    return checkAll(loaded.products, wanted.length > 0 ? wanted : [loaded.profile]);
   }, [loaded, forKey]);
 
   /** Saves or unsaves at once on screen, and puts it back if the database says no. */
