@@ -6,7 +6,7 @@
  *   - "Hi Anika, check your food", with Ask Njam on the right.
  *   - whose rules the verdicts are for: "Checking for Anika", "4 rules".
  *     Tapping it opens a tick list of everyone in the household.
- *   - the search bar, and a scan button beside it.
+ *   - the search bar.
  *   - "Shop by aisle": round aisle bubbles. Each opens that aisle's page.
  *   - a tip card that sends you to the scanner.
  *   - three shelves that scroll sideways, each with See all:
@@ -22,7 +22,7 @@
  * two to a row, so searching still works without leaving Home. Clearing the
  * search brings the shelves back.
  *
- * The greeting, search bar, scan button, "Checking for" pill and aisle
+ * The greeting, search bar, "Checking for" pill and aisle
  * bubbles draw as soon as the small things are in (useCatalogue's basics).
  * Only the shelves wait for the products.
  *
@@ -38,7 +38,6 @@ import { Screen } from '@/components/Screen';
 import {
   CategoryBubble,
   EmptyState,
-  IconButton,
   LoadingMark,
   ProductTile,
   SectionHeader,
@@ -140,27 +139,19 @@ export function HomeScreen() {
         {basics && <HomeScope profiles={basics.profiles} selectedIds={selectedIds} onChange={setCheckingFor} />}
       </View>
 
-      <View style={styles.searchRow}>
-        <View style={styles.flex}>
-          <TextField
-            variant="search"
-            label="Search products"
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search products and brands"
-            autoCapitalize="none"
-            trailingIcon={query.length > 0 ? 'close' : undefined}
-            trailingLabel="Clear search"
-            onTrailingPress={() => setQuery('')}
-          />
-        </View>
-        <IconButton
-          variant="filled"
-          icon="barcode_scanner"
-          accessibilityLabel="Scan a barcode"
-          onPress={() => router.navigate('/scan')}
-        />
-      </View>
+      {/* No scan button beside the search: the tip card right under it
+          already says "Scan a barcode" (user test, 27 Oct). */}
+      <TextField
+        variant="search"
+        label="Search products"
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search products and brands"
+        autoCapitalize="none"
+        trailingIcon={query.length > 0 ? 'close' : undefined}
+        trailingLabel="Clear search"
+        onTrailingPress={() => setQuery('')}
+      />
 
       {/* Searching: the matching products take the shelves' place. */}
       {loaded && searching && (
@@ -287,14 +278,6 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   heading: {
     gap: space.s1,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.s2,
-  },
-  flex: {
-    flex: 1,
   },
   loading: {
     flexDirection: 'row',
