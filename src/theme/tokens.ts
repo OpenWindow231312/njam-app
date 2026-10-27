@@ -2,6 +2,9 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.16 (27 Oct 2026): motion.splashZoom. The splash opens on the mark filling
+ * the screen, takes one bite, then pulls back to the logo. It is the one
+ * sanctioned lime screen (CLAUDE.md rule 9), and no text sits on the lime.
  * v1.15 (27 Oct 2026): layout.topBarFade, a short fade under the TopBar from
  * surface to clear, so content scrolling under the bar has no hard line. It is
  * the second sanctioned gradient, beside the frosted strip (CLAUDE.md rule 3).
@@ -755,8 +758,10 @@ export const motion = {
   sheet: 240,
   /** The splash screen fading away once the app is ready (approved 14 Oct 2026). */
   splashFade: 240,
-  /** One bite of the munching mark on the splash; it takes three (approved 14 Oct 2026). */
+  /** The one bite the splash mark takes out of the full screen (approved 14 Oct 2026). */
   splashBite: 360,
+  /** The splash pulling back from the full-screen mark to the logo (v1.16). */
+  splashZoom: 1100,
   /** The splash wordmark floating up once the last bite lands (approved 14 Oct 2026). */
   splashWord: 320,
   /** How long the finished splash sits still before it fades (approved 14 Oct 2026). */

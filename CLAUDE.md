@@ -108,7 +108,9 @@ Do not invent one.
 9. **Lime means "go" or "on".** Lime (`action` / `accent`) fills the primary button, the
    active tab, active filter chips and segments, and the Safe verdict. Forest (`selected`)
    marks a chosen option and strong icon buttons. Never set text in lime on the pale
-   ground, and never build a lime screen.
+   ground, and never build a lime screen. One exception (v1.16): the splash opens on
+   the mark filling the screen for its first bite, then pulls back to the logo. No text
+   ever sits on that lime; the words appear once the ground is forest again.
 10. **Never set copy in `brandLimeDeep` or `accentQuiet`.** Both fall below 4.5:1 on
     surface and exist for decorative marks only.
 11. **Touch targets.** Nothing tappable is under `layout.touchTargetMin` (48), including

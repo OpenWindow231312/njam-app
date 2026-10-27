@@ -1,19 +1,23 @@
 /**
  * SplashOverlay: the Njam splash, shown over the app while it starts.
  *
- * The native splash (app.json) is a plain forest screen. As soon as this
- * overlay has drawn the same forest ground with the mark and wordmark on top,
- * the native splash is hidden, so the hand-over is invisible. Then, in order:
- * the mark takes its three bites, "Njam" floats up beneath it, the tagline
- * floats up under that, and the whole thing holds still for a moment. The overlay fades out once that is done and
+ * The native splash (app.json) is a plain lime screen. As soon as this
+ * overlay has drawn the mark filling the screen in the same lime, the native
+ * splash is hidden, so the hand-over is invisible. Then, in order: the mark
+ * takes one bite out of the corner and pulls back to the logo, "Njam" floats
+ * up beneath it, the two tagline lines float up under that, and the whole
+ * thing holds still for a moment. The overlay fades out once that is done and
  * the app is `ready` (fonts loaded and the session known), whichever comes last.
  *
  * Forest (surfaceInverse) is the sanctioned splash ground in tokens.ts; every
- * other screen sits on surface.
+ * other screen sits on surface. The full-screen lime at the start is the one
+ * sanctioned lime screen (CLAUDE.md rule 9): no text appears until the mark has
+ * pulled back and the ground is forest.
  */
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   FadeOut,
@@ -36,7 +40,11 @@ type SplashOverlayProps = {
 
 export function SplashOverlay({ ready }: SplashOverlayProps) {
   const { colors } = useNjamTheme();
-  const [drawn, setDrawn] = useState(false);
+  // Where the finished logo's centre sits, measured from its slot below.
+  const [centre, setCentre] = useState<{ x: number; y: number } | null>(null);
+  const drawn = centre !== null;
+  // true once the native splash is gone, so the bite is never hidden behind it.
+  const [shown, setShown] = useState(false);
   const [munched, setMunched] = useState(false);
   const [settled, setSettled] = useState(false);
   const reduceMotion = useReducedMotion();
@@ -48,10 +56,10 @@ export function SplashOverlay({ ready }: SplashOverlayProps) {
   // Hide the native splash only after this overlay is on screen, so there is
   // never a frame with neither of them showing.
   useEffect(() => {
-    if (drawn) SplashScreen.hideAsync();
+    if (drawn) SplashScreen.hideAsync().finally(() => setShown(true));
   }, [drawn]);
 
-  // Once the last bite lands: float the wordmark in, then the tagline once the
+  // Once the logo has settled: float the wordmark in, then the tagline once the
   // wordmark has settled, then hold before leaving. With reduce motion on,
   // both simply appear.
   useEffect(() => {
@@ -82,24 +90,42 @@ export function SplashOverlay({ ready }: SplashOverlayProps) {
   return (
     <Animated.View
       exiting={FadeOut.duration(motion.splashFade).reduceMotion(ReduceMotion.System)}
-      onLayout={() => setDrawn(true)}
       accessibilityLabel="Njam is starting"
-      style={[styles.overlay, { backgroundColor: colors.surfaceInverse }]}>
-      <MunchingMark
-        size={layout.splashMarkSize}
-        color={colors.brandLime}
-        groundColor={colors.surfaceInverse}
-        play={drawn}
-        onDone={() => setMunched(true)}
+      // Lime until the mark is drawn, so the first frame matches the native splash.
+      style={[styles.overlay, { backgroundColor: drawn ? colors.surfaceInverse : colors.brandLime }]}>
+      {/* Dark icons while the screen is lime, light ones once it is forest. */}
+      <StatusBar style={munched ? 'light' : 'dark'} />
+      {centre && (
+        <MunchingMark
+          size={layout.splashMarkSize}
+          centre={centre}
+          color={colors.brandLime}
+          groundColor={colors.surfaceInverse}
+          play={shown}
+          onDone={() => setMunched(true)}
+        />
+      )}
+      {/* An empty slot where the finished logo lands. The mark itself draws
+          across the whole screen, so it needs to know where this slot is. */}
+      <View
+        style={{ width: layout.splashMarkSize, height: layout.splashMarkSize }}
+        onLayout={(event) => {
+          const { x, y, width, height } = event.nativeEvent.layout;
+          setCentre({ x: x + width / 2, y: y + height / 2 });
+        }}
       />
       <Animated.Text
         style={[typography.displayXl, styles.wordmark, { color: colors.inkInverse }, wordStyle]}>
         Njam
       </Animated.Text>
-      <Animated.Text
-        style={[typography.bodyL, styles.tagline, { color: colors.inkInverse }, taglineStyle]}>
-        Scan it. Know it. Eat it.
-      </Animated.Text>
+      <Animated.View style={[styles.tagline, taglineStyle]}>
+        <Animated.Text style={[typography.bodyL, styles.taglineLine, { color: colors.inkInverse }]}>
+          Know if you can njam it.
+        </Animated.Text>
+        <Animated.Text style={[typography.caption, styles.taglineLine, styles.caption, { color: colors.inkInverse }]}>
+          Allergy and diet checks for every label.
+        </Animated.Text>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -117,6 +143,12 @@ const styles = StyleSheet.create({
   },
   tagline: {
     marginTop: space.s2,
+    paddingHorizontal: space.s6,
+  },
+  taglineLine: {
     textAlign: 'center',
+  },
+  caption: {
+    marginTop: space.s1,
   },
 });
