@@ -7,7 +7,8 @@
  *   - top row:  a close button (left) and the torch button (right),
  *   - message:  an optional CameraMessage, always just under the top row,
  *   - centre:   four white corner brackets marking where the barcode (or the
- *               ingredient list) goes, with a hint pill under them,
+ *               ingredient list) goes, with a hint pill under them, or the
+ *               product that was found (`result`) in its place,
  *   - bottom:   the ShutterButton, or the buttons that replace it
  *               ("Retake" and "Use this photo").
  *
@@ -38,6 +39,8 @@ type ScanFrameProps = {
   message?: ReactNode;
   /** One short line under the brackets: what to do, or what is happening. */
   hint?: string;
+  /** Takes the hint's place under the brackets: the product the barcode found. */
+  result?: ReactNode;
   /** barcode: a wide target, scanFrameHeight tall. label: a tall one for an ingredient list. none: no brackets. */
   target?: 'barcode' | 'label' | 'none';
   /** Sits just above the brackets: the barcode number floating up as it is read. */
@@ -59,6 +62,7 @@ export function ScanFrame({
   onToggleTorch,
   message,
   hint,
+  result,
   target = 'barcode',
   readout,
   scanning = false,
@@ -108,7 +112,8 @@ export function ScanFrame({
             {scanning && <ScanLine />}
           </View>
         )}
-        {hint && (
+        {result}
+        {!result && hint && (
           <View style={[styles.hint, { backgroundColor: colors.surfaceRaised }]}>
             <Text accessibilityLiveRegion="polite" style={[typography.label, styles.hintText, { color: colors.ink }]}>
               {hint}
