@@ -1,7 +1,12 @@
 /**
- * AskNjamHeader: a screen's SectionHeader with the way into Ask Njam on its
- * right. Home, Search, History and Profile use it. The Scanner does not:
- * nothing should sit over the camera but the scan.
+ * AskNjamHeader: a screen's SectionHeader with the way into Ask Njam in a
+ * row of its own above it, on the right. Search and History use it. Home
+ * has the bigger AskNjamRow under its search bar instead. The Scanner has
+ * neither: nothing should sit over the camera but the scan. Profile has
+ * neither: it is where you change settings, not ask about food.
+ *
+ * The pill sits above the headline rather than beside it (option A, Figma,
+ * 27 Oct), so the headline gets the full width and never wraps round it.
  *
  * The way in is a small tonal Button that says "Ask Njam", led by a small
  * AiAvatar (the Njam mark in a forest circle). The avatar on its own read as
@@ -22,9 +27,11 @@ import { icon, space } from '@/theme/tokens';
 
 export function AskNjamHeader({ children }: { children: ReactNode }) {
   return (
-    <View style={styles.row}>
-      <View style={styles.header}>{children}</View>
-      <AskNjamButton />
+    <View style={styles.column}>
+      <View style={styles.pillRow}>
+        <AskNjamButton />
+      </View>
+      {children}
     </View>
   );
 }
@@ -43,13 +50,10 @@ export function AskNjamButton() {
 }
 
 const styles = StyleSheet.create({
-  // The headline wraps beside the pill rather than running under it.
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: space.s3,
+  column: {
+    gap: space.s1,
   },
-  header: {
-    flex: 1,
+  pillRow: {
+    alignItems: 'flex-end',
   },
 });
