@@ -4,7 +4,9 @@
  * The page behind stays the light surface (never a dark camera screen). The
  * camera shows inside this rounded panel (radius.xxl), which fills the
  * screen (v1.13: the scanner hides the TabBar). On top of it:
- *   - top row:  a close button (left) and the torch button (right),
+ *   - top row:  a close button (left), and on the right the torch button
+ *               with an optional keyboard button to its left, which opens
+ *               the drawer to type the barcode number,
  *   - message:  an optional CameraMessage, always just under the top row,
  *   - centre:   four white corner brackets marking where the barcode (or the
  *               ingredient list) goes, with a hint pill under them, or the
@@ -35,6 +37,8 @@ type ScanFrameProps = {
   onClose: () => void;
   torchOn: boolean;
   onToggleTorch: () => void;
+  /** Shows a keyboard button left of the torch, to type the barcode instead. */
+  onTypeBarcode?: () => void;
   /** A CameraMessage, shown just under the top row. */
   message?: ReactNode;
   /** One short line under the brackets: what to do, or what is happening. */
@@ -60,6 +64,7 @@ export function ScanFrame({
   onClose,
   torchOn,
   onToggleTorch,
+  onTypeBarcode,
   message,
   hint,
   result,
@@ -86,12 +91,22 @@ export function ScanFrame({
 
       <View style={styles.topRow}>
         <IconButton icon="close" accessibilityLabel="Close the scanner" onPress={onClose} variant="raised" />
-        <IconButton
-          icon={torchOn ? 'flashlight_off' : 'flashlight_on'}
-          accessibilityLabel={torchOn ? 'Torch off' : 'Torch on'}
-          onPress={onToggleTorch}
-          variant="raised"
-        />
+        <View style={styles.topRight}>
+          {onTypeBarcode && (
+            <IconButton
+              icon="keyboard"
+              accessibilityLabel="Type the barcode"
+              onPress={onTypeBarcode}
+              variant="raised"
+            />
+          )}
+          <IconButton
+            icon={torchOn ? 'flashlight_off' : 'flashlight_on'}
+            accessibilityLabel={torchOn ? 'Torch off' : 'Torch on'}
+            onPress={onToggleTorch}
+            variant="raised"
+          />
+        </View>
       </View>
 
       {message && <View style={styles.message}>{message}</View>}
@@ -215,6 +230,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  // The keyboard and torch buttons, side by side.
+  topRight: {
+    flexDirection: 'row',
+    gap: space.s2,
   },
   message: {
     marginTop: space.s3,
