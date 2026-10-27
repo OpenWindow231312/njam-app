@@ -23,6 +23,7 @@
  * apart from the products, so a screen can draw its aisles and its "Checking
  * for" pill while the products are still downloading.
  */
+import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 
@@ -33,7 +34,7 @@ import { readSavedCatalogue, saveCatalogue } from '@/features/home/saved-catalog
 import { fetchSavedProductIds, saveProduct, unsaveProduct } from '@/features/home/saved-products';
 import { fetchStores, type Store } from '@/features/home/stores';
 import { fetchHouseholdProfiles, type ActiveProfile } from '@/features/profile/active-profile';
-import { fetchCatalogue, type CatalogueProduct } from '@/features/verdict/catalogue';
+import { cardPhotoUrl, fetchCatalogue, type CatalogueProduct } from '@/features/verdict/catalogue';
 import { decideVerdict, type VerdictState } from '@/services/verdict';
 
 /** The small things, quick to load, that a screen can draw before the products. */
@@ -115,6 +116,38 @@ function subscribe(listener: () => void) {
   return () => {
     listeners.delete(listener);
   };
+}
+
+/** How many photos to fetch ahead for each aisle: about its first screenful. */
+const PHOTOS_AHEAD_PER_AISLE = 12;
+
+/**
+ * Downloads the first photos of every aisle (and of All) onto the phone
+ * before anyone opens it, so an aisle page draws its photos at once. About
+ * 120 small photos, roughly 1 MB. A photo that fails just loads later.
+ */
+function fetchPhotosAhead(products: CatalogueProduct[]) {
+  const takenPerAisle = new Map<string, number>();
+  const urls: string[] = [];
+  for (const product of products) {
+    const url = cardPhotoUrl(product.imageUrl);
+    if (!url) continue;
+    // The aisle's own count and All's count: a photo is wanted for either.
+    const aisle = product.categoryId ?? 'none';
+    const forAisle = (takenPerAisle.get(aisle) ?? 0) < PHOTOS_AHEAD_PER_AISLE;
+    const forAll = (takenPerAisle.get('all') ?? 0) < PHOTOS_AHEAD_PER_AISLE;
+    if (!forAisle && !forAll) continue;
+    takenPerAisle.set(aisle, (takenPerAisle.get(aisle) ?? 0) + 1);
+    takenPerAisle.set('all', (takenPerAisle.get('all') ?? 0) + 1);
+    urls.push(url);
+  }
+  Image.prefetch(urls, 'memory-disk').catch(() => {});
+}
+
+/** Shares a new product list with every screen and starts on its photos. */
+function shareProducts(products: CatalogueProduct[]) {
+  updateShared({ products });
+  fetchPhotosAhead(products);
 }
 
 /** One empty set for "nothing saved yet", so it is the same object each draw. */
@@ -229,14 +262,14 @@ export function useCatalogue(forProfileIds?: string[]) {
     // phone while the fresh list downloads, unless the fresh one wins.
     if (!shared.products) {
       readSavedCatalogue().then((list) => {
-        if (list && !shared.products) updateShared({ products: list });
+        if (list && !shared.products) shareProducts(list);
       });
     }
     // Usually the same list as last time, from memory. Only a new list is
     // shared, so the verdicts already decided for it are kept.
     catalogueProducts()
       .then((list) => {
-        if (list !== shared.products) updateShared({ products: list });
+        if (list !== shared.products) shareProducts(list);
       })
       .catch(fail);
   }, [householdId]);
