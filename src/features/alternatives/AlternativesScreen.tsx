@@ -20,6 +20,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { EmptyState, LoadingMark, SectionHeader, Snackbar } from '@/components/design-system';
 import { pickAlternatives, productKind } from '@/features/alternatives/alternatives';
+import { AskNjamButton } from '@/features/ask-njam/AskNjamHeader';
 import { ProductGrid } from '@/features/home/ProductGrid';
 import { useCatalogue } from '@/features/home/use-catalogue';
 import { icon, space, typography } from '@/theme/tokens';
@@ -46,7 +47,7 @@ export function AlternativesScreen() {
   const profileName = loaded?.profile.name ?? 'you';
 
   return (
-    <Screen topBar={{ onBack: () => router.back() }}>
+    <Screen topBar={{ onBack: () => router.back(), trailing: <AskNjamButton /> }}>
 
       <SectionHeader
         headline={`Instead of ${name}`}

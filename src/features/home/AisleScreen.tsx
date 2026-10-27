@@ -17,6 +17,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
 import { EmptyState, IconButton, LoadingMark, SectionHeader, Snackbar } from '@/components/design-system';
+import { AskNjamButton } from '@/features/ask-njam/AskNjamHeader';
 import { FilteredBy } from '@/features/home/FilteredBy';
 import { FilterSheet, type VerdictFilter } from '@/features/home/FilterSheet';
 import { ProductGrid } from '@/features/home/ProductGrid';
@@ -56,13 +57,17 @@ export function AisleScreen() {
       topBar={{
         onBack: () => router.back(),
         title: aisleName,
+        // The filter first, then Ask Njam, in the same order as the Verdict screen's bar.
         trailing: (
-          <IconButton
-            variant="filled"
-            icon="tune"
-            accessibilityLabel="Filter products"
-            onPress={() => setFiltering(true)}
-          />
+          <>
+            <IconButton
+              variant="filled"
+              icon="tune"
+              accessibilityLabel="Filter products"
+              onPress={() => setFiltering(true)}
+            />
+            <AskNjamButton />
+          </>
         ),
       }}>
 

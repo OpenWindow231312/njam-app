@@ -3,10 +3,11 @@
  * (18 Oct 2026), after the deal shelves on Sixty60.
  *
  * Top to bottom:
- *   - "Hi Anika, check your food", with Ask Njam on the right.
+ *   - "Hi Anika, check your food", with nothing beside it.
  *   - whose rules the verdicts are for: "Checking for Anika".
  *     Tapping it opens a tick list of everyone in the household.
- *   - the search bar.
+ *   - the search bar, with the filter button on its right, as on Search.
+ *   - Ask Njam, a white row (AskNjamRow).
  *   - "Shop by aisle": round aisle bubbles. Each opens that aisle's page.
  *   - a tip card that sends you to the scanner.
  *   - three shelves that scroll sideways, each with See all:
@@ -40,14 +41,17 @@ import { Screen } from '@/components/Screen';
 import {
   CategoryBubble,
   EmptyState,
+  IconButton,
   LoadingMark,
   ProductTile,
   SectionHeader,
   Snackbar,
   TextField,
 } from '@/components/design-system';
-import { AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
+import { AskNjamRow } from '@/features/ask-njam/AskNjamRow';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { FilteredBy } from '@/features/home/FilteredBy';
+import { FilterSheet, type VerdictFilter } from '@/features/home/FilterSheet';
 import { HomeScope, scopeName } from '@/features/home/HomeScope';
 import { ProductGrid } from '@/features/home/ProductGrid';
 import { ProductShelf } from '@/features/home/ProductShelf';
@@ -81,6 +85,9 @@ export function HomeScreen() {
   const { basics, loaded, saved } = catalogue;
 
   const [query, setQuery] = useState('');
+  const [verdictFilter, setVerdictFilter] = useState<VerdictFilter>('all');
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [filtering, setFiltering] = useState(false);
   const [recent, setRecent] = useState<ScanRecord[]>([]);
   // The product just saved, so the snackbar can say so and offer Undo.
   // A filled bookmark alone was too small to notice (user test, 27 Oct).
@@ -117,13 +124,17 @@ export function HomeScreen() {
   // The box shows each letter at once; the grid follows a moment later, so
   // filtering a thousand products never holds up the typing.
   const searchedFor = useDeferredValue(query);
-  const searching = query.trim().length > 0;
+  // A filter on its own also swaps the shelves for the grid, or picking
+  // "Safe only" would seem to do nothing until you typed.
+  const filtered = verdictFilter !== 'all' || storeId !== null;
+  const searching = query.trim().length > 0 || filtered;
   const results = applyFilters(catalogue.checked, saved, {
     query: searchedFor,
-    verdictFilter: 'all',
-    storeId: null,
+    verdictFilter,
+    storeId,
     aisle: 'all',
   });
+  const storeName = loaded?.stores.find((store) => store.id === storeId)?.name;
   const onShelf = catalogue.checked.filter((item) => readyToBrowse(item.product));
   const safe = onShelf.filter((item) => item.verdict === 'safe').slice(0, SHELF_SIZE);
   const savedItems = onShelf.filter((item) => saved.has(item.product.id)).slice(0, SHELF_SIZE);
@@ -149,31 +160,53 @@ export function HomeScreen() {
           space.s7 under itself, and Screen's gap on top of that pushed the
           scope pill too far from the headline. */}
       <View>
-        <AskNjamHeader>
-          <View style={styles.heading}>
-            <Text style={[typography.title, { color: colors.brandForestMid }]}>{greeting(member?.displayName)}</Text>
-            <SectionHeader headline="Check your food" />
-          </View>
-        </AskNjamHeader>
+        {/* Nothing beside the headline, so it stays on one line. Ask Njam
+            is the row under the search bar instead (option C, 27 Oct). */}
+        <View style={styles.heading}>
+          <Text style={[typography.title, { color: colors.brandForestMid }]}>{greeting(member?.displayName)}</Text>
+          <SectionHeader headline="Check your food" />
+        </View>
 
         {basics && <HomeScope profiles={basics.profiles} selectedIds={selectedIds} onChange={setCheckingFor} />}
       </View>
 
-      {/* No scan button beside the search: the tip card right under it
-          already says "Scan a barcode" (user test, 27 Oct). */}
-      <TextField
-        variant="search"
-        label="Search products"
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search products and brands"
-        autoCapitalize="none"
-        trailingIcon={query.length > 0 ? 'close' : undefined}
-        trailingLabel="Clear search"
-        onTrailingPress={() => setQuery('')}
+      {/* The same search bar as Search, filter button and all. No scan
+          button: the tip card right under it already says "Scan a barcode"
+          (user test, 27 Oct). */}
+      <View style={styles.searchRow}>
+        <View style={styles.flex}>
+          <TextField
+            variant="search"
+            label="Search products"
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search products and brands"
+            autoCapitalize="none"
+            trailingIcon={query.length > 0 ? 'close' : undefined}
+            trailingLabel="Clear search"
+            onTrailingPress={() => setQuery('')}
+          />
+        </View>
+        <IconButton
+          variant="filled"
+          icon="tune"
+          accessibilityLabel="Filter products"
+          onPress={() => setFiltering(true)}
+        />
+      </View>
+
+      <FilteredBy
+        verdictFilter={verdictFilter}
+        storeName={storeName}
+        onClear={() => {
+          setVerdictFilter('all');
+          setStoreId(null);
+        }}
       />
 
-      {/* Searching: the matching products take the shelves' place. */}
+      {!searching && <AskNjamRow />}
+
+      {/* Searching or filtering: the matching products take the shelves' place. */}
       {loaded && searching && (
         <>
           <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
@@ -183,7 +216,7 @@ export function HomeScreen() {
             <EmptyState
               icon="search"
               headline="No products match"
-              body="Try another spelling, or scan the barcode instead."
+              body="Try another spelling or fewer filters, or scan the barcode instead."
               actionLabel="Scan a barcode"
               actionIcon="barcode_scanner"
               onAction={() => router.navigate('/scan')}
@@ -274,6 +307,19 @@ export function HomeScreen() {
         </>
       )}
 
+      {loaded && (
+        <FilterSheet
+          visible={filtering}
+          verdictFilter={verdictFilter}
+          onVerdictFilter={setVerdictFilter}
+          stores={loaded.stores}
+          storeId={storeId}
+          onStore={setStoreId}
+          resultCount={results.length}
+          onClose={() => setFiltering(false)}
+        />
+      )}
+
       {catalogue.failed && (
         <Snackbar
           kind="failure"
@@ -311,6 +357,14 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   heading: {
     gap: space.s1,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s2,
+  },
+  flex: {
+    flex: 1,
   },
   loading: {
     flexDirection: 'row',
