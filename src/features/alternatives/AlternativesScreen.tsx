@@ -18,11 +18,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
-import { EmptyState, IconButton, LoadingMark, SectionHeader, Snackbar } from '@/components/design-system';
+import { EmptyState, LoadingMark, SectionHeader, Snackbar } from '@/components/design-system';
 import { pickAlternatives, productKind } from '@/features/alternatives/alternatives';
 import { ProductGrid } from '@/features/home/ProductGrid';
 import { useCatalogue } from '@/features/home/use-catalogue';
-import { icon, layout, space, typography } from '@/theme/tokens';
+import { icon, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type Params = {
@@ -46,10 +46,7 @@ export function AlternativesScreen() {
   const profileName = loaded?.profile.name ?? 'you';
 
   return (
-    <Screen>
-      <View style={styles.back}>
-        <IconButton icon="arrow_back" accessibilityLabel="Go back" onPress={() => router.back()} />
-      </View>
+    <Screen topBar={{ onBack: () => router.back(), title: `Instead of ${name}` }}>
 
       <SectionHeader
         headline={`Instead of ${name}`}
@@ -102,11 +99,6 @@ export function AlternativesScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Pull the back button out so its 24 icon lines up with the screen gutter.
-  back: {
-    alignSelf: 'flex-start',
-    marginLeft: -(layout.touchTargetMin - icon.sizeMd) / 2,
-  },
   loading: {
     flexDirection: 'row',
     alignItems: 'center',

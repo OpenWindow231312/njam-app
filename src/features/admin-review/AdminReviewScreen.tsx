@@ -27,7 +27,6 @@ import {
   ConfirmDialog,
   EmptyState,
   Icon,
-  IconButton,
   LoadingMark,
   ProductCard,
   SectionHeader,
@@ -42,7 +41,7 @@ import {
 import { useAuth } from '@/features/auth/AuthProvider';
 import { ingredientNames, productDetail, type CatalogueProduct } from '@/features/verdict/catalogue';
 import { allergenWord } from '@/services/verdict';
-import { icon, layout, radius, space, typography } from '@/theme/tokens';
+import { icon, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type Loaded =
@@ -98,10 +97,7 @@ export function AdminReviewScreen() {
   }
 
   return (
-    <Screen>
-      <View style={styles.topBar}>
-        <IconButton icon="arrow_back" accessibilityLabel="Go back" onPress={() => router.back()} />
-      </View>
+    <Screen topBar={{ onBack: () => router.back(), title: 'Review queue' }}>
 
       <SectionHeader
         headline="Review queue"
@@ -209,10 +205,6 @@ export function AdminReviewScreen() {
 
 const styles = StyleSheet.create({
   // Pull the back button out so its 24 icon lines up with the gutter (as on Verdict).
-  topBar: {
-    marginLeft: -(layout.touchTargetMin - icon.sizeMd) / 2,
-    alignItems: 'flex-start',
-  },
   loading: {
     alignItems: 'center',
     gap: space.s3,

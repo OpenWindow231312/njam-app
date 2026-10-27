@@ -21,7 +21,7 @@ import { FilteredBy } from '@/features/home/FilteredBy';
 import { FilterSheet, type VerdictFilter } from '@/features/home/FilterSheet';
 import { ProductGrid } from '@/features/home/ProductGrid';
 import { applyFilters, useCatalogue } from '@/features/home/use-catalogue';
-import { icon, layout, space, typography } from '@/theme/tokens';
+import { icon, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type Params = {
@@ -52,18 +52,19 @@ export function AisleScreen() {
         : (loaded?.categories.find((category) => category.id === aisle)?.name ?? 'Aisle');
 
   return (
-    <Screen>
-      <View style={styles.topBar}>
-        <View style={styles.back}>
-          <IconButton icon="arrow_back" accessibilityLabel="Go back" onPress={() => router.back()} />
-        </View>
-        <IconButton
-          variant="filled"
-          icon="tune"
-          accessibilityLabel="Filter products"
-          onPress={() => setFiltering(true)}
-        />
-      </View>
+    <Screen
+      topBar={{
+        onBack: () => router.back(),
+        title: aisleName,
+        trailing: (
+          <IconButton
+            variant="filled"
+            icon="tune"
+            accessibilityLabel="Filter products"
+            onPress={() => setFiltering(true)}
+          />
+        ),
+      }}>
 
       <SectionHeader
         headline={aisleName}
@@ -139,15 +140,6 @@ export function AisleScreen() {
 }
 
 const styles = StyleSheet.create({
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  // Pull the back button out so its 24 icon lines up with the screen gutter.
-  back: {
-    marginLeft: -(layout.touchTargetMin - icon.sizeMd) / 2,
-  },
   loading: {
     flexDirection: 'row',
     alignItems: 'center',
