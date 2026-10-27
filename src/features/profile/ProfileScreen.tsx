@@ -41,7 +41,7 @@ export function ProfileScreen() {
   const [tab, setTab] = useState<Tab>('rules');
 
   return (
-    <Screen withTabBar>
+    <Screen withTabBar topBar={{ title: 'Profile', hideUntilScrolled: true }}>
       <Text accessibilityRole="header" style={[typography.displayL, { color: colors.ink }]}>
         Profile
       </Text>

@@ -50,7 +50,7 @@ export function HistoryScreen() {
   useFocusEffect(load);
 
   return (
-    <Screen withTabBar>
+    <Screen withTabBar topBar={{ title: 'Your scans', hideUntilScrolled: true }}>
       <View>
         <AskNjamHeader>
           <SectionHeader headline="Your scans" deck="Everything your household scanned, newest first." />
