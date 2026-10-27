@@ -6,7 +6,13 @@
  *          away. An allergy moves on to the edit view, to ask how bad a
  *          reaction is, and is added from there.
  *   edit - one rule: for an allergy, its level (Avoid, Moderate, Severe) and
- *          Save; for anything, Remove.
+ *          Save; for anything, Remove. Remove asks once more before it
+ *          saves, in the same sheet, because a removed allergy stops
+ *          blocking products straight away.
+ *
+ * Button order: an allergy's sheet edits its level, so Save is the primary
+ * button and Remove a text button under it. An ingredient or E-number has
+ * nothing to edit, so Remove is the one action and gets the primary button.
  *
  * Both views live in one sheet on purpose. Going from "add" to "edit" swaps
  * what the sheet shows, instead of closing one modal and opening another,
@@ -22,7 +28,6 @@ import {
   BottomSheet,
   Button,
   FilterChip,
-  OptionButton,
   RuleChip,
   TextField,
 } from '@/components/design-system';
@@ -31,10 +36,10 @@ import {
   ALLERGENS,
   DIETS,
   E_NUMBER_PATTERN,
-  SEVERITY_CHOICES,
   SUGGESTED_E_NUMBERS,
   SUGGESTED_INGREDIENTS,
 } from '@/features/onboarding/rule-options';
+import { SeverityPicker } from '@/features/onboarding/SeverityPicker';
 import {
   capitalise,
   dietIsOn,
@@ -80,6 +85,7 @@ type RuleSheetProps = {
 };
 
 export function RuleSheet({ view, rules, saving, onSave, onClose }: RuleSheetProps) {
+  const { colors } = useNjamTheme();
   // The view can move from add to edit inside the sheet, so it is kept here.
   // It follows the Rules tab's view each time the sheet opens, and keeps the
   // last one while the sheet fades out, so the content does not vanish first.
@@ -99,10 +105,16 @@ export function RuleSheet({ view, rules, saving, onSave, onClose }: RuleSheetPro
     setSeverity(isNew ? 'severe' : savedSeverity);
   }, [isNew, savedSeverity, rule]);
 
+  // "Remove ... ?" is asked about the view on screen. Each time the sheet
+  // opens, `shown` is a new view, so the question is gone; while the sheet
+  // fades out after removing, `shown` stays the same, so it stays.
+  const [confirmingFor, setConfirmingFor] = useState<RuleSheetView | null>(null);
+  const confirmingRemove = confirmingFor === shown;
+
   // One BottomSheet whatever the view, so moving from add to edit swaps its
   // content instead of opening a second modal.
   let title = 'Add a rule';
-  let subtitle = 'Tap one to add it. Allergies ask how bad a reaction is next.';
+  let subtitle: string | undefined = 'Tap one to add it. Allergies ask how bad a reaction is next.';
   let body = (
     <AddRuleBody
       rules={rules}
@@ -112,7 +124,31 @@ export function RuleSheet({ view, rules, saving, onSave, onClose }: RuleSheetPro
   );
   let footer: ReactNode = undefined;
 
-  if (rule) {
+  if (rule && confirmingRemove) {
+    const word = rule.type === 'allergen' ? allergenWord(rule.slug) : rule.value;
+    const name = rule.type === 'e_number' ? word : capitalise(word);
+    title = `Remove ${word}?`;
+    subtitle = undefined;
+    body = (
+      <Text style={[typography.body, { color: colors.inkMuted }]}>
+        Your scans stop checking for {word}. You can add it again from Add a rule.
+      </Text>
+    );
+    footer = (
+      <>
+        <Button
+          label={`Remove ${word}`}
+          variant="danger"
+          size="large"
+          fullWidth
+          loading={saving}
+          loadingLabel="Removing"
+          onPress={() => onSave(withoutRule(rules, rule), `${name} removed from your rules.`)}
+        />
+        <Button label={`Keep ${word}`} variant="text" fullWidth disabled={saving} onPress={() => setConfirmingFor(null)} />
+      </>
+    );
+  } else if (rule) {
     const word = rule.type === 'allergen' ? allergenWord(rule.slug) : rule.value;
     const name = rule.type === 'e_number' ? word : capitalise(word);
     title = name;
@@ -135,11 +171,12 @@ export function RuleSheet({ view, rules, saving, onSave, onClose }: RuleSheetPro
         {!isNew && (
           <Button
             label={`Remove ${word} from my rules`}
-            variant="text"
+            variant={rule.type === 'allergen' ? 'text' : 'primary'}
+            size={rule.type === 'allergen' ? undefined : 'large'}
             icon="delete"
             fullWidth
             disabled={saving}
-            onPress={() => onSave(withoutRule(rules, rule), `${name} removed from your rules.`)}
+            onPress={() => setConfirmingFor(shown)}
           />
         )}
       </>
@@ -174,24 +211,7 @@ function EditRuleBody({
     );
   }
 
-  return (
-    <View style={styles.section}>
-      <Text style={[typography.title, { color: colors.ink }]}>How bad is a reaction?</Text>
-      <View accessibilityRole="radiogroup" style={styles.options}>
-        {SEVERITY_CHOICES.map((choice) => (
-          <OptionButton
-            key={choice.label}
-            label={choice.label}
-            selected={severity === choice.value}
-            onPress={() => onSeverity(choice.value)}
-          />
-        ))}
-      </View>
-      <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
-        Choose Severe if even a trace makes you ill. Your verdicts say which level you chose.
-      </Text>
-    </View>
-  );
+  return <SeverityPicker title="How bad is a reaction?" severity={severity} onChange={onSeverity} />;
 }
 
 /* ------------------------------------------------------------------ */
@@ -353,11 +373,6 @@ function ChipSection({ title, note, children }: { title: string; note?: string; 
 
 const styles = StyleSheet.create({
   section: {
-    gap: space.s2,
-  },
-  options: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: space.s2,
   },
   kinds: {
