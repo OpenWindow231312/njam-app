@@ -2,6 +2,8 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.14 (27 Oct 2026): motion.resultHold, how long the scanner shows the
+ * product it found before the Verdict screen opens.
  * v1.13 (21 Oct 2026): the camera scanner redesign. layout.shutterSize for the
  * round ShutterButton and smoother scan brackets (scanBracketStroke 5 to 3 and
  * a new scanBracketRadius).
@@ -753,6 +755,8 @@ export const motion = {
   splashHold: 600,
   /** One full turn of the rotating Njam mark, the only loading indicator. Linear. */
   loadingTurn: 1200,
+  /** The scanner holds the product it found on screen this long, so you see its name, before the verdict opens (v1.14). */
+  resultHold: 700,
 } as const;
 
 export const tokens = {
