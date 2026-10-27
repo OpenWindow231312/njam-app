@@ -23,5 +23,7 @@ E-number is, and what to eat instead.
   400 ms pause (3 characters minimum, one request per pause, stale requests
   cancelled, late replies ignored). `ChatComposer` draws it behind the input.
 - No medical advice: Njam says so and suggests a doctor or dietitian.
-- Entry point: `AskNjamHeader`, the AiAvatar button on Home, Search, History and
-  Profile. Not on the Scanner.
+- Entry point: `AskNjamHeader`, a small tonal "Ask Njam" button with a chat
+  icon on Home, Search, History and Profile (and `AskNjamButton` on the
+  Verdict top bar). Not on the Scanner. It was the round AiAvatar until the
+  27 Oct user test, where it read as a profile picture.
