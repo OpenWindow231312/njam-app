@@ -15,7 +15,12 @@ your name and role, then three tabs on a SegmentedControl.
 
 - **Rules** (`RulesTab`): your rules as RuleChips. Tap one to change an
   allergy's level or remove it; "Add a rule" searches allergies, diets,
-  ingredients and E-numbers. Both happen in one `RuleSheet`. Saving uses
+  ingredients and E-numbers. Both happen in one `RuleSheet`. An allergy's
+  level uses `SeverityPicker` (in `features/onboarding`, shared with
+  onboarding), with an info button that says what each level means. Remove
+  asks "Remove gelatin?" in the same sheet before it saves; it is the primary
+  button when it is the only action (ingredients, E-numbers) and a text button
+  under Save on an allergy. Saving uses
   `saveMyRules`, the same save as onboarding. Nutrient limits and health
   presets show as "Coming soon": the engine cannot check them yet, and a rule
   it cannot check would turn every scan into Caution. The same tab edits the
