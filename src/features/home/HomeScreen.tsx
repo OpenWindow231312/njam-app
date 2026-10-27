@@ -48,7 +48,7 @@ import { ProductGrid } from '@/features/home/ProductGrid';
 import { ProductShelf } from '@/features/home/ProductShelf';
 import { ScanTipCard } from '@/features/home/ScanTipCard';
 import { applyFilters, useCatalogue, type Checked } from '@/features/home/use-catalogue';
-import { packSize } from '@/features/verdict/catalogue';
+import { cardPhotoUrl, packSize } from '@/features/verdict/catalogue';
 import { fetchRecentScans, type ScanRecord } from '@/features/verdict/scans';
 import { icon, layout, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
@@ -107,7 +107,7 @@ export function HomeScreen() {
       brand={product.brand}
       size={packSize(product)}
       verdict={verdict}
-      imageUrl={product.imageUrl}
+      imageUrl={cardPhotoUrl(product.imageUrl)}
       saved={saved.has(product.id)}
       onPress={() => openProduct(product.id)}
       onToggleSave={() => catalogue.toggleSave(product.id)}
@@ -244,7 +244,7 @@ export function HomeScreen() {
                   name={scan.productName ?? 'Product from a label photo'}
                   brand={scan.productBrand}
                   verdict={scan.verdict}
-                  imageUrl={scan.productImageUrl}
+                  imageUrl={cardPhotoUrl(scan.productImageUrl)}
                   onPress={() => router.push({ pathname: '/verdict', params: { scanId: scan.id } })}
                 />
               ))}
