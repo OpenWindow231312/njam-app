@@ -3,11 +3,13 @@
  * right. Home, Search, History and Profile use it. The Scanner does not:
  * nothing should sit over the camera but the scan.
  *
- * The way in is a small tonal Button that says "Ask Njam", with a chat icon.
- * It used to be the Njam mark in a round forest circle (AiAvatar), but in the
- * user test on 27 Oct that read as a profile picture, so the label now says
- * what it does. Tonal keeps it quiet beside the headline, so it never
- * competes with a screen's lime primary button.
+ * The way in is a small tonal Button that says "Ask Njam", led by a small
+ * AiAvatar (the Njam mark in a forest circle). The avatar on its own read as
+ * a profile picture in the user test on 27 Oct, so the label says what it
+ * does; the circle keeps it recognisable as the AI. (A chat icon sat there
+ * for a while, but "chat" was never added to icon-paths.ts, so it drew
+ * nothing.) Tonal keeps it quiet beside the headline, so it never competes
+ * with a screen's lime primary button.
  *
  * A small Button is drawn 36 tall; Button extends its tap area to 48.
  */
@@ -15,8 +17,8 @@ import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Button } from '@/components/design-system';
-import { space } from '@/theme/tokens';
+import { AiAvatar, Button } from '@/components/design-system';
+import { icon, space } from '@/theme/tokens';
 
 export function AskNjamHeader({ children }: { children: ReactNode }) {
   return (
@@ -29,7 +31,15 @@ export function AskNjamHeader({ children }: { children: ReactNode }) {
 
 /** The labelled pill on its own, for screens with no SectionHeader (the Verdict screen's top bar). */
 export function AskNjamButton() {
-  return <Button variant="tonal" size="small" icon="chat" label="Ask Njam" onPress={() => router.push('/ask')} />;
+  return (
+    <Button
+      variant="tonal"
+      size="small"
+      leading={<AiAvatar size={icon.sizeMd} />}
+      label="Ask Njam"
+      onPress={() => router.push('/ask')}
+    />
+  );
 }
 
 const styles = StyleSheet.create({

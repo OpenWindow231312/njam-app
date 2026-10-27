@@ -20,6 +20,7 @@
  * Coloured buttons never carry a shadow. Only the white outlined button has
  * the ambient shadow, which replaces its old hairline.
  */
+import type { ReactNode } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
@@ -39,6 +40,8 @@ type ButtonProps = {
   size?: ButtonSize;
   /** Leading Material Symbols ligature name. Icons always sit on the left. */
   icon?: string;
+  /** Something drawn in the icon's place that is not a Material Symbol: the AiAvatar on Ask Njam. */
+  leading?: ReactNode;
   loading?: boolean;
   /** What the label changes to while loading, e.g. "Checking 6 rules". */
   loadingLabel?: string;
@@ -52,6 +55,7 @@ export function Button({
   variant = 'primary',
   size = 'default',
   icon: iconName,
+  leading,
   loading = false,
   loadingLabel,
   disabled = false,
@@ -107,7 +111,7 @@ export function Button({
       {loading ? (
         <LoadingMark size={icon.sizeXs} color={look.ink} />
       ) : (
-        iconName && <Icon name={iconName} size="sm" color={look.ink} />
+        leading ?? (iconName && <Icon name={iconName} size="sm" color={look.ink} />)
       )}
 
       <Text

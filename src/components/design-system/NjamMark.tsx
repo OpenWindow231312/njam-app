@@ -51,9 +51,9 @@ export function NjamMark({ size, color }: NjamMarkProps) {
   );
 }
 
-export function AiAvatar() {
+/** size: leave out for the chat header circle; the Ask Njam pill passes icon.sizeMd. */
+export function AiAvatar({ size = layout.aiAvatarSize }: { size?: number }) {
   const { colors } = useNjamTheme();
-  const size = layout.aiAvatarSize;
 
   return (
     <View
