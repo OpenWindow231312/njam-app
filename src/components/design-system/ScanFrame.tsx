@@ -2,43 +2,72 @@
  * ScanFrame: the camera panel on the scanner screen.
  *
  * The page behind stays the light surface (never a dark camera screen). The
- * camera shows inside this rounded panel (radius.xxl). On top of it:
- *   - top row:  the ScopePill (who the scan is for) and the torch button,
- *   - centre:   four white corner brackets marking where the barcode goes,
- *               with a hint pill under them ("Point at a barcode. It scans
- *               by itself."),
- *   - bottom:   one fallback action, e.g. "Type the barcode instead".
+ * camera shows inside this rounded panel (radius.xxl), which fills the
+ * screen (v1.13: the scanner hides the TabBar). On top of it:
+ *   - top row:  a close button (left) and the torch button (right),
+ *   - message:  an optional CameraMessage, always just under the top row,
+ *   - centre:   four white corner brackets marking where the barcode (or the
+ *               ingredient list) goes, with a hint pill under them, or the
+ *               product that was found (`result`) in its place,
+ *   - bottom:   the ShutterButton, or the buttons that replace it
+ *               ("Retake" and "Use this photo").
  *
  * Pass the live camera (an expo-camera CameraView) as children; it fills the
  * panel behind everything. Until it arrives the panel shows surfaceMedia.
+ * Anything else that should sit on the picture (the frozen photo, the scan
+ * line, the floating barcode number) goes in `overlay`.
  *
- * Detection is automatic, so there is no shutter button, and nothing on the
- * frame pulses or sweeps at rest.
+ * Nothing is read until the shutter is pressed, so nothing on the frame
+ * pulses or sweeps while the camera is live.
  */
-import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { IconButton } from '@/components/design-system/IconButton';
-import { fontFamilies, layout, radius, space, typography } from '@/theme/tokens';
+import { border, layout, motion, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type ScanFrameProps = {
   /** The live camera view. Hidden from screen readers. */
   children?: ReactNode;
-  /** The ScopePill. Mandatory in the app; optional here only so previews can leave it out. */
-  scope?: ReactNode;
+  /** What sits on the picture: the frozen photo and anything drawn over it. */
+  overlay?: ReactNode;
+  onClose: () => void;
   torchOn: boolean;
   onToggleTorch: () => void;
+  /** A CameraMessage, shown just under the top row. */
+  message?: ReactNode;
   /** One short line under the brackets: what to do, or what is happening. */
-  hint: string;
-  /** One fallback action at the bottom, e.g. a Button to type the barcode. */
+  hint?: string;
+  /** Takes the hint's place under the brackets: the product the barcode found. */
+  result?: ReactNode;
+  /** barcode: a wide target, scanFrameHeight tall. label: a tall one for an ingredient list. none: no brackets. */
+  target?: 'barcode' | 'label' | 'none';
+  /** Sits just above the brackets: the barcode number floating up as it is read. */
+  readout?: ReactNode;
+  /** A lime line sweeps through the brackets while a photo is being read. */
+  scanning?: boolean;
+  /** The ShutterButton, or the buttons that replace it. */
   bottomAction?: ReactNode;
 };
 
 type Corner = 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
 const CORNERS: Corner[] = ['topLeft', 'topRight', 'bottomLeft', 'bottomRight'];
 
-export function ScanFrame({ children, scope, torchOn, onToggleTorch, hint, bottomAction }: ScanFrameProps) {
+export function ScanFrame({
+  children,
+  overlay,
+  onClose,
+  torchOn,
+  onToggleTorch,
+  message,
+  hint,
+  result,
+  target = 'barcode',
+  readout,
+  scanning = false,
+  bottomAction,
+}: ScanFrameProps) {
   const { colors } = useNjamTheme();
 
   return (
@@ -49,9 +78,14 @@ export function ScanFrame({ children, scope, torchOn, onToggleTorch, hint, botto
         importantForAccessibility="no-hide-descendants">
         {children}
       </View>
+      {overlay && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          {overlay}
+        </View>
+      )}
 
       <View style={styles.topRow}>
-        <View style={styles.scope}>{scope}</View>
+        <IconButton icon="close" accessibilityLabel="Close the scanner" onPress={onClose} variant="raised" />
         <IconButton
           icon={torchOn ? 'flashlight_off' : 'flashlight_on'}
           accessibilityLabel={torchOn ? 'Torch off' : 'Torch on'}
@@ -60,25 +94,32 @@ export function ScanFrame({ children, scope, torchOn, onToggleTorch, hint, botto
         />
       </View>
 
+      {message && <View style={styles.message}>{message}</View>}
+
       <View style={styles.middle}>
-        <View
-          style={styles.target}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants">
-          {CORNERS.map((corner) => (
-            <View
-              key={corner}
-              style={[styles.bracket, bracketStyles[corner], { borderColor: colors.surfaceRaised }]}
-            />
-          ))}
-        </View>
-        <View style={[styles.hint, { backgroundColor: colors.surfaceRaised }]}>
-          <Text
-            accessibilityLiveRegion="polite"
-            style={[typography.body, styles.hintText, { color: colors.ink }]}>
-            {hint}
-          </Text>
-        </View>
+        {readout}
+        {target !== 'none' && (
+          <View
+            style={target === 'label' ? styles.labelTarget : styles.barcodeTarget}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants">
+            {CORNERS.map((corner) => (
+              <View
+                key={corner}
+                style={[styles.bracket, bracketStyles[corner], { borderColor: colors.surfaceRaised }]}
+              />
+            ))}
+            {scanning && <ScanLine />}
+          </View>
+        )}
+        {result}
+        {!result && hint && (
+          <View style={[styles.hint, { backgroundColor: colors.surfaceRaised }]}>
+            <Text accessibilityLiveRegion="polite" style={[typography.label, styles.hintText, { color: colors.ink }]}>
+              {hint}
+            </Text>
+          </View>
+        )}
       </View>
 
       {bottomAction && <View style={styles.bottom}>{bottomAction}</View>}
@@ -86,9 +127,58 @@ export function ScanFrame({ children, scope, torchOn, onToggleTorch, hint, botto
   );
 }
 
+/**
+ * The scan line: one flat lime bar (accent, never a gradient) that sweeps
+ * down through the brackets and starts again, once every motion.loadingTurn,
+ * while a photo is read. Behind it, the part it has passed takes a flat lime
+ * wash (accent at opacity.scanRead), so you can see the photo being read
+ * line by line. With "reduce motion" on both hold still at the middle.
+ */
+function ScanLine() {
+  const { colors } = useNjamTheme();
+  // Held in state, not a ref, so it can be read while rendering.
+  const [progress] = useState(() => new Animated.Value(0));
+  const [height, setHeight] = useState(0);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      progress.setValue(0.5);
+      return;
+    }
+    const sweep = Animated.loop(
+      Animated.timing(progress, { toValue: 1, duration: motion.loadingTurn, easing: Easing.linear, useNativeDriver: true }),
+    );
+    sweep.start();
+    return () => sweep.stop();
+  }, [progress, reduceMotion]);
+
+  const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [0, Math.max(height - border.ring, 0)] });
+
+  return (
+    <View style={StyleSheet.absoluteFill} onLayout={(event) => setHeight(event.nativeEvent.layout.height)}>
+      {/* Grows down from the top edge with the line: scaleY from the top. */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          styles.readWash,
+          { backgroundColor: colors.accent, transform: [{ scaleY: progress }] },
+        ]}
+      />
+      <Animated.View style={[styles.scanLine, { backgroundColor: colors.accent, transform: [{ translateY }] }]} />
+    </View>
+  );
+}
+
 // Each bracket is a square with two borders drawn and one rounded corner.
+// v1.13: a thinner stroke and a wider radius, so the corner reads as one
+// smooth curve rather than an angle.
 const STROKE = layout.scanBracketStroke;
-const ROUND = layout.scanBracketSize / 2;
+const ROUND = layout.scanBracketRadius;
 const bracketStyles = StyleSheet.create({
   topLeft: { left: 0, top: 0, borderLeftWidth: STROKE, borderTopWidth: STROKE, borderTopLeftRadius: ROUND },
   topRight: {
@@ -125,10 +215,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: space.s3,
   },
-  scope: {
-    flexShrink: 1,
+  message: {
+    marginTop: space.s3,
   },
   middle: {
     flex: 1,
@@ -137,10 +226,30 @@ const styles = StyleSheet.create({
     gap: space.s6,
   },
   // Barcodes are wide, so the target spans the panel less space.s10 a side.
-  target: {
+  barcodeTarget: {
     alignSelf: 'stretch',
     marginHorizontal: space.s10 - space.s3,
     height: layout.scanFrameHeight,
+  },
+  // An ingredient list is tall: the target takes the free height in the middle.
+  labelTarget: {
+    alignSelf: 'stretch',
+    flex: 1,
+    marginHorizontal: space.s6 - space.s3,
+    marginTop: space.s6,
+  },
+  // Inside the bracket stroke, like the line, with the brackets' rounding.
+  readWash: {
+    margin: layout.scanBracketStroke,
+    borderRadius: layout.scanBracketRadius,
+    opacity: opacity.scanRead,
+    transformOrigin: 'top',
+  },
+  // Inset by the bracket stroke so the line never pokes past the corners.
+  scanLine: {
+    marginHorizontal: layout.scanBracketStroke,
+    height: border.ring,
+    borderRadius: radius.pill,
   },
   bracket: {
     position: 'absolute',
@@ -153,10 +262,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   hintText: {
-    fontFamily: fontFamilies.textSemiBold,
     textAlign: 'center',
   },
+  // The shutter sits space.s3 above the panel's own padding: 24 from the edge.
   bottom: {
     alignItems: 'center',
+    marginBottom: space.s3,
   },
 });

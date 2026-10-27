@@ -39,6 +39,10 @@ type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>
 
 function NjamTabBar({ state, navigateToTab }: TabBarProps) {
   const insets = useSafeAreaInsets();
+  const active = tabForRoute(state.routes[state.index].name);
+  // The scanner fills the screen (v1.13); its close button goes back to Home.
+  if (active === 'scan') return null;
+
   // The strip ends level with the top of the bar, so the fade happens behind it.
   const stripHeight = layout.tabBarHeight + layout.tabBarInset + insets.bottom;
 
@@ -46,7 +50,7 @@ function NjamTabBar({ state, navigateToTab }: TabBarProps) {
     <>
       <FrostedStrip edge="bottom" height={stripHeight} />
       <TabBar
-        active={tabForRoute(state.routes[state.index].name)}
+        active={active}
         onSelect={(tab) => {
           // SDK 58's tab bar navigates by route key, not by name, so look the
           // route up by its file name first.

@@ -96,8 +96,8 @@ without reading every label.
 - **Set your rules once.** Your profile has six layers: allergies with
   severity, diet and faith, banned ingredients, E-numbers, nutrient limits
   and health presets.
-- **Scan a barcode.** The scanner always shows a scope pill, so you know
-  whose rules the scan runs against.
+- **Scan a barcode.** Press the round button to photograph it. The number
+  floats up as Njam reads it; if it will not read, type it instead.
 - **Get a verdict with reasons.** Safe, Caution or Not safe, each with a
   shape, a word and a reason: "Not safe. Contains milk solids, which you
   marked severe."
@@ -129,7 +129,7 @@ Each one is built in the app.
     <td align="center"><img src="docs/readme/screens/log-in.png" width="190" alt="Log in screen" /><br /><sub>Log in</sub></td>
     <td align="center"><img src="docs/readme/screens/onboarding.png" width="190" alt="Onboarding, choosing allergies and diets" /><br /><sub>Onboarding</sub></td>
     <td align="center"><img src="docs/readme/screens/search.png" width="190" alt="Search the catalogue" /><br /><sub>Search</sub></td>
-    <td align="center"><img src="docs/readme/screens/scanner.png" width="190" alt="Scanner with the scope pill" /><br /><sub>Scanner</sub></td>
+    <td align="center"><img src="docs/readme/screens/scanner.png" width="190" alt="Scanner with the shutter button" /><br /><sub>Scanner</sub></td>
   </tr>
   <tr>
     <td align="center"><img src="docs/readme/screens/verdict.png" width="190" alt="Verdict screen showing Caution for Weet-Bix" /><br /><sub>Verdict</sub></td>
@@ -151,12 +151,12 @@ Each one is built in the app.
 
 ```mermaid
 flowchart LR
-    A["Scan a barcode<br/>(scope pill: whose rules)"] --> B{"In the Njam<br/>catalogue?"}
+    A["Photograph a<br/>barcode"] --> B{"In the Njam<br/>catalogue?"}
     B -- yes --> V["Rules engine"]
     B -- no --> C{"On Open Food<br/>Facts?"}
     C -- yes --> S["Saved to the<br/>catalogue"]
     S --> V
-    C -- no --> D["Photograph the<br/>ingredient list"]
+    C -- no --> D["Photograph the front,<br/>then the ingredient list"]
     D --> E["Gemini reads<br/>the label"]
     E --> V
     V --> R["Safe, Caution or Not safe<br/>with reasons"]
@@ -371,10 +371,10 @@ where id = (select id from auth.users where email = 'you@example.com');
 2. **Home** shows aisles, saved products and what is safe for you. The Njam
    mark at the top right opens **Ask Njam**.
 3. **Search** finds products by name, filtered by verdict, aisle or store.
-4. **Scan** (the centre tab) opens the camera. Check the scope pill, then
-   point at a barcode. It scans by itself. If Njam does not know the
-   product, it asks for a photo of the ingredient list, then of the front
-   of the pack.
+4. **Scan** (the centre tab) opens the camera. Fit the barcode in the
+   frame and press the round button. If it will not read, type the number.
+   If Njam does not know the product, it asks for a photo of the front of
+   the pack, then of the ingredient list.
 5. **The verdict** shows the mark, the word and the reasons. The tabs show
    the ingredients (with the ones that broke a rule highlighted) and the
    nutrition. Below that, you can see who in the household can eat it,

@@ -12,7 +12,7 @@ incomplete. **To build** is planned for weeks 3 and 4 (see `PLAN.md`).
 | --- | --- | --- |
 | Sign up, log in, log out | Built | `features/auth` |
 | Roles: Household Owner, Standard User, Admin/Moderator, enforced by RLS | Built | migrations, `features/admin-review` |
-| Scan a barcode with the scope pill showing whose profile it checks | Built | `features/scanner` |
+| Photograph a barcode with the shutter, or type its number | Built | `features/scanner` |
 | Lookup order: Njam catalogue, then Open Food Facts (saved on first scan), then a label photo read by Gemini | Built | `features/scanner`, `import-open-food-facts`, `scan-label` |
 | Verdict engine: Safe, Caution or Not safe with reasons; unverified records capped at Caution, except complete Open Food Facts records | Built | `services/verdict` |
 | A catalogue of South African products, imported from Open Food Facts | Built (27 Oct) | `import-open-food-facts`, `scripts/import-open-food-facts.mjs` |

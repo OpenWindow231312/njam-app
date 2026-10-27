@@ -2,6 +2,12 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.14 (27 Oct 2026): motion.resultHold, how long the scanner shows the
+ * product it found before the Verdict screen opens, and opacity.scanRead, the
+ * lime wash over the part of a photo the scan line has passed.
+ * v1.13 (21 Oct 2026): the camera scanner redesign. layout.shutterSize for the
+ * round ShutterButton and smoother scan brackets (scanBracketStroke 5 to 3 and
+ * a new scanBracketRadius).
  * v1.12 (18 Oct 2026): surfaceScrim is black at 30%, no longer forest green,
  * so the page behind a sheet or dialog dims instead of turning green.
  * v1.11 (14 Oct 2026): the Results screens. icon.markXl for the verdict mark
@@ -594,8 +600,12 @@ export const layout = {
   scanFrameHeight: 170,
   /** Length of each corner bracket arm in ScanFrame. */
   scanBracketSize: 44,
-  /** Stroke of the ScanFrame corner brackets. */
-  scanBracketStroke: 5,
+  /** Stroke of the ScanFrame corner brackets (v1.13: 5 to 3, smoother). */
+  scanBracketStroke: 3,
+  /** Corner radius of each ScanFrame bracket: a soft quarter circle (v1.13). */
+  scanBracketRadius: 26,
+  /** The round ShutterButton on the camera: a white ring round a white core (v1.13). */
+  shutterSize: 72,
   /** Ceiling for an expanded bottom sheet, as a fraction of screen height. */
   sheetMaxHeight: 0.88,
   /** Cap the column on tablets so line length stays readable. */
@@ -693,6 +703,8 @@ export const opacity = {
   disabled: 0.38,
   /** The darkened camera area outside the scan frame. */
   scanDim: 0.62,
+  /** The accent wash over the part of a photo the scan line has read (v1.14). */
+  scanRead: 0.24,
   /** Ripple peak on a tonal or text button. */
   press: 0.12,
 } as const;
@@ -746,6 +758,8 @@ export const motion = {
   splashHold: 600,
   /** One full turn of the rotating Njam mark, the only loading indicator. Linear. */
   loadingTurn: 1200,
+  /** The scanner holds the product it found on screen this long, so you see its name, before the verdict opens (v1.14). */
+  resultHold: 700,
 } as const;
 
 export const tokens = {
