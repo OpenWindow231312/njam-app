@@ -61,31 +61,36 @@ export function SearchScreen() {
   }
 
   return (
-    <Screen withTabBar>
-      <AskNjamHeader>
-        <SectionHeader headline="Find a product" deck="Search by name or brand, or browse an aisle." />
-      </AskNjamHeader>
+    // Like Your scans: once the headline scrolls away, it comes back small in the bar.
+    <Screen withTabBar topBar={{ title: 'Find a product', hideUntilScrolled: true }}>
+      {/* One View with no gap of its own, so the search bar sits right under
+          the headline: only the SectionHeader's own space.s7 between them. */}
+      <View>
+        <AskNjamHeader>
+          <SectionHeader headline="Find a product" />
+        </AskNjamHeader>
 
-      <View style={styles.searchRow}>
-        <View style={styles.flex}>
-          <TextField
-            variant="search"
-            label="Search products and brands"
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search products and brands"
-            autoCapitalize="none"
-            trailingIcon={query.length > 0 ? 'close' : undefined}
-            trailingLabel="Clear search"
-            onTrailingPress={() => setQuery('')}
+        <View style={styles.searchRow}>
+          <View style={styles.flex}>
+            <TextField
+              variant="search"
+              label="Search products and brands"
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search products and brands"
+              autoCapitalize="none"
+              trailingIcon={query.length > 0 ? 'close' : undefined}
+              trailingLabel="Clear search"
+              onTrailingPress={() => setQuery('')}
+            />
+          </View>
+          <IconButton
+            variant="filled"
+            icon="tune"
+            accessibilityLabel="Filter products"
+            onPress={() => setFiltering(true)}
           />
         </View>
-        <IconButton
-          variant="filled"
-          icon="tune"
-          accessibilityLabel="Filter products"
-          onPress={() => setFiltering(true)}
-        />
       </View>
 
       <FilteredBy
