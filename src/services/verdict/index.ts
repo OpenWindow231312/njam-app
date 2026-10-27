@@ -50,6 +50,11 @@ export type VerdictProduct = {
   /** True when this came straight from a label photo or typed label text. */
   readFromLabel: boolean;
   /**
+   * How sure the label reader was, for a label it just read. Anything below
+   * "high" caps the verdict at Caution: a word it misread could be the allergen.
+   */
+  readConfidence?: 'high' | 'medium' | 'low';
+  /**
    * True when the ingredient list came from Open Food Facts. A complete one
    * is trusted like a verified record; a thin one stays capped at Caution.
    */
@@ -360,6 +365,15 @@ export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Ve
   const trusted = product.verified || (fromOpenFoodFacts && isCompleteList(product.ingredients));
   if (fromOpenFoodFacts && !trusted) {
     unchecked.push({ icon: 'info', text: 'The ingredient list from Open Food Facts looks incomplete.' });
+  }
+
+  // A label the reader was not sure of may have a word wrong or missing, so
+  // it cannot be Safe. A rule it plainly breaks still makes it Not safe.
+  if (product.readFromLabel && (product.readConfidence === 'low' || product.readConfidence === 'medium')) {
+    unchecked.push({
+      icon: 'info',
+      text: 'The label photo was hard to read, so we may have missed or misread an ingredient.',
+    });
   }
 
   // A severe allergy is where a misread label does the most harm, so for

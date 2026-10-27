@@ -255,6 +255,7 @@ async function loadLabel(
   const checked: VerdictProduct = {
     verified: false,
     readFromLabel: true,
+    readConfidence: read.confidence,
     ingredients: read.ingredients.map((item) => ({ ...item, canonicalName: null })),
     mayContain: read.mayContain,
   };

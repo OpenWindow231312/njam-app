@@ -21,6 +21,9 @@ The rules:
   Caution, for every profile. A photo read never counts as Open Food Facts.
 - **A "may contain" line is Not safe for a severe allergy**, because onboarding
   promises that even a trace counts. For Avoid and Moderate it is Caution.
+- **A label read with medium or low confidence is capped at Caution**, with a
+  reason line saying the photo was hard to read. A rule it plainly breaks still
+  makes it Not safe.
 - **Degrade toward Caution, never toward Safe.** A false Caution is a nuisance; a
   false Safe is a health incident. Zero false Safe verdicts is the project target.
 - **Follow the alias chain** (`ingredients.canonical_id`) before checking a rule,
