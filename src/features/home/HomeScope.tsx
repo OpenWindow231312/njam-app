@@ -1,6 +1,6 @@
 /**
- * HomeScope: the two small pills under Home's headline, saying whose rules
- * every verdict on Home is for: "Checking for Anika" and "4 rules".
+ * HomeScope: the pill under Home's headline, saying whose rules every
+ * verdict on Home is for: "Checking for Anika".
  *
  * Tapping "Checking for" drops a tick list open underneath it: everyone in
  * the household, one tick box each, and "Everyone" at the top to tick them
@@ -12,8 +12,11 @@
  * it: the design system keeps real elevation for sheets, modals and the
  * snackbar, and a floating menu would need it.
  *
- * White with the ambient shadow like every white control on the pale ground;
- * the rule count sits on a sunken chip, because it is a fact, not a button.
+ * White with the ambient shadow like every white control on the pale ground.
+ *
+ * There used to be a "4 rules" chip beside the pill. The user test on 27 Oct
+ * found it a different size from the pill and unclear in purpose, so it was
+ * taken off. The count is still read out to a screen reader with the pill.
  */
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -88,13 +91,6 @@ export function HomeScope({ profiles, selectedIds, onChange }: HomeScopeProps) {
           <Text style={[typography.label, { color: colors.ink }]}>Checking for {name}</Text>
           <Icon name={open ? 'expand_less' : 'expand_more'} size="sm" color={colors.ink} />
         </PressableSurface>
-        <View
-          importantForAccessibility="no-hide-descendants"
-          accessibilityElementsHidden
-          style={[styles.chip, { backgroundColor: colors.surfaceSunken }]}>
-          <Icon name="rule" size="xs" color={colors.ink} />
-          <Text style={[typography.label, { color: colors.ink }]}>{rules}</Text>
-        </View>
       </View>
 
       {open && (
@@ -146,13 +142,5 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  chip: {
-    height: layout.chipHeight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.s1,
-    paddingHorizontal: layout.chipPaddingStart,
-    borderRadius: radius.pill,
   },
 });

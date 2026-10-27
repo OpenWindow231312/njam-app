@@ -2,8 +2,8 @@
 
 The landing screen after auth, laid out as "Home 1 · Shelves" in Figma
 (18 Oct 2026, after Sixty60's deal shelves): "Hi Anika, check your food",
-"Checking for Anika · 4 rules" (`HomeScope`, opens Profile), a search with a
-scan button, the aisle bubbles, a tip card that opens the scanner
+"Checking for Anika" (`HomeScope`, opens Profile), a search bar, the aisle
+bubbles, a tip card that opens the scanner
 (`ScanTipCard`), then shelves that scroll sideways (`ProductShelf` of
 `ProductTile`s): Safe for you, Saved by your household, Recently scanned.
 Each shelf's See all opens the aisle page or History. Typing in the search

@@ -4,7 +4,7 @@
  *
  * Top to bottom:
  *   - "Hi Anika, check your food", with Ask Njam on the right.
- *   - whose rules the verdicts are for: "Checking for Anika", "4 rules".
+ *   - whose rules the verdicts are for: "Checking for Anika".
  *     Tapping it opens a tick list of everyone in the household.
  *   - the search bar.
  *   - "Shop by aisle": round aisle bubbles. Each opens that aisle's page.
