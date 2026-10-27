@@ -4,9 +4,9 @@
  *
  * Top to bottom:
  *   - "Hi Anika, check your food", with Ask Njam on the right.
- *   - whose rules the verdicts are for: "Checking for Anika", "4 rules".
+ *   - whose rules the verdicts are for: "Checking for Anika".
  *     Tapping it opens a tick list of everyone in the household.
- *   - the search bar, and a scan button beside it.
+ *   - the search bar.
  *   - "Shop by aisle": round aisle bubbles. Each opens that aisle's page.
  *   - a tip card that sends you to the scanner.
  *   - three shelves that scroll sideways, each with See all:
@@ -22,9 +22,11 @@
  * two to a row, so searching still works without leaving Home. Clearing the
  * search brings the shelves back.
  *
- * The greeting, search bar, scan button, "Checking for" pill and aisle
+ * The greeting, search bar, "Checking for" pill and aisle
  * bubbles draw as soon as the small things are in (useCatalogue's basics).
  * Only the shelves wait for the products.
+ *
+ * Saving a product shows a snackbar, "Saved for your household", with Undo.
  *
  * Loading, verdicts and saving come from useCatalogue, shared with Search
  * and the aisle page. The catalogue is small, so it is searched on the
@@ -38,7 +40,6 @@ import { Screen } from '@/components/Screen';
 import {
   CategoryBubble,
   EmptyState,
-  IconButton,
   LoadingMark,
   ProductTile,
   SectionHeader,
@@ -81,6 +82,24 @@ export function HomeScreen() {
 
   const [query, setQuery] = useState('');
   const [recent, setRecent] = useState<ScanRecord[]>([]);
+  // The product just saved, so the snackbar can say so and offer Undo.
+  // A filled bookmark alone was too small to notice (user test, 27 Oct).
+  const [justSaved, setJustSaved] = useState<string | null>(null);
+
+  // Stable, because Snackbar restarts its timer whenever onDismiss changes.
+  const dismissSaved = useCallback(() => setJustSaved(null), []);
+
+  /** Saves or unsaves, and only a save gets the snackbar. */
+  function toggleSave(productId: string) {
+    const saving = !saved.has(productId);
+    catalogue.toggleSave(productId);
+    setJustSaved(saving ? productId : null);
+  }
+
+  function undoSave() {
+    if (justSaved) catalogue.toggleSave(justSaved);
+    setJustSaved(null);
+  }
 
   // Read again each time Home comes into view, so a scan you just made shows.
   // If it fails, the shelf simply stays hidden: it is a shortcut, not the point of Home.
@@ -120,7 +139,7 @@ export function HomeScreen() {
       imageUrl={cardPhotoUrl(product.imageUrl)}
       saved={saved.has(product.id)}
       onPress={() => openProduct(product.id)}
-      onToggleSave={() => catalogue.toggleSave(product.id)}
+      onToggleSave={() => toggleSave(product.id)}
     />
   );
 
@@ -140,27 +159,19 @@ export function HomeScreen() {
         {basics && <HomeScope profiles={basics.profiles} selectedIds={selectedIds} onChange={setCheckingFor} />}
       </View>
 
-      <View style={styles.searchRow}>
-        <View style={styles.flex}>
-          <TextField
-            variant="search"
-            label="Search products"
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search products and brands"
-            autoCapitalize="none"
-            trailingIcon={query.length > 0 ? 'close' : undefined}
-            trailingLabel="Clear search"
-            onTrailingPress={() => setQuery('')}
-          />
-        </View>
-        <IconButton
-          variant="filled"
-          icon="barcode_scanner"
-          accessibilityLabel="Scan a barcode"
-          onPress={() => router.navigate('/scan')}
-        />
-      </View>
+      {/* No scan button beside the search: the tip card right under it
+          already says "Scan a barcode" (user test, 27 Oct). */}
+      <TextField
+        variant="search"
+        label="Search products"
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search products and brands"
+        autoCapitalize="none"
+        trailingIcon={query.length > 0 ? 'close' : undefined}
+        trailingLabel="Clear search"
+        onTrailingPress={() => setQuery('')}
+      />
 
       {/* Searching: the matching products take the shelves' place. */}
       {loaded && searching && (
@@ -178,7 +189,7 @@ export function HomeScreen() {
               onAction={() => router.navigate('/scan')}
             />
           )}
-          <ProductGrid items={results} saved={saved} onToggleSave={catalogue.toggleSave} />
+          <ProductGrid items={results} saved={saved} onToggleSave={toggleSave} />
         </>
       )}
 
@@ -273,6 +284,19 @@ export function HomeScreen() {
         />
       )}
 
+      {/* Keyed by product, so saving a second one starts a fresh timer.
+          Left out if the save failed: that snackbar says what happened. */}
+      {justSaved && !catalogue.saveFailed && (
+        <Snackbar
+          key={justSaved}
+          icon="bookmark"
+          message="Saved for your household."
+          actionLabel="Undo"
+          onAction={undoSave}
+          onDismiss={dismissSaved}
+        />
+      )}
+
       {catalogue.saveFailed && (
         <Snackbar
           kind="failure"
@@ -287,14 +311,6 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   heading: {
     gap: space.s1,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.s2,
-  },
-  flex: {
-    flex: 1,
   },
   loading: {
     flexDirection: 'row',

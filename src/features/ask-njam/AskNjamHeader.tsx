@@ -1,20 +1,22 @@
 /**
  * AskNjamHeader: a screen's SectionHeader with the way into Ask Njam on its
- * right: the Njam mark in a forest circle (AiAvatar), which is how Njam
- * shows the AI everywhere. Home, Search, History and Profile use it. The
- * Scanner does not: nothing should sit over the camera but the scan.
+ * right. Home, Search, History and Profile use it. The Scanner does not:
+ * nothing should sit over the camera but the scan.
  *
- * The avatar is 52 across, so it already meets the 48 touch target.
- * AiAvatar itself is not tappable, so PressableSurface gives it the same
- * press feedback as every other control.
+ * The way in is a small tonal Button that says "Ask Njam", with a chat icon.
+ * It used to be the Njam mark in a round forest circle (AiAvatar), but in the
+ * user test on 27 Oct that read as a profile picture, so the label now says
+ * what it does. Tonal keeps it quiet beside the headline, so it never
+ * competes with a screen's lime primary button.
+ *
+ * A small Button is drawn 36 tall; Button extends its tap area to 48.
  */
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { AiAvatar } from '@/components/design-system';
-import { PressableSurface } from '@/components/design-system/PressableSurface';
-import { radius, space } from '@/theme/tokens';
+import { Button } from '@/components/design-system';
+import { space } from '@/theme/tokens';
 
 export function AskNjamHeader({ children }: { children: ReactNode }) {
   return (
@@ -25,22 +27,13 @@ export function AskNjamHeader({ children }: { children: ReactNode }) {
   );
 }
 
-/** The Njam mark on its own, for screens with no SectionHeader (the Verdict screen's top bar). */
+/** The labelled pill on its own, for screens with no SectionHeader (the Verdict screen's top bar). */
 export function AskNjamButton() {
-  return (
-    <PressableSurface
-      onPress={() => router.push('/ask')}
-      accessibilityRole="button"
-      accessibilityLabel="Ask Njam"
-      accessibilityHint="Opens the assistant, which answers using your rules"
-      radius={radius.pill}>
-      <AiAvatar />
-    </PressableSurface>
-  );
+  return <Button variant="tonal" size="small" icon="chat" label="Ask Njam" onPress={() => router.push('/ask')} />;
 }
 
 const styles = StyleSheet.create({
-  // The headline wraps beside the avatar rather than running under it.
+  // The headline wraps beside the pill rather than running under it.
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
