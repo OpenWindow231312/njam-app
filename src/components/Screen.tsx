@@ -56,10 +56,11 @@ export function Screen({ children, scroll = true, withTabBar = false, topBar }: 
 
   // Content starts below the status bar, but may scroll up behind it,
   // where the frosted strip blurs it (v1.8). With a pinned TopBar, it
-  // starts below the bar instead and scrolls up behind that. A bar hidden
+  // starts below the bar and its fade instead, and scrolls up behind them,
+  // so the fade never covers the headline at rest. A bar hidden
   // until you scroll takes no room, so the page starts where it always did.
   const pinnedBar = topBar && !topBar.hideUntilScrolled;
-  const topRoom = pinnedBar ? insets.top + layout.appBarHeight + space.s2 : insets.top + space.s6;
+  const topRoom = pinnedBar ? insets.top + layout.appBarHeight + layout.topBarFade : insets.top + space.s6;
 
   // A yes/no answer for the TopBar, not the scroll distance itself: React
   // skips setting a value that has not changed, so the page only re-renders

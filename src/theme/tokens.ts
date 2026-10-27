@@ -2,6 +2,9 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.15 (27 Oct 2026): layout.topBarFade, a short fade under the TopBar from
+ * surface to clear, so content scrolling under the bar has no hard line. It is
+ * the second sanctioned gradient, beside the frosted strip (CLAUDE.md rule 3).
  * v1.14 (27 Oct 2026): motion.resultHold, how long the scanner shows the
  * product it found before the Verdict screen opens, and opacity.scanRead, the
  * lime wash over the part of a photo the scan line has passed.
@@ -18,7 +21,7 @@
  * top edge has depth too, not only its bottom.
  * v1.9 (12 Oct 2026): the frosted strip fades in instead of starting with a hard
  * edge, as on iOS. surfaceFrost is replaced by blur.bands and blur.tintOpacity.
- * This is the one sanctioned gradient in the product UI (CLAUDE.md rule 3).
+ * It was the first sanctioned gradient in the product UI (CLAUDE.md rule 3).
  * v1.8 (12 Oct 2026): the TabBar sits lower (tabBarInset 28 to 12), and a flat
  * frosted strip (surfaceFrost, blur.intensity) sits behind the status bar and the
  * TabBar. Flat, never a gradient.
@@ -594,6 +597,8 @@ export const layout = {
   iconBadgeSize: 40,
   /** Top app bar height. */
   appBarHeight: 56,
+  /** The fade under the TopBar, from surface to clear (v1.15). Content starts below it. */
+  topBarFade: 16,
   /** Kept for reference; ScanFrame now uses scanFrameHeight and a side inset of space.s10. */
   scanFrameSize: 240,
   /** Height of the barcode target inside ScanFrame. Barcodes are wide, so it spans the panel less space.s10 each side. */

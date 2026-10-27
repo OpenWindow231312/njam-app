@@ -4,7 +4,9 @@
  *
  * - Solid surface, as tall as the status bar plus layout.appBarHeight (56),
  *   so the back button's centre sits 28 below the status bar on every screen.
- * - It has no edge, even with content under it (no line, 27 Oct 2026).
+ * - It has no edge line. Instead a short fade (layout.topBarFade) hangs below
+ *   it, from surface to clear, so content scrolling under the bar fades out
+ *   instead of being cut off by a hard line (v1.15, CLAUDE.md rule 3).
  * - On an aisle, once the big headline has scrolled away, it comes back as a
  *   small title in the bar (showTitle), so you still know where you are.
  * - On a tab screen, which has no back button, the whole bar stays hidden
@@ -20,6 +22,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { IconButton } from '@/components/design-system/IconButton';
 import { icon, layout, motion, space, typography } from '@/theme/tokens';
@@ -87,7 +90,38 @@ export function TopBar({
 
         {trailing && <View style={styles.trailing}>{trailing}</View>}
       </View>
+
+      <BottomFade color={colors.surface} />
     </Animated.View>
+  );
+}
+
+/**
+ * The fade under the bar. It starts at full surface, not at blur.tintOpacity
+ * like FrostedStrip, because the bar above it is solid: anything less would
+ * show a seam where the bar ends. No blur, so it looks the same on phones
+ * that cannot blur.
+ *
+ * It only draws, so taps go through it to the content under it.
+ */
+function BottomFade({ color }: { color: string }) {
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={styles.fade}>
+      {/* Its own gradient id, so it never picks up a FrostedStrip gradient on the web. */}
+      <Svg width="100%" height="100%">
+        <Defs>
+          <LinearGradient id="topbar-fade" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={color} stopOpacity={1} />
+            <Stop offset="1" stopColor={color} stopOpacity={0} />
+          </LinearGradient>
+        </Defs>
+        <Rect width="100%" height="100%" fill="url(#topbar-fade)" />
+      </Svg>
+    </View>
   );
 }
 
@@ -137,6 +171,14 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
+  },
+  // Hangs below the bar, outside its own height.
+  fade: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    height: layout.topBarFade,
   },
   trailing: {
     flexDirection: 'row',
