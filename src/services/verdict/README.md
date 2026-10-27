@@ -19,6 +19,8 @@ The rules:
   one (at least three real ingredients, `isCompleteList`) was typed in from the
   real label, so it is decided like a verified one. A thin one is always
   Caution, for every profile. A photo read never counts as Open Food Facts.
+- **A "may contain" line is Not safe for a severe allergy**, because onboarding
+  promises that even a trace counts. For Avoid and Moderate it is Caution.
 - **Degrade toward Caution, never toward Safe.** A false Caution is a nuisance; a
   false Safe is a health incident. Zero false Safe verdicts is the project target.
 - **Follow the alias chain** (`ingredients.canonical_id`) before checking a rule,

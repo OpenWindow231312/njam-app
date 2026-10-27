@@ -191,6 +191,19 @@ function checkAllergen(rule: ProfileRule, product: VerdictProduct): RuleOutcome 
     };
   }
   if (product.mayContain.includes(rule.target)) {
+    // For a severe allergy even a trace is dangerous (the onboarding promise),
+    // so a "may contain" line breaks the rule. Avoid and moderate stay Caution.
+    if (rule.severity === 'severe') {
+      return {
+        broken: {
+          icon: 'no_food',
+          text: `The label says it may contain ${word}. You marked ${word} as severe, so even a trace is too much.`,
+        },
+        unchecked: null,
+        detail: `The label says it may contain ${word}`,
+        matched: [],
+      };
+    }
     return {
       broken: null,
       unchecked: { icon: 'no_food', text: `The label says it may contain ${word}. ${yourRule(word, rule.severity)}` },
