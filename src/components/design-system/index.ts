@@ -39,3 +39,4 @@ export { Snackbar } from './Snackbar';
 export { StepProgress } from './StepProgress';
 export { StoreLogo } from './StoreLogo';
 export { FrostedStrip } from './FrostedStrip';
+export { TopBar, useTopBarHeight } from './TopBar';
