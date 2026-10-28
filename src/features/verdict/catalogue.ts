@@ -7,7 +7,7 @@
  * already knowing it is milk.
  */
 import { supabase } from '@/lib/supabase';
-import { isCompleteList, type VerdictIngredient } from '@/services/verdict';
+import { isCompleteList, type NutrientColumn, type NutritionFacts, type VerdictIngredient } from '@/services/verdict';
 
 export type CatalogueProduct = {
   id: string;
@@ -34,7 +34,20 @@ export type CatalogueProduct = {
   categoryId: string | null;
   /** The stores that sell it, for the Store filter on Home. */
   storeIds: string[];
+  /** The label's nutrition table as numbers, so nutrient limits are checked on Home too. */
+  nutrition: NutritionFacts | null;
 };
+
+const NUTRIENT_COLUMNS: NutrientColumn[] = [
+  'energy_kj',
+  'protein_g',
+  'carbs_g',
+  'sugar_g',
+  'fat_g',
+  'sat_fat_g',
+  'fibre_g',
+  'sodium_mg',
+];
 
 // "allergen:allergen_id(slug)" means: follow the allergen_id foreign key and
 // call the result "allergen". canonical_id points back at ingredients itself.
@@ -42,6 +55,7 @@ const PRODUCT_COLUMNS = `
   id, barcode, name, brand, serving_size, serving_unit, verified, source,
   may_contain, image_url, label_image_url, category_id,
   product_stores ( store_id ),
+  nutrition_facts ( ${NUTRIENT_COLUMNS.join(', ')}, per_basis ),
   product_ingredients (
     position, label_e_number,
     label_allergen:label_allergen_id ( slug ),
@@ -74,6 +88,8 @@ type ProductRow = {
   label_image_url: string | null;
   category_id: string | null;
   product_stores: { store_id: string }[];
+  // product_id is nutrition_facts' primary key, so this is one row or none.
+  nutrition_facts: (Record<NutrientColumn, number | string | null> & { per_basis: string }) | null;
   product_ingredients: {
     position: number;
     label_e_number: string | null;
@@ -81,6 +97,18 @@ type ProductRow = {
     ingredients: IngredientRow | null;
   }[];
 };
+
+/** The nutrition row as numbers, leaving out anything the label did not give. */
+function toFacts(row: ProductRow['nutrition_facts']): NutritionFacts | null {
+  if (!row) return null;
+  const values: NutritionFacts['values'] = {};
+  for (const column of NUTRIENT_COLUMNS) {
+    const amount = Number(row[column]);
+    if (row[column] !== null && Number.isFinite(amount)) values[column] = amount;
+  }
+  const basis = row.per_basis === '100ml' || row.per_basis === 'serving' ? row.per_basis : '100g';
+  return { basis, values };
+}
 
 function toProduct(row: ProductRow): CatalogueProduct {
   const ingredients = [...row.product_ingredients]
@@ -122,6 +150,7 @@ function toProduct(row: ProductRow): CatalogueProduct {
     labelImageUrl: row.label_image_url,
     categoryId: row.category_id,
     storeIds: row.product_stores.map((link) => link.store_id),
+    nutrition: toFacts(row.nutrition_facts),
   };
 }
 

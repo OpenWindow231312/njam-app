@@ -219,6 +219,7 @@ function checkAll(products: CatalogueProduct[], checkFor: ActiveProfile[]): Chec
       fromOpenFoodFacts: product.source === 'open_food_facts',
       ingredients: product.ingredients,
       mayContain: product.mayContain,
+      nutrition: product.nutrition,
     };
     const verdicts = checkFor.map((profile) => decideVerdict(facts, profile.rules).state);
     return { product, verdict: worstOf(verdicts) };
