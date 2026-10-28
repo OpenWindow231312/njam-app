@@ -12,6 +12,8 @@
  *     (RLS), so hiding the button is a courtesy, not the protection.
  *
  * Adding asks first, because it lets the product be Safe for everyone.
+ * Each card also has Edit and Delete (AdminProductActions), to fix a misread
+ * name or ingredient before adding it, or remove a duplicate.
  *
  * Each product shows the photos it was added with (the front on the card,
  * the ingredient list one tap away) and a "Possible duplicate" flag when
@@ -32,6 +34,7 @@ import {
   SectionHeader,
   Snackbar,
 } from '@/components/design-system';
+import { AdminProductActions } from '@/features/admin-review/AdminProductActions';
 import {
   fetchPossibleDuplicates,
   fetchUnverifiedProducts,
@@ -182,6 +185,17 @@ export function AdminReviewScreen() {
               variant="secondary"
               fullWidth
               onPress={() => setConfirming(product)}
+            />
+            <AdminProductActions
+              product={{ ...product, ingredients: ingredientNames(product) }}
+              onEdited={() => {
+                setMessage({ kind: 'neutral', text: 'Your changes are saved.' });
+                load();
+              }}
+              onDeleted={() => {
+                setMessage({ kind: 'neutral', text: `${product.name} is deleted.` });
+                load();
+              }}
             />
           </View>
         ))}
