@@ -178,18 +178,26 @@ function packSize(size: number | null, unit: string | null): string | null {
   return size && unit ? `${size} ${unit}` : null;
 }
 
+/** Everyone in the household, the default profile first. Throws when there is nobody. */
+async function loadProfiles(householdId: string): Promise<ActiveProfile[]> {
+  const profiles = await fetchHouseholdProfiles(householdId);
+  if (profiles.length === 0) throw new Error('No diet profile');
+  return profiles;
+}
+
 /**
  * The saved state, nutrition and stores for a catalogue product. These are
  * extras: if any of them fails to load, the verdict still shows, without them.
+ * The aisle (categoryId) is added once the product itself has loaded.
  */
-async function loadExtras(productId: string, categoryId: string | null): Promise<CatalogueExtras | null> {
+async function loadExtras(productId: string): Promise<Omit<CatalogueExtras, 'categoryId'> | null> {
   try {
     const [saved, nutrition, stores] = await Promise.all([
       fetchSavedProductIds(),
       fetchNutrition(productId),
       fetchStoresForProduct(productId),
     ]);
-    return { productId, categoryId, saved: saved.has(productId), nutrition, stores };
+    return { productId, saved: saved.has(productId), nutrition, stores };
   } catch (error) {
     console.warn('Could not load the nutrition, stores or saved state', error);
     return null;
@@ -197,10 +205,16 @@ async function loadExtras(productId: string, categoryId: string | null): Promise
 }
 
 /** A catalogue product: load it, and record the scan against the default profile. */
-async function loadProduct(productId: string, barcode: string | undefined, member: Member, profiles: ActiveProfile[]) {
-  const product = await fetchProductById(productId);
+async function loadProduct(productId: string, barcode: string | undefined, member: Member, householdId: string) {
+  // None of these needs another's answer, so they go out together: the screen
+  // waits for one round trip to the database instead of three in a row.
+  const [profiles, product, loadedExtras] = await Promise.all([
+    loadProfiles(householdId),
+    fetchProductById(productId),
+    loadExtras(productId),
+  ]);
   if (!product) throw new Error('Product not found');
-  const extras = await loadExtras(productId, product.categoryId);
+  const extras = loadedExtras && { ...loadedExtras, categoryId: product.categoryId };
 
   const checked: VerdictProduct = {
     verified: product.verified,
@@ -213,7 +227,9 @@ async function loadProduct(productId: string, barcode: string | undefined, membe
   };
   const verdict = decideVerdict(checked, profiles[0].rules);
 
-  await recordScan({
+  // Not awaited: saving the scan to your history has no part in the verdict,
+  // so the verdict shows while the history is still being written.
+  void recordScan({
     userId: member.id,
     profileId: profiles[0].id,
     productId: product.id,
@@ -264,7 +280,8 @@ async function loadLabel(
 
   if (barcode) {
     const verdict = decideVerdict(checked, profiles[0].rules);
-    await recordScan({
+    // Not awaited, as in loadProduct: the history is not part of the verdict.
+    void recordScan({
       userId: member.id,
       profileId: profiles[0].id,
       productId: null,
@@ -300,8 +317,13 @@ async function loadLabel(
 async function loadPastScan(scanId: string) {
   const scan = await fetchScan(scanId);
   if (!scan) throw new Error('Scan not found');
-  const product = scan.productId ? await fetchProductById(scan.productId).catch(() => null) : null;
-  const nutrition = product ? await fetchNutrition(product.id).catch(() => null) : null;
+  // Both read by the scan's product id, so they go out together.
+  const [product, nutrition] = scan.productId
+    ? await Promise.all([
+        fetchProductById(scan.productId).catch(() => null),
+        fetchNutrition(scan.productId).catch(() => null),
+      ])
+    : [null, null];
   const past: Past = {
     kind: 'past',
     subject: {
@@ -339,9 +361,6 @@ export function VerdictScreen() {
     async function load(current: Member, householdId: string): Promise<Status> {
       if (params.scanId) return { kind: 'shown', shown: await loadPastScan(params.scanId) };
 
-      const profiles = await fetchHouseholdProfiles(householdId);
-      if (profiles.length === 0) throw new Error('No diet profile');
-
       if (params.label) {
         const read = JSON.parse(params.label) as LabelRead;
         if (!read.readable) {
@@ -352,13 +371,13 @@ export function VerdictScreen() {
           params.barcode,
           params.photo,
           current,
-          profiles,
+          await loadProfiles(householdId),
         );
         return { kind: 'shown', shown: live };
       }
 
       if (params.productId) {
-        return { kind: 'shown', shown: await loadProduct(params.productId, params.barcode, current, profiles) };
+        return { kind: 'shown', shown: await loadProduct(params.productId, params.barcode, current, householdId) };
       }
       throw new Error('Nothing to show');
     }
