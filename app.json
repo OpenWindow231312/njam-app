@@ -41,6 +41,14 @@
         }
       ],
       "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Njam reads the ingredient list from a label photo you choose.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
       "expo-status-bar",
       "expo-web-browser"
     ],

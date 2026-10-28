@@ -55,6 +55,13 @@
  * tab, and the close button goes back to Home. Whose rules a verdict uses is
  * picked on the Verdict screen ("For ...").
  *
+ * From Ask Njam ("+" in the typing bar, route /ask-scan) the same scanner
+ * runs with `returnTo="ask"`: whatever it finds goes back to the chat instead
+ * of opening a Verdict (see features/ask-njam/attachment.ts), and the close
+ * button goes back to the chat. `start="label"` opens it on the ingredient
+ * list. A product found this way is not added to your scan history, since
+ * no Verdict opened for it.
+ *
  * Only works on a physical phone (Expo Go). A simulator has no camera.
  */
 import { CameraView, scanFromURLAsync, useCameraPermissions } from 'expo-camera';
@@ -75,6 +82,7 @@ import {
   TextField,
 } from '@/components/design-system';
 import { ProductExistsError, addProduct, addProductPhoto } from '@/features/add-product/add-product';
+import { handToAskNjam } from '@/features/ask-njam/attachment';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { BarcodeReadout } from '@/features/scanner/BarcodeReadout';
 import { FoundProduct } from '@/features/scanner/FoundProduct';
@@ -334,7 +342,14 @@ function openVerdict(productId: string, barcode: string) {
   router.push({ pathname: '/verdict', params: { productId, barcode } });
 }
 
-export function ScannerScreen() {
+type ScannerScreenProps = {
+  /** "ask": bring the result back to Ask Njam instead of opening a Verdict. */
+  returnTo?: 'ask';
+  /** Open on the barcode (default) or straight on the ingredient list. */
+  start?: 'barcode' | 'label';
+};
+
+export function ScannerScreen({ returnTo, start = 'barcode' }: ScannerScreenProps = {}) {
   const { member } = useAuth();
   const { colors } = useNjamTheme();
   const focused = useIsFocused();
@@ -384,15 +399,31 @@ export function ScannerScreen() {
       frontPhoto.current = null;
       frontName.current = null;
       labelPhoto.current = null;
-      setMode({ kind: 'aim', missed: false });
+      setMode(start === 'label' ? { kind: 'label', barcode: null, problem: null } : { kind: 'aim', missed: false });
       return () => {
         if (holdTimer.current) clearTimeout(holdTimer.current);
         liveRead.current?.(null);
         setTorchOn(false);
         setTyping(false);
       };
-    }, []),
+    }, [start]),
   );
+
+  /** A product found or added: its Verdict, or back to Ask Njam with it. */
+  function openProduct(productId: string, barcode: string) {
+    if (returnTo === 'ask') {
+      handToAskNjam({ kind: 'product', productId });
+      router.back();
+      return;
+    }
+    openVerdict(productId, barcode);
+  }
+
+  /** Closing the scanner: back to Ask Njam if it came from there, otherwise Home. */
+  function close() {
+    if (returnTo === 'ask') router.back();
+    else router.navigate('/');
+  }
 
   /**
    * The shutter. Returns the photo, which the caller freezes on the panel,
@@ -492,11 +523,11 @@ export function ScannerScreen() {
       return;
     }
     if (!found.name) {
-      openVerdict(found.productId, barcode);
+      openProduct(found.productId, barcode);
       return;
     }
     setMode({ kind: 'found', barcode, photo, name: found.name, detail: found.detail });
-    holdTimer.current = setTimeout(() => openVerdict(found.productId, barcode), motion.resultHold);
+    holdTimer.current = setTimeout(() => openProduct(found.productId, barcode), motion.resultHold);
   }
 
   function openTyping(afterMiss: boolean) {
@@ -592,7 +623,7 @@ export function ScannerScreen() {
         photoBase64: front.base64,
       });
       hapticSuccess();
-      openVerdict(existing.productId, barcode);
+      openProduct(existing.productId, barcode);
     } catch (error) {
       console.warn('Could not add the photo', error);
       setNotice('We could not add your photo. Check your connection and try again.');
@@ -644,6 +675,11 @@ export function ScannerScreen() {
    */
   function openLabelVerdict(read: LabelRead, label: Taken) {
     hapticSuccess();
+    if (returnTo === 'ask') {
+      handToAskNjam({ kind: 'label', photoUri: label.uri, read });
+      router.back();
+      return;
+    }
     router.push({ pathname: '/verdict', params: { label: JSON.stringify(read), photo: label.uri } });
   }
 
@@ -681,13 +717,13 @@ export function ScannerScreen() {
         labelPhotoBase64: labelPhoto.current.base64,
       });
       hapticSuccess();
-      openVerdict(productId, barcode);
+      openProduct(productId, barcode);
     } catch (error) {
       // Someone added this barcode first: open theirs.
       if (error instanceof ProductExistsError) {
         const existing = await fetchProductByBarcode(barcode).catch(() => null);
         if (existing) {
-          openVerdict(existing.id, barcode);
+          openProduct(existing.id, barcode);
           return;
         }
       }
@@ -706,7 +742,7 @@ export function ScannerScreen() {
     return (
       <Screen scroll={false}>
         {/* The TabBar hides on this tab, so the way out is the close button. */}
-        <IconButton icon="close" accessibilityLabel="Close the scanner" onPress={() => router.navigate('/')} />
+        <IconButton icon="close" accessibilityLabel="Close the scanner" onPress={close} />
         <EmptyState
           variant="screen"
           icon="photo_camera"
@@ -729,7 +765,7 @@ export function ScannerScreen() {
   return (
     <Screen scroll={false}>
       <ScanFrame
-        onClose={() => router.navigate('/')}
+        onClose={close}
         torchOn={torchOn}
         onToggleTorch={() => setTorchOn((on) => !on)}
         // Only while aiming: once a photo is being read or a product added,
