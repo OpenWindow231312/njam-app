@@ -2,12 +2,18 @@
  * ChatBubble and ChatComposer: the parts of the "Ask Njam" assistant chat.
  *
  * ChatBubble
- *   assistant - white bubble with the ambient shadow, on the left. Its lower
- *               left corner is tucked in, pointing at the speaker.
- *   user      - forest bubble with light copy, on the right, lower right
- *               corner tucked in.
+ *   assistant - white bubble with the ambient shadow, on the left.
+ *   user      - forest bubble with light copy, on the right.
+ * Both are radius xl all round, with no tucked corner, so a short message
+ * reads as a soft pill (approved 28 Oct 2026, after the Zigline prototype).
  * A bubble can hold plain text or richer content (a product with its verdict
  * chip and a button) passed as children.
+ *
+ * Folding: pass `foldAfter` (Ask Njam passes 8 for your own messages) and a
+ * longer text stops at that line with an ellipsis and "Show all". It is cut,
+ * not faded, because the product UI has no gradients. Njam's answers never
+ * fold. `faded` draws the bubble at opacity.disabled, for a message that did
+ * not go through.
  *
  * ChatComposer: the white pill pinned to the bottom of the chat, with the
  * message field and a round forest send button. Send is disabled while the
@@ -32,10 +38,11 @@
  * Njam mark (AiAvatar).
  */
 import { useState, type ReactNode } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Icon } from '@/components/design-system/Icon';
 import { IconButton } from '@/components/design-system/IconButton';
-import { layout, radius, space, typography } from '@/theme/tokens';
+import { layout, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 /* ------------------------------------------------------------------ */
@@ -47,11 +54,21 @@ type ChatBubbleProps = {
   /** Plain text for the bubble. Use children instead for richer content. */
   text?: string;
   children?: ReactNode;
+  /** Fold plain text longer than this many lines behind "Show all". */
+  foldAfter?: number;
+  /** Draw the bubble faded, e.g. a message that did not go through. */
+  faded?: boolean;
 };
 
-export function ChatBubble({ from, text, children }: ChatBubbleProps) {
+export function ChatBubble({ from, text, children, foldAfter, faded = false }: ChatBubbleProps) {
   const { colors, shadows } = useNjamTheme();
   const isUser = from === 'user';
+  const [overflows, setOverflows] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const textColor = isUser ? colors.inkInverse : colors.ink;
+  // On a forest bubble the link is lime, as everywhere on forest; on white it is forest.
+  const linkColor = isUser ? colors.onSelected : colors.selected;
+  const folded = foldAfter !== undefined && !expanded;
 
   return (
     <View
@@ -61,9 +78,39 @@ export function ChatBubble({ from, text, children }: ChatBubbleProps) {
         isUser
           ? [styles.user, { backgroundColor: colors.selected }]
           : [styles.assistant, { backgroundColor: colors.surfaceRaised }, shadows.ambient],
+        faded && { opacity: opacity.disabled },
       ]}>
       {text && (
-        <Text style={[typography.body, { color: isUser ? colors.inkInverse : colors.ink }]}>{text}</Text>
+        <View>
+          <Text numberOfLines={folded ? foldAfter : undefined} style={[typography.body, { color: textColor }]}>
+            {text}
+          </Text>
+          {foldAfter !== undefined && (
+            // A hidden full copy, laid out at the same width, counts the
+            // lines. The visible copy cannot: with numberOfLines set it only
+            // reports the lines it shows.
+            <Text
+              aria-hidden
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              onTextLayout={(event) => setOverflows(event.nativeEvent.lines.length > foldAfter)}
+              style={[typography.body, styles.measure]}>
+              {text}
+            </Text>
+          )}
+        </View>
+      )}
+      {overflows && (
+        <Pressable
+          onPress={() => setExpanded((open) => !open)}
+          accessibilityRole="button"
+          accessibilityLabel={expanded ? 'Show less of your message' : 'Show all of your message'}
+          // The label is drawn 16 tall; the slop takes the tap area to 48.
+          hitSlop={(layout.touchTargetMin - typography.label.lineHeight) / 2}
+          style={styles.showAll}>
+          <Text style={[typography.label, { color: linkColor }]}>{expanded ? 'Show less' : 'Show all'}</Text>
+          <Icon name={expanded ? 'expand_less' : 'expand_more'} size="xs" color={linkColor} />
+        </Pressable>
       )}
       {children}
     </View>
@@ -165,16 +212,28 @@ const styles = StyleSheet.create({
     maxWidth: layout.bubbleMaxWidth,
     paddingVertical: space.s3,
     paddingHorizontal: space.s4,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     gap: space.s3,
   },
   assistant: {
     alignSelf: 'flex-start',
-    borderBottomLeftRadius: radius.xs,
   },
   user: {
     alignSelf: 'flex-end',
-    borderBottomRightRadius: radius.xs,
+  },
+  // Laid out over the visible text at the same width, never seen.
+  measure: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    opacity: 0,
+  },
+  showAll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: space.s1,
   },
   composer: {
     height: layout.buttonHeightLarge,

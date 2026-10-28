@@ -42,6 +42,9 @@ import { allergenWord, type ProfileRule } from '@/services/verdict';
 import { icon, layout, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
+// Your own messages fold after this many lines; Njam's answers never fold.
+const FOLD_AFTER_LINES = 8;
+
 // A stable empty list, so the answer blocks do not reload on every render.
 const NO_RULES: ProfileRule[] = [];
 
@@ -241,7 +244,7 @@ export function AskNjamScreen() {
 
             {messages.map((message) =>
               message.role === 'user' ? (
-                <ChatBubble key={message.id} from="user" text={userText(message)} />
+                <ChatBubble key={message.id} from="user" text={userText(message)} foldAfter={FOLD_AFTER_LINES} />
               ) : (
                 message.blocks.map((block, index) => (
                   <AnswerBlock key={`${message.id}-${index}`} block={block} rules={rules ?? NO_RULES} />
