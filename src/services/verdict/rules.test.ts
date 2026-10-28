@@ -137,7 +137,34 @@ describe('nutrient limits', () => {
     assert.equal(decideVerdict(withFacts({ sugar_g: 1 }), [limit('caffeine', 'lte', 50, 'mg')]).state, 'caution');
   });
 
+  test('a label given per serving only stays Caution, because limits are per 100 g', () => {
+    const perServing = product({ nutrition: { basis: 'serving', values: { sugar_g: 2 } } });
+    const verdict = decideVerdict(perServing, [sugarUpTo10g]);
+    assert.equal(verdict.state, 'caution');
+    assert.match(verdict.reasons[0].text, /per serving only/);
+  });
+
   test('a unit that cannot be compared stays Caution', () => {
     assert.equal(decideVerdict(withFacts({ energy_kj: 900 }), [limit('energy', 'lte', 200, 'kcal')]).state, 'caution');
+  });
+});
+
+describe('a diet rule', () => {
+  const halaal: ProfileRule = { type: 'diet', target: 'halaal', operator: 'requires', threshold: null, unit: null, severity: null };
+  const noGelatine: ProfileRule = { type: 'ingredient', target: 'gelatine', operator: 'excludes', threshold: null, unit: null, severity: null };
+
+  test('is only a name, so on its own it changes nothing', () => {
+    const verdict = decideVerdict(product(), [halaal, noGelatine]);
+    assert.equal(verdict.state, 'safe');
+    assert.equal(verdict.checks.length, 1);
+  });
+
+  test('still lets the rules saved with it break a product', () => {
+    const verdict = decideVerdict(product({ ingredients: [ingredient('sugar'), ingredient('gelatine')] }), [halaal, noGelatine]);
+    assert.equal(verdict.state, 'unsafe');
+  });
+
+  test('alone, it does not count as having rules', () => {
+    assert.equal(decideVerdict(product(), [halaal]).state, 'caution');
   });
 });

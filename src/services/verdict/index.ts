@@ -24,6 +24,10 @@
  *      whatever the profile, because the missing part may hold the allergen.
  *   5. Safe only when every rule was checked and none was broken.
  *
+ * A "diet" rule (halaal, vegan) is only a name for a group of rules. The
+ * ingredients and E-numbers it rules out are saved as rules of their own and
+ * checked like any other, so the diet rule itself is skipped here.
+ *
  * When unsure, it says Caution. A false Caution is a nuisance; a false Safe
  * is a health incident.
  */
@@ -356,6 +360,15 @@ function checkNutrient(rule: ProfileRule, product: VerdictProduct): RuleOutcome 
     );
   }
 
+  // Limits are set per 100 g (or 100 ml for a drink). A label that only
+  // gives amounts per serving cannot be compared with them.
+  if (product.nutrition.basis === 'serving') {
+    return nutrientUnchecked(
+      `The label gives nutrition per serving only, so we could not check your ${target} limit per 100 g.`,
+      'The label gives nutrition per serving only',
+    );
+  }
+
   const listed = product.nutrition.values[nutrient.column];
   if (listed === undefined) {
     return nutrientUnchecked(
@@ -428,7 +441,9 @@ export function isCompleteList(ingredients: { name: string }[]): boolean {
   return names.size >= MIN_COMPLETE_INGREDIENTS;
 }
 
-export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Verdict {
+export function decideVerdict(product: VerdictProduct, allRules: ProfileRule[]): Verdict {
+  // A diet's own rules are checked one by one; its name has nothing to check.
+  const rules = allRules.filter((rule) => rule.type !== 'diet');
   const broken: VerdictReason[] = [];
   const unchecked: VerdictReason[] = [];
   const checks: RuleCheck[] = [];
