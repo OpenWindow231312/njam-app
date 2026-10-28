@@ -53,7 +53,11 @@ const styles = StyleSheet.create({
   column: {
     gap: space.s1,
   },
+  // A row pushed to the end, not alignItems: Button sets its own
+  // alignSelf to flex-start, which beats the parent's alignItems and left
+  // the pill on the left.
   pillRow: {
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
 });
