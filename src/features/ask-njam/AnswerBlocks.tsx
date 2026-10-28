@@ -10,6 +10,10 @@
  *             ingredient is checked as far as the AI's allergen tag allows:
  *             a broken rule shows Not safe, and anything else says "Not
  *             checked against your rules", never Safe.
+ *   label   - not from the AI: the verdict for an ingredient list you added
+ *             from a label photo with "+", drawn under your question as
+ *             soon as you send it (LabelReadBlock). It says it was read
+ *             from your photo and not yet checked by our team.
  *   suggestions are not drawn here: the screen shows them as chips above
  *   the composer.
  *
@@ -28,8 +32,9 @@ import {
   ProductCard,
   VerdictChip,
 } from '@/components/design-system';
+import { ingredientsRead } from '@/features/ask-njam/AttachmentPreview';
 import { fetchProductById, productDetail, type CatalogueProduct } from '@/features/verdict/catalogue';
-import type { AskBlock, RecipeIngredient } from '@/services/ai';
+import type { AskBlock, LabelRead, RecipeIngredient } from '@/services/ai';
 import { decideVerdict, type ProfileRule, type Verdict } from '@/services/verdict';
 import { icon, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
@@ -116,6 +121,45 @@ function ProductBlock({ productId, rules }: { productId: string; rules: ProfileR
         fullWidth
         onPress={() => router.push({ pathname: '/verdict', params: { productId: product.id } })}
       />
+    </ChatBubble>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Label read                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The verdict for an ingredient list read from your label photo, worked out
+ * here by the verdict engine exactly as the Verdict screen does for a label
+ * read. The AI read the label; it does not decide.
+ */
+export function LabelReadBlock({ read, photoUri, rules }: { read: LabelRead; photoUri: string; rules: ProfileRule[] }) {
+  const { colors } = useNjamTheme();
+  const verdict = decideVerdict(
+    {
+      verified: false,
+      readFromLabel: true,
+      readConfidence: read.confidence,
+      ingredients: read.ingredients.map((item) => ({ ...item, canonicalName: null })),
+      mayContain: read.mayContain,
+    },
+    rules,
+  );
+
+  return (
+    <ChatBubble from="assistant">
+      <ProductCard
+        variant="identity"
+        name={read.productName ?? 'Product from your label photo'}
+        detail={ingredientsRead(read)}
+        imageUrl={photoUri}
+        metaIcon="info"
+        metaText="Read from your photo, not yet checked by our team"
+      />
+      {/* Mark, word and reason together: a verdict is never colour alone. */}
+      <VerdictChip state={verdict.state} />
+      <Text style={[typography.bodyS, { color: colors.inkMuted }]}>{verdict.reasons[0]?.text}</Text>
     </ChatBubble>
   );
 }

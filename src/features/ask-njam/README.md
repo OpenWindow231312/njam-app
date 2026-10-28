@@ -39,8 +39,28 @@ E-number is, and what to eat instead.
   stopped answer comes back when you reopen the conversation.
 - **Did not go through.** A question that never reached Njam stays, faded,
   with the time and Try again. Nothing is resent until you tap it.
-- Not built yet (part B): "+" in the bar for a barcode or label photo, and
-  choosing whose rules Njam answers for.
+- **"+" in the bar** opens "Add to your question": Scan a barcode or
+  Photograph a label (the Scanner on `/ask-scan`, which hands its result back
+  through `attachment.ts` instead of opening a Verdict), or Choose a photo of a
+  label (`expo-image-picker`, read by the same label reader). What you added
+  waits in the bar above your text (`AttachmentPreview`).
+  - A **product** goes into your question by name ("Can I eat Bakers Tennis
+    Biscuits?"). Njam sees the catalogue, so it answers with that product and
+    the verdict engine draws its chip. A product found this way is not added
+    to your scan history, since no Verdict opened for it.
+  - A **label read** gets its verdict from the verdict engine straight away,
+    under your question (`LabelReadBlock`, "Read from your photo, not yet
+    checked by our team"). Its ingredient list goes to Njam after your
+    question, cut to the function's 1,000 characters.
+- **Undo.** A question shows at once with "Sent · Undo", and goes to Njam
+  after 3 seconds (`UNDO_MS`). Undo, or Stop inside that window, puts your
+  text and what you added back in the bar. Every answer comes 3 seconds later
+  for it.
+- **Swipe hint.** "Swipe right to take it" shows over the bar whenever there
+  is a suggestion, until you have taken one three times (`use-swipe-hint.ts`,
+  kept on the phone).
+- Not built yet: choosing whose rules Njam answers for. The function only
+  reads the household's default profile, so it needs a change and a deploy.
 - No medical advice: Njam says so and suggests a doctor or dietitian.
 - Entry points: on Home, `AskNjamRow`, a white row under the search bar. On
   Search, History, Verdict, Aisle and Alternatives, `AskNjamButton`, a small

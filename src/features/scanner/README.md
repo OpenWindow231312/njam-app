@@ -27,3 +27,11 @@ truly works on a physical phone through Expo Go.
   `src/features/add-product`) and its verdict opens.
 - The message card is always in the same place: just under the close and
   torch buttons.
+
+## From Ask Njam
+
+"+" in the Ask Njam typing bar opens the same scanner on its own route,
+`/ask-scan` (`ScannerScreen returnTo="ask"`). Whatever it finds, a product or
+a label read, goes back to the chat through `features/ask-njam/attachment.ts`
+instead of opening a Verdict, and the close button goes back to the chat.
+`start=label` opens it straight on the ingredient list.
