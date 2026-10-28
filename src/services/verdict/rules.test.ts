@@ -62,8 +62,9 @@ describe('a "may contain" line', () => {
   });
 });
 
+// For now we assume the reader got it right (TRUST_SHOPPER_LISTS), so how
+// sure it was does not change the verdict.
 describe('how sure the label reader was', () => {
-  const hardToRead = 'The label photo was hard to read, so we may have missed or misread an ingredient.';
   const avoidCaffeine: ProfileRule = { type: 'ingredient', target: 'caffeine', operator: 'excludes', threshold: null, unit: null, severity: null };
   const labelRead = (readConfidence: VerdictProduct['readConfidence'], names = ['rooibos tea']) =>
     product({ verified: false, readFromLabel: true, readConfidence, ingredients: names.map(ingredient) });
@@ -73,10 +74,8 @@ describe('how sure the label reader was', () => {
   });
 
   for (const confidence of ['medium', 'low'] as const) {
-    test(`a ${confidence} confidence read is capped at Caution and says why`, () => {
-      const verdict = decideVerdict(labelRead(confidence), [avoidCaffeine]);
-      assert.equal(verdict.state, 'caution');
-      assert.ok(verdict.reasons.some((reason) => reason.text === hardToRead));
+    test(`a ${confidence} confidence read can be Safe too`, () => {
+      assert.equal(decideVerdict(labelRead(confidence), [avoidCaffeine]).state, 'safe');
     });
   }
 
