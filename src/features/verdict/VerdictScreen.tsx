@@ -621,6 +621,8 @@ function Shown({ shown }: { shown: Live | Past }) {
           "For ..." and "Ask Njam" and the fade under the bar. */}
       <TopBar
         onBack={() => router.back()}
+        // Solid bar, no fade: the fade lay over the top of the lime tab.
+        fade={false}
         trailing={
           <>
             {picker && (

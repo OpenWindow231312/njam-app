@@ -7,6 +7,8 @@
  * - It has no edge line. Instead a short fade (layout.topBarFade) hangs below
  *   it, from surface to clear, so content scrolling under the bar fades out
  *   instead of being cut off by a hard line (v1.15, CLAUDE.md rule 3).
+ *   Verdict turns it off (fade={false}): its lime tab starts just under the
+ *   bar, and the fade washed out the top of it.
  * - On an aisle, once the big headline has scrolled away, it comes back as a
  *   small title in the bar (showTitle), so you still know where you are.
  * - On a tab screen, which has no back button, the whole bar stays hidden
@@ -40,6 +42,8 @@ type TopBarProps = {
   middle?: ReactNode;
   /** Controls on the right: a filter button, the "For Anika" switch. */
   trailing?: ReactNode;
+  /** The fade under the bar. Off where coloured content starts right under it. */
+  fade?: boolean;
 };
 
 /** How tall the whole bar is, status bar included, so a screen can start its content below it. */
@@ -55,6 +59,7 @@ export function TopBar({
   hideUntilScrolled = false,
   middle,
   trailing,
+  fade = true,
 }: TopBarProps) {
   const { colors } = useNjamTheme();
   const insets = useSafeAreaInsets();
@@ -91,7 +96,7 @@ export function TopBar({
         {trailing && <View style={styles.trailing}>{trailing}</View>}
       </View>
 
-      <BottomFade color={colors.surface} />
+      {fade && <BottomFade color={colors.surface} />}
     </Animated.View>
   );
 }
