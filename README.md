@@ -13,7 +13,7 @@ seconds, **Safe**, **Caution** or **Not safe**, with the reasons that produced i
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-144425?style=flat-square&logo=supabase&logoColor=d3fa53)
 ![Gemini](https://img.shields.io/badge/Google-Gemini-144425?style=flat-square&logo=googlegemini&logoColor=d3fa53)
 
-**[Watch the demo video](#demo-video)** · [Screens](#screens) · [Getting started](#getting-started) · [How to use it](#how-to-use-it) · [The AI](#the-ai)
+**[Watch the videos](#videos)** · [Screens](#screens) · [Getting started](#getting-started) · [How to use it](#how-to-use-it) · [The AI](#the-ai)
 
 </div>
 
@@ -24,7 +24,7 @@ application, Open Window, October 2026.
 
 ## Contents
 
-- [Demo video](#demo-video)
+- [Videos](#videos)
 - [The problem](#the-problem)
 - [Who it is for](#who-it-is-for)
 - [What it does](#what-it-does)
@@ -46,11 +46,13 @@ application, Open Window, October 2026.
 
 ---
 
-## Demo video
+## Videos
 
-**[Watch the 5 to 8 minute demonstration](VIDEO_LINK_HERE)**
+**[Watch the 8 minute demonstration](https://drive.google.com/drive/folders/1l5Q-4LrgJt0hW8XRNWa4UbPCqaArrx2T?usp=drive_link)**
 
-The video walks through signing up, setting your rules, scanning a barcode,
+**[Watch the 20 minute presentation](https://drive.google.com/drive/folders/1JfNHZ1GzSCl_w3I8XKfTLEj9AMP4Xlzb?usp=sharing)**
+
+The demonstration walks through signing up, setting your rules, scanning a barcode,
 reading a label photo with the AI, asking Njam a question, managing a
 household and verifying a product as an admin.
 
