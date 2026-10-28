@@ -15,6 +15,9 @@
  * fold. `faded` draws the bubble at opacity.disabled, for a message that did
  * not go through.
  *
+ * Hold: pass `onLongPress` and holding the bubble hands back where it is on
+ * screen, so the screen can open a MenuPopover right under it.
+ *
  * ChatComposer: the typing bar pinned to the bottom of the chat, working as
  * Claude's does (approved 28 Oct 2026). One row: your message, then the
  * round forest send button on the right. As you type, the bar grows up one
@@ -47,11 +50,12 @@
  * from a label says so in words. No sparkle, no wand: the AI is shown by the
  * Njam mark (AiAvatar).
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { type ComponentRef, useEffect, useRef, useState, type ReactNode } from 'react';
 import { PanResponder, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
 import { IconButton } from '@/components/design-system/IconButton';
+import type { MenuAnchor } from '@/components/design-system/MenuPopover';
 import { border, layout, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
@@ -68,10 +72,13 @@ type ChatBubbleProps = {
   foldAfter?: number;
   /** Draw the bubble faded, e.g. a message that did not go through. */
   faded?: boolean;
+  /** Called when the bubble is held, with where it is on screen. */
+  onLongPress?: (anchor: MenuAnchor) => void;
 };
 
-export function ChatBubble({ from, text, children, foldAfter, faded = false }: ChatBubbleProps) {
+export function ChatBubble({ from, text, children, foldAfter, faded = false, onLongPress }: ChatBubbleProps) {
   const { colors, shadows } = useNjamTheme();
+  const bubble = useRef<ComponentRef<typeof View>>(null);
   const isUser = from === 'user';
   const [overflows, setOverflows] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -80,9 +87,20 @@ export function ChatBubble({ from, text, children, foldAfter, faded = false }: C
   const linkColor = isUser ? colors.onSelected : colors.selected;
   const folded = foldAfter !== undefined && !expanded;
 
+  const hold = () =>
+    bubble.current?.measureInWindow((x, y, width, height) => onLongPress?.({ x, y, width, height }));
+
   return (
-    <View
+    <Pressable
+      ref={bubble}
+      disabled={!onLongPress}
+      onLongPress={hold}
       accessibilityLabel={text ? `${isUser ? 'You' : 'Njam'}: ${text}` : undefined}
+      accessibilityHint={onLongPress ? 'Hold for options' : undefined}
+      accessibilityActions={onLongPress ? [{ name: 'longpress', label: 'Options' }] : undefined}
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === 'longpress') hold();
+      }}
       style={[
         styles.bubble,
         isUser
@@ -123,7 +141,7 @@ export function ChatBubble({ from, text, children, foldAfter, faded = false }: C
         </Pressable>
       )}
       {children}
-    </View>
+    </Pressable>
   );
 }
 
