@@ -141,3 +141,21 @@ describe('nutrient limits', () => {
     assert.equal(decideVerdict(withFacts({ energy_kj: 900 }), [limit('energy', 'lte', 200, 'kcal')]).state, 'caution');
   });
 });
+
+describe('a profile with no rules', () => {
+  test('is Safe, because nothing can go against it', () => {
+    const verdict = decideVerdict(product(), []);
+    assert.equal(verdict.state, 'safe');
+    assert.equal(verdict.reasons[0].text, 'You have no rules set yet, so nothing on this product goes against them.');
+  });
+
+  test('is Safe for an unverified product, and still says our team has not checked it', () => {
+    const verdict = decideVerdict(product({ verified: false, readFromLabel: true, readConfidence: 'low' }), []);
+    assert.equal(verdict.state, 'safe');
+    assert.equal(verdict.reasons.at(-1)?.text, 'We read this list from your photo, and our team has not checked it yet.');
+  });
+
+  test('is Safe for a product with no ingredient list', () => {
+    assert.equal(decideVerdict(product({ verified: false, ingredients: [] }), []).state, 'safe');
+  });
+});

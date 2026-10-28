@@ -446,7 +446,7 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
             deck={
               toRows(rules).length > 0
                 ? 'Every scan now checks these rules. You can change any of them on Profile.'
-                : 'You have no rules yet, so every scan comes back as Caution. You can add rules on Profile.'
+                : 'You have no rules yet, so a scan has nothing to check. You can add rules on Profile.'
             }
           />
           <RuleGroups rules={toRows(rules)} />

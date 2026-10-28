@@ -31,7 +31,7 @@ type Message = { kind: 'neutral' | 'failure'; text: string };
 
 /** "Every scan is checked against these 4 rules." */
 function rulesCaption(count: number): string {
-  if (count === 0) return 'You have no rules yet, so every scan comes back as Caution.';
+  if (count === 0) return 'You have no rules yet, so a scan has nothing to check.';
   return `Every scan is checked against ${count === 1 ? 'this rule' : `these ${count} rules`}. Tap one to change it.`;
 }
 

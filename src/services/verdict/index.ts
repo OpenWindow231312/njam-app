@@ -23,6 +23,8 @@
  *      it is decided like a verified one. A thin one is always Caution,
  *      whatever the profile, because the missing part may hold the allergen.
  *   5. Safe only when every rule was checked and none was broken.
+ *   6. A profile with no rules is Safe for everything: with nothing to check,
+ *      nothing on a label can go against it.
  *
  * When unsure, it says Caution. A false Caution is a nuisance; a false Safe
  * is a health incident.
@@ -456,10 +458,6 @@ export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Ve
     }
   }
 
-  if (rules.length === 0) {
-    unchecked.push({ icon: 'info', text: 'Your profile has no rules yet, so there was nothing to check.' });
-  }
-
   // An Open Food Facts list (never a photo read) is trusted when complete.
   // A thin one cannot be Safe for anyone.
   const fromOpenFoodFacts = product.fromOpenFoodFacts === true && !product.readFromLabel;
@@ -482,15 +480,21 @@ export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Ve
   const hasSevereRule = rules.some((rule) => rule.severity === 'severe');
   const capped = !trusted && hasSevereRule;
 
+  // With no rules, nothing can be broken, and a missing or misread list
+  // cannot hide a broken rule either, so it is Safe. capped is already false.
+  const noRules = rules.length === 0;
+
   let state: VerdictState;
   if (broken.length > 0) state = 'unsafe';
+  else if (noRules) state = 'safe';
   else if (unchecked.length > 0 || capped) state = 'caution';
   else state = 'safe';
 
+  const safeText = noRules
+    ? 'You have no rules set yet, so nothing on this product goes against them.'
+    : 'None of your rules matched the ingredient list.';
   let reasons =
-    state === 'safe'
-      ? [{ icon: 'task_alt', text: 'None of your rules matched the ingredient list.' }]
-      : [...broken, ...unchecked].slice(0, MAX_REASONS);
+    state === 'safe' ? [{ icon: 'task_alt', text: safeText }] : [...broken, ...unchecked].slice(0, MAX_REASONS);
 
   // Every verdict on an unverified list says so, last, and the reason limit
   // never cuts it off. It is saved with the scan, so a reopened scan says it too.
