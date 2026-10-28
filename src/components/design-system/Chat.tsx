@@ -50,7 +50,7 @@
  * from a label says so in words. No sparkle, no wand: the AI is shown by the
  * Njam mark (AiAvatar).
  */
-import { type ComponentRef, useEffect, useRef, useState, type ReactNode } from 'react';
+import { type ComponentRef, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { PanResponder, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
@@ -198,15 +198,22 @@ export function ChatComposer({
   const canSend = message.trim().length > 0 && !busy;
   const showGhost = Boolean(ghost) && ghostFits && message.length > 0;
 
-  const change = (next: string) => {
-    setMessage(next);
-    onChangeText?.(next);
-  };
+  const change = useCallback(
+    (next: string) => {
+      setMessage(next);
+      onChangeText?.(next);
+    },
+    [onChangeText],
+  );
 
   // Editing puts the earlier question in the bar; cancelling empties it.
-  useEffect(() => {
+  // Done while rendering, as React suggests for state that follows a prop,
+  // rather than in an effect that would draw the old text first.
+  const [shownEditing, setShownEditing] = useState(editing);
+  if (editing !== shownEditing) {
+    setShownEditing(editing);
     setMessage(editing ?? '');
-  }, [editing]);
+  }
 
   const send = () => {
     if (!canSend) return;
@@ -214,26 +221,24 @@ export function ChatComposer({
     change('');
   };
 
-  const acceptGhost = () => {
+  const acceptGhost = useCallback(() => {
     if (ghost) change(message + ghost);
-  };
+  }, [change, ghost, message]);
 
-  // The latest values, for the swipe handler, which is made only once.
-  const latest = useRef({ showGhost, acceptGhost });
-  latest.current = { showGhost, acceptGhost };
-  const swipe = useRef(
-    PanResponder.create({
-      // Taps and vertical scrolling stay with the input; only a clear
-      // sideways drag over a suggestion becomes a swipe.
-      onMoveShouldSetPanResponderCapture: (_event, gesture) =>
-        latest.current.showGhost &&
-        gesture.dx > SWIPE_START &&
-        Math.abs(gesture.dx) > Math.abs(gesture.dy),
-      onPanResponderRelease: (_event, gesture) => {
-        if (gesture.dx > SWIPE_TAKE) latest.current.acceptGhost();
-      },
-    }),
-  ).current;
+  // Made again when the suggestion changes, so it always swipes in the one on screen.
+  const swipe = useMemo(
+    () =>
+      PanResponder.create({
+        // Taps and vertical scrolling stay with the input; only a clear
+        // sideways drag over a suggestion becomes a swipe.
+        onMoveShouldSetPanResponderCapture: (_event, gesture) =>
+          showGhost && gesture.dx > SWIPE_START && Math.abs(gesture.dx) > Math.abs(gesture.dy),
+        onPanResponderRelease: (_event, gesture) => {
+          if (gesture.dx > SWIPE_TAKE) acceptGhost();
+        },
+      }),
+    [showGhost, acceptGhost],
+  );
 
   const action = busy && onStop ? 'stop' : editing !== null ? 'save' : 'send';
 
