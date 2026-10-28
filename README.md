@@ -29,6 +29,7 @@ application, Open Window, October 2026.
 - [Who it is for](#who-it-is-for)
 - [What it does](#what-it-does)
 - [Screens](#screens)
+- [Admin controls](#admin-controls)
 - [How a scan works](#how-a-scan-works)
 - [The AI](#the-ai)
 - [Architecture and stack](#architecture-and-stack)
@@ -93,26 +94,81 @@ without reading every label.
 
 ## What it does
 
-- **Set your rules once.** Your profile has six layers: allergies with
-  severity, diet and faith, banned ingredients, E-numbers, nutrient limits
-  and health presets.
-- **Scan a barcode.** Press the round button to photograph it. The number
-  floats up as Njam reads it; if it will not read, type it instead.
+### Set up
+
+- **Sign up or log in** with email and password. A splash screen opens the
+  app with the Njam mark taking a bite.
+- **Onboarding in two steps.** Pick your allergies and how severe each one
+  is (Avoid, Moderate or Severe), then any diets, ingredients and E-numbers
+  you avoid. A diet such as gluten-free or dairy-free is saved as the
+  allergens it rules out, so the engine checks it with the same aliases.
+  The last screen shows your profile before you start.
+- **Nothing is half saved.** Your new rules are written before the old ones
+  are removed, so a failed save never leaves you with fewer allergies.
+
+### Scan and decide
+
+- **Scan a barcode.** Press the round shutter button to photograph it. The
+  number floats up as Njam reads it, and the product name shows under the
+  frame before the verdict opens. Nothing is read until you press.
+- **Type the number instead.** If the barcode will not read twice in a row,
+  a sheet opens to type it.
+- **Three places to look.** Njam's own catalogue first, then
+  [Open Food Facts](https://openfoodfacts.org) (saved to the catalogue on
+  the first scan), then a label photo.
+- **Add a product with two photos.** If nobody has the barcode, photograph
+  the front of the pack, then the ingredient list. Gemini reads the name and
+  the ingredients, the product is saved for everyone, and its verdict opens.
+  No barcode at all? Photograph the ingredient list for a one-off verdict.
 - **Get a verdict with reasons.** Safe, Caution or Not safe, each with a
   shape, a word and a reason: "Not safe. Contains milk solids, which you
   marked severe."
-- **Read a label with AI.** If Njam does not know a product, photograph the
-  ingredient list. Google Gemini reads it, and the verdict says the list
-  has not been checked by our team yet.
-- **Ask Njam.** An AI assistant that knows your rules and recent scans:
-  ask why something is not safe, for a safer swap, or for a recipe.
-- **Find alternatives.** Safer products in the same category.
-- **Share a household.** Everyone in a household can see each other's
-  rules, so you can shop for each other, including children without a phone.
-- **Review queue.** An admin verifies products added from label photos, so
-  the next person gets a checked answer.
+- **Three tabs on every product.** **Verdict** lists each of your rules and
+  whether it held. **Ingredients** highlights the ones that broke a rule.
+  **Nutrition** shows the product's nutrition facts.
+- **Who can eat it.** The verdict for everyone in your household on one
+  card. The "For ..." picker at the top switches the whole verdict to
+  another person's rules.
+- **Available at.** The stores that sell it, each opening the store's site.
+- **See alternatives.** A Not safe product offers Safe products of the same
+  kind ("Smooth Peanut Butter" finds other nut butters), never unrelated
+  filler.
 - **Keep a history.** Every scan is saved and reopens exactly as it was
   decided.
+
+### Browse
+
+- **Home** greets you by name, says whose rules it is checking, and shows
+  shelves you scroll sideways: Safe for you, Saved by your household and
+  Recently scanned.
+- **Shop by aisle.** Each aisle has its own page of products, every card
+  carrying its verdict mark.
+- **Search** finds products by name or brand across every aisle.
+- **Filters.** Show all, Safe only or hide Not safe, and filter by store.
+- **Save products** with the bookmark on any card. Saved products are shared
+  with your household.
+- **Fast on a slow connection.** The catalogue is kept on the phone and shown
+  while a fresh copy downloads, and each verdict is worked out once.
+
+### Profile and household
+
+- **Rules tab.** Tap a rule to change an allergy's level or remove it. "Add a
+  rule" searches allergies, diets, ingredients and E-numbers.
+- **Household tab.** Add people with or without a phone (a child, a
+  grandparent) and set their rules for them. Invite someone with an
+  eight-character code that lasts seven days. The owner decides who may
+  edit rules, invite people, save products and see each other's scans, and
+  can hand over ownership, remove someone or delete the household.
+- **Settings tab.** Flashlight and vibration for the scanner, notification
+  and privacy choices, turning scan history off, **Download my data**,
+  **Delete my account** and **Log out**.
+- **Ask Njam.** An AI assistant that knows your rules and recent scans:
+  ask why something is not safe, for a safer swap, or for a recipe.
+
+### For admins
+
+An Admin/Moderator gets a **Review queue** button in Profile, Settings, and
+two extra buttons on every product. See [Admin controls](#admin-controls).
 
 The catalogue holds about a thousand South African products, most of them
 imported from [Open Food Facts](https://openfoodfacts.org) with no AI involved.
@@ -122,28 +178,118 @@ imported from [Open Food Facts](https://openfoodfacts.org) with no AI involved.
 ## Screens
 
 High-fidelity designs from [Figma](https://www.figma.com/design/SPM3c4yMgs3bW2BVRIoafz/Njam-App?node-id=1-8).
-Each one is built in the app.
+Each one is built in the app. Taller screens are shown from the top.
+
+### Start
 
 <table>
   <tr>
+    <td align="center"><img src="docs/readme/screens/splash.png" width="190" alt="Splash screen with the Njam logo on forest green" /><br /><sub>Splash</sub></td>
+    <td align="center"><img src="docs/readme/screens/sign-up.png" width="190" alt="Sign up screen" /><br /><sub>Sign up</sub></td>
     <td align="center"><img src="docs/readme/screens/log-in.png" width="190" alt="Log in screen" /><br /><sub>Log in</sub></td>
     <td align="center"><img src="docs/readme/screens/onboarding.png" width="190" alt="Onboarding, choosing allergies and diets" /><br /><sub>Onboarding</sub></td>
-    <td align="center"><img src="docs/readme/screens/search.png" width="190" alt="Search the catalogue" /><br /><sub>Search</sub></td>
-    <td align="center"><img src="docs/readme/screens/scanner.png" width="190" alt="Scanner with the shutter button" /><br /><sub>Scanner</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/readme/screens/verdict.png" width="190" alt="Verdict screen showing Caution for Weet-Bix" /><br /><sub>Verdict</sub></td>
+    <td align="center"><img src="docs/readme/screens/profile-ready.png" width="190" alt="Onboarding finished: your profile is ready, listing the saved rules" /><br /><sub>Your profile is ready</sub></td>
+  </tr>
+</table>
+
+### Browse
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/readme/screens/home.png" width="190" alt="Home: greeting, Checking for Anika, search, aisles and a Scan a barcode tip" /><br /><sub>Home</sub></td>
+    <td align="center"><img src="docs/readme/screens/search.png" width="190" alt="Search the catalogue" /><br /><sub>Search</sub></td>
+    <td align="center"><img src="docs/readme/screens/aisle.png" width="190" alt="An aisle page with product cards and their verdict marks" /><br /><sub>Aisle</sub></td>
+    <td align="center"><img src="docs/readme/screens/filters.png" width="190" alt="Filter sheet with verdict and store filters" /><br /><sub>Filters</sub></td>
+  </tr>
+</table>
+
+### Scan
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/readme/screens/scanner.png" width="190" alt="Scanner with the shutter button" /><br /><sub>Aim at the barcode</sub></td>
+    <td align="center"><img src="docs/readme/screens/scanner-read.png" width="190" alt="Scanner after the barcode was read, with the number shown" /><br /><sub>Barcode read</sub></td>
+    <td align="center"><img src="docs/readme/screens/scanner-type-number.png" width="190" alt="Sheet for typing the barcode number" /><br /><sub>Type the number</sub></td>
+    <td align="center"><img src="docs/readme/screens/scanner-not-in-njam.png" width="190" alt="Not in Njam yet, asking for a photo of the front of the pack" /><br /><sub>Not in Njam yet</sub></td>
+  </tr>
+  <tr>
     <td align="center"><img src="docs/readme/screens/add-product.png" width="190" alt="Add a product by photographing the label" /><br /><sub>Add a product</sub></td>
-    <td align="center"><img src="docs/readme/screens/ask-njam.png" width="190" alt="Ask Njam, the AI assistant" /><br /><sub>Ask Njam</sub></td>
+    <td align="center"><img src="docs/readme/screens/scanner-ingredients-read.png" width="190" alt="Ingredient list read from the label photo" /><br /><sub>Ingredients read</sub></td>
+  </tr>
+</table>
+
+### Verdict
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/readme/screens/verdict.png" width="190" alt="Verdict screen showing Caution for Weet-Bix" /><br /><sub>Verdict tab</sub></td>
+    <td align="center"><img src="docs/readme/screens/verdict-ingredients.png" width="190" alt="Ingredients tab with the ingredients that broke a rule highlighted" /><br /><sub>Ingredients tab</sub></td>
+    <td align="center"><img src="docs/readme/screens/verdict-nutrition.png" width="190" alt="Nutrition tab" /><br /><sub>Nutrition tab</sub></td>
     <td align="center"><img src="docs/readme/screens/alternatives.png" width="190" alt="Safer alternatives in the same category" /><br /><sub>Alternatives</sub></td>
   </tr>
   <tr>
     <td align="center"><img src="docs/readme/screens/history.png" width="190" alt="Scan history" /><br /><sub>History</sub></td>
+    <td align="center"><img src="docs/readme/screens/ask-njam.png" width="190" alt="Ask Njam, the AI assistant" /><br /><sub>Ask Njam</sub></td>
+  </tr>
+</table>
+
+### Profile
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/readme/screens/rules.png" width="190" alt="Profile, Rules tab with allergies as chips" /><br /><sub>Rules</sub></td>
     <td align="center"><img src="docs/readme/screens/edit-rule.png" width="190" alt="Editing a rule on the profile" /><br /><sub>Edit a rule</sub></td>
+    <td align="center"><img src="docs/readme/screens/add-rule.png" width="190" alt="Add a rule sheet, searching allergies, diets, ingredients and E-numbers" /><br /><sub>Add a rule</sub></td>
     <td align="center"><img src="docs/readme/screens/household.png" width="190" alt="Profile, household tab with three people" /><br /><sub>Household</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/readme/screens/settings.png" width="190" alt="Profile, Settings tab with scanning options" /><br /><sub>Settings</sub></td>
     <td align="center"><img src="docs/readme/screens/admin-review.png" width="190" alt="Admin review queue" /><br /><sub>Admin review queue</sub></td>
   </tr>
 </table>
+
+---
+
+## Admin controls
+
+<img src="docs/readme/screens/admin-review.png" width="220" align="right" alt="Admin review queue with two products waiting, each with Add to feed" />
+
+An **Admin/Moderator** keeps the shared catalogue honest. The app shows
+these controls only to an admin, and the database refuses them from anyone
+else, even when the API is called directly.
+
+**The review queue** (Profile, Settings, **Review queue**)
+
+- Lists every product a shopper added from label photos. Open Food Facts
+  products are left out, because the engine already decides them by how
+  complete their list is.
+- Each card shows the product, its source ("Read from a label photo") and
+  its ingredients, with **Open the label photo** to compare against the
+  pack.
+- **Possible duplicates are flagged**: the same product under another
+  barcode, such as another pack size.
+- **Add to feed** verifies the product. It then shows on Home and in Search,
+  and it can give a Safe verdict. Until then it can never be Safe for a
+  severe allergy, and it stays out of the feed.
+- When nothing is waiting, the queue says so.
+
+**Edit and delete** (on a review queue card, and under any product on its
+Verdict screen)
+
+- **Edit** changes the name, brand, barcode and ingredient list in one
+  sheet. It is saved in one transaction by the `update_product` database
+  function. A new ingredient is checked against the alias lists, so it can
+  still break someone's rule. Changes show for every household.
+- **Delete** asks first, then removes the product for every household, with
+  its ingredients, nutrition, saved rows and store links. Past scans of it
+  stay in History.
+
+**Becoming an admin.** No one can make themselves an admin from the app.
+The role is set in the database (see [Test accounts](#test-accounts)).
+
+<br clear="right" />
 
 ---
 
@@ -349,7 +495,7 @@ Two accounts exist on the hosted project for marking:
 | Account | Role | Use it to |
 | --- | --- | --- |
 | `owner@njam.test` | Household Owner, with a child's profile in the household | Scan, see verdicts, Ask Njam, manage the household |
-| `admin@njam.test` | Admin/Moderator | Open the review queue and verify products |
+| `admin@njam.test` | Admin/Moderator | Open the review queue, add products to the feed, edit and delete products |
 
 The passwords are shared with the lecturer privately and are never committed.
 On your own Supabase project, sign up in the app instead. To make yourself an
@@ -385,7 +531,9 @@ where id = (select id from auth.users where email = 'you@example.com');
    invite someone with a code. **Settings** covers your account, and lets
    you delete your account and data.
 8. **Admin only:** Profile, Settings, **Review queue** lists products added
-   from label photos. Verifying one lets it become Safe.
+   from label photos. **Add to feed** verifies one, so it shows on Home and
+   can become Safe. **Edit** and **Delete** sit on each queue card and under
+   every product's verdict. See [Admin controls](#admin-controls).
 
 ---
 
@@ -402,8 +550,9 @@ where id = (select id from auth.users where email = 'you@example.com');
   creates it. You read and write only your own household's rows, even when
   calling the API directly.
 - **Nobody can promote themselves.** A person cannot change their own role or
-  household from the app. Only an admin can verify a product, and the
-  database checks that too.
+  household from the app. Only an admin can verify, edit or delete a
+  product, and the database checks that too (RLS and the `update_product`
+  function).
 - **Rules are generic.** `profile_rules` stores `type`, `target`, `operator`
   and `threshold`, so a new kind of rule needs no migration.
 - **Secrets stay on the server.** The app holds only the publishable key. The
@@ -448,7 +597,7 @@ src/
   lib/                 Shared clients, e.g. the Supabase client
 supabase/
   migrations/          SQL schema, Row Level Security on from the first migration
-  functions/           Edge Functions: scan-label, ask-njam, delete-account
+  functions/           Edge Functions: scan-label, ask-njam, delete-account, import-open-food-facts
 docs/                  Structure, workflow, design system, scope, API, AI, testing, risks, plan
 ```
 
