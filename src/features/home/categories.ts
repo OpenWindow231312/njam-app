@@ -27,6 +27,8 @@ const AISLE_ICONS: Record<string, string> = {
   'biscuits-rusks': 'cookie',
   snacks: 'tapas',
   drinks: 'local_drink',
+  frozen: 'ac_unit',
+  baby: 'child_care',
 };
 
 /** Every top-level aisle, A to Z. */
