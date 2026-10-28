@@ -2,6 +2,8 @@
  * Njam design tokens.
  *
  * Generated from the Njam Design System artifact (tokens.json, version 1).
+ * v1.17 (28 Oct 2026): layout.appBarHeight 56 to 72. At 56 the pills and the
+ * filled icon button almost touched the bar's edges and the bar looked cramped.
  * v1.16 (27 Oct 2026): motion.splashZoom. The splash opens on the mark filling
  * the screen, takes one bite, then pulls back to the logo. It is the one
  * sanctioned lime screen (CLAUDE.md rule 9), and no text sits on the lime.
@@ -599,7 +601,7 @@ export const layout = {
   /** The circle behind an icon in a ListRow or sheet row. */
   iconBadgeSize: 40,
   /** Top app bar height. */
-  appBarHeight: 56,
+  appBarHeight: 72,
   /** The fade under the TopBar, from surface to clear (v1.15). Content starts below it. */
   topBarFade: 16,
   /** Kept for reference; ScanFrame now uses scanFrameHeight and a side inset of space.s10. */

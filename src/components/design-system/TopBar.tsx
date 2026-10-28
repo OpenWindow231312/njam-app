@@ -2,8 +2,8 @@
  * TopBar: the bar pinned to the top of every screen you open from another
  * one, with the back button always in the same place (option C, 27 Oct 2026).
  *
- * - Solid surface, as tall as the status bar plus layout.appBarHeight (56),
- *   so the back button's centre sits 28 below the status bar on every screen.
+ * - Solid surface, as tall as the status bar plus layout.appBarHeight (72),
+ *   so the back button's centre sits 36 below the status bar on every screen.
  * - It has no edge line. Instead a short fade (layout.topBarFade) hangs below
  *   it, from surface to clear, so content scrolling under the bar fades out
  *   instead of being cut off by a hard line (v1.15, CLAUDE.md rule 3).
