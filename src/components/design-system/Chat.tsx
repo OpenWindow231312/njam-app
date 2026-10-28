@@ -91,10 +91,11 @@ export function ChatBubble({ from, text, children, foldAfter, faded = false, onL
     bubble.current?.measureInWindow((x, y, width, height) => onLongPress?.({ x, y, width, height }));
 
   return (
+    // A Pressable only so it can be held. No `disabled` when there is
+    // nothing to hold: a screen reader would read every answer as "dimmed".
     <Pressable
       ref={bubble}
-      disabled={!onLongPress}
-      onLongPress={hold}
+      onLongPress={onLongPress ? hold : undefined}
       accessibilityLabel={text ? `${isUser ? 'You' : 'Njam'}: ${text}` : undefined}
       accessibilityHint={onLongPress ? 'Hold for options' : undefined}
       accessibilityActions={onLongPress ? [{ name: 'longpress', label: 'Options' }] : undefined}
