@@ -35,12 +35,17 @@ type HomeScopeProps = {
   onChange: (selectedIds: string[]) => void;
 };
 
+/** "Anika de Beer" becomes "Anika": the pill is short, and a first name is friendlier. */
+function firstName(profile: ActiveProfile): string {
+  return profile.name.trim().split(/\s+/)[0];
+}
+
 /** "Anika", "Anika and Thabo", "3 people" or "everyone". */
 export function scopeName(profiles: ActiveProfile[], selectedIds: string[]): string {
   const chosen = profiles.filter((profile) => selectedIds.includes(profile.id));
   if (chosen.length > 1 && chosen.length === profiles.length) return 'everyone';
-  if (chosen.length === 1) return chosen[0].name;
-  if (chosen.length === 2) return `${chosen[0].name} and ${chosen[1].name}`;
+  if (chosen.length === 1) return firstName(chosen[0]);
+  if (chosen.length === 2) return `${firstName(chosen[0])} and ${firstName(chosen[1])}`;
   return `${chosen.length} people`;
 }
 
