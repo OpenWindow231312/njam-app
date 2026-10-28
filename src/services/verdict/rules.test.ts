@@ -62,8 +62,9 @@ describe('a "may contain" line', () => {
   });
 });
 
+// For now we assume the reader got it right (TRUST_SHOPPER_LISTS), so how
+// sure it was does not change the verdict.
 describe('how sure the label reader was', () => {
-  const hardToRead = 'The label photo was hard to read, so we may have missed or misread an ingredient.';
   const avoidCaffeine: ProfileRule = { type: 'ingredient', target: 'caffeine', operator: 'excludes', threshold: null, unit: null, severity: null };
   const labelRead = (readConfidence: VerdictProduct['readConfidence'], names = ['rooibos tea']) =>
     product({ verified: false, readFromLabel: true, readConfidence, ingredients: names.map(ingredient) });
@@ -73,10 +74,8 @@ describe('how sure the label reader was', () => {
   });
 
   for (const confidence of ['medium', 'low'] as const) {
-    test(`a ${confidence} confidence read is capped at Caution and says why`, () => {
-      const verdict = decideVerdict(labelRead(confidence), [avoidCaffeine]);
-      assert.equal(verdict.state, 'caution');
-      assert.ok(verdict.reasons.some((reason) => reason.text === hardToRead));
+    test(`a ${confidence} confidence read can be Safe too`, () => {
+      assert.equal(decideVerdict(labelRead(confidence), [avoidCaffeine]).state, 'safe');
     });
   }
 
@@ -149,13 +148,31 @@ describe('a profile with no rules', () => {
     assert.equal(verdict.reasons[0].text, 'You have no rules set yet, so nothing on this product goes against them.');
   });
 
-  test('is Safe for an unverified product, and still says our team has not checked it', () => {
+  test('is Safe for an unverified product, with no note that it was not checked', () => {
     const verdict = decideVerdict(product({ verified: false, readFromLabel: true, readConfidence: 'low' }), []);
     assert.equal(verdict.state, 'safe');
-    assert.equal(verdict.reasons.at(-1)?.text, 'We read this list from your photo, and our team has not checked it yet.');
+    assert.equal(verdict.reasons.length, 1);
   });
 
   test('is Safe for a product with no ingredient list', () => {
     assert.equal(decideVerdict(product({ verified: false, ingredients: [] }), []).state, 'safe');
+  });
+});
+
+describe('a product a shopper just added from a label photo', () => {
+  const milkAllergy: ProfileRule = { type: 'allergen', target: 'milk', operator: 'excludes', threshold: null, unit: null, severity: 'severe' };
+  const added = (names: string[]) =>
+    product({ verified: false, readFromLabel: true, readConfidence: 'medium', ingredients: names.map(ingredient) });
+
+  test('is Safe for a severe milk allergy when it has no milk', () => {
+    const verdict = decideVerdict(added(['wheat flour', 'sunflower oil', 'salt']), [milkAllergy]);
+    assert.equal(verdict.state, 'safe');
+    assert.equal(verdict.reasons.length, 1);
+  });
+
+  test('is Not safe for a severe milk allergy when it has milk', () => {
+    const withMilk = { ...ingredient('milk powder'), allergen: 'milk' };
+    const verdict = decideVerdict(product({ verified: false, readFromLabel: true, ingredients: [withMilk] }), [milkAllergy]);
+    assert.equal(verdict.state, 'unsafe');
   });
 });

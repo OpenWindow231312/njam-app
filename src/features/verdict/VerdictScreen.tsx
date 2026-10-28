@@ -39,10 +39,10 @@
  * AdminProductActions). After an edit the product loads again, without
  * recording a second scan; after a delete the screen goes back.
  *
- * This screen only shows the verdict. The verdict engine decides it, and
- * the engine flags anything our team has not checked (capped at Caution for
- * a severe allergy), and decides a complete Open Food Facts list like a
- * checked one.
+ * This screen only shows the verdict. The verdict engine decides it. For
+ * now it trusts a list a shopper added like a checked one (TRUST_SHOPPER_LISTS),
+ * so this screen does not say "not checked" either, and it decides a complete
+ * Open Food Facts list like a checked one.
  */
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -94,14 +94,12 @@ type Params = {
 };
 
 /**
- * Where an unverified product's ingredient list came from, under its name.
- * A complete Open Food Facts list is decided like a verified one (see
- * isCompleteList in the verdict engine), so its note only says where it is from.
+ * Where an Open Food Facts product's ingredient list came from, under its
+ * name. A complete one is decided like a verified one (see isCompleteList in
+ * the verdict engine), so its note only says where it is from. A list a
+ * shopper added has no note for now (see TRUST_SHOPPER_LISTS).
  */
-const SOURCE_NOTES = {
-  labelPhoto: 'Read from your photo. Not yet checked by our team.',
-  openFoodFacts: 'From Open Food Facts, a public database of real labels that anyone can edit.',
-};
+const OPEN_FOOD_FACTS_NOTE = 'From Open Food Facts, a public database of real labels that anyone can edit.';
 
 /** The verdict word, at the start of the tab: "Not safe for Thabo". */
 const STATE_WORDS: Record<VerdictState, string> = {
@@ -264,13 +262,7 @@ async function loadProduct(
       barcode: product.barcode,
       imageUrl: product.imageUrl,
       ingredients: ingredientNames(product),
-      note: product.verified
-        ? null
-        : product.source === 'ai_label_read'
-          ? 'Read from a label photo. Not yet checked by our team.'
-          : product.source === 'open_food_facts'
-            ? SOURCE_NOTES.openFoodFacts
-            : 'Added by a shopper. Not yet checked by our team.',
+      note: !product.verified && product.source === 'open_food_facts' ? OPEN_FOOD_FACTS_NOTE : null,
     },
     product: checked,
     profiles,
@@ -317,7 +309,7 @@ async function loadLabel(
       barcode: barcode ?? null,
       imageUrl: photoUri ?? null,
       ingredients: read.ingredients.map((item) => item.name),
-      note: SOURCE_NOTES.labelPhoto,
+      note: null,
     },
     product: checked,
     profiles,

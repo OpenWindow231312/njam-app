@@ -105,8 +105,8 @@ function ProductBlock({ productId, rules }: { productId: string; rules: ProfileR
         name={product.name}
         detail={productDetail(product)}
         imageUrl={product.imageUrl ?? undefined}
-        metaIcon={product.verified ? 'verified' : 'info'}
-        metaText={product.verified ? 'Verified' : 'Not yet checked by our team'}
+        metaIcon={product.verified ? 'verified' : undefined}
+        metaText={product.verified ? 'Verified' : undefined}
       />
       {/* Mark, word and reason together: a verdict is never colour alone. */}
       <VerdictChip state={verdict.state} />

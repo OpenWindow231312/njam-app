@@ -203,23 +203,23 @@ describe('the engine with aliases', () => {
   });
 });
 
+// For now a list a shopper added is trusted like a verified one (TRUST_SHOPPER_LISTS).
 describe('a list our team has not checked', () => {
-  test('can be Safe, and says the team has not checked it', () => {
+  test('can be Safe, with no note that the team has not checked it', () => {
     const verdict = decideVerdict(product(['rooibos tea'], false), [avoidCaffeine]);
     assert.equal(verdict.state, 'safe');
-    assert.equal(verdict.reasons.at(-1)?.text, 'We read this list from your photo, and our team has not checked it yet.');
+    assert.equal(verdict.reasons.length, 1);
   });
 
-  test('is still Not safe when it breaks a rule, with the same note', () => {
+  test('is still Not safe when it breaks a rule', () => {
     const verdict = decideVerdict(product(['black tea'], false), [avoidCaffeine]);
     assert.equal(verdict.state, 'unsafe');
-    assert.equal(verdict.reasons.at(-1)?.text, 'We read this list from your photo, and our team has not checked it yet.');
+    assert.ok(verdict.reasons.every((reason) => !reason.text.includes('not checked')));
   });
 
-  test('is capped at Caution for someone with a severe allergy', () => {
+  test('is Safe for someone with a severe allergy it does not contain', () => {
     const verdict = decideVerdict(product(['sugar', 'cocoa butter'], false), [allergy('peanut')]);
-    assert.equal(verdict.state, 'caution');
-    assert.match(verdict.reasons.at(-1)?.text ?? '', /so we cannot call it Safe/);
+    assert.equal(verdict.state, 'safe');
   });
 
   test('a verified list for the same severe allergy is Safe, with no note', () => {
