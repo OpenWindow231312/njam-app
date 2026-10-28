@@ -2,7 +2,7 @@
  * AskNjamRow: the way into Ask Njam on Home, a white row under the search
  * bar (option C, Figma, 27 Oct). The Njam circle, "Ask Njam" and a line
  * saying what it is for, then a chevron. The other screens have the small
- * pill above their headline instead (AskNjamHeader).
+ * pill in their top bar instead (AskNjamButton).
  *
  * On Home the pill beside "Check your food" pushed the headline onto two
  * lines, and a whole row is easier to find than a pill in the corner.
