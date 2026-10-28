@@ -35,6 +35,10 @@
  * scanner's scope pill showed. A past scan has no switch: it shows what was
  * decided at the time, for the person it was decided for.
  *
+ * An admin also gets Edit and Delete under a catalogue product (see
+ * AdminProductActions). After an edit the product loads again, without
+ * recording a second scan; after a delete the screen goes back.
+ *
  * This screen only shows the verdict. The verdict engine decides it, and
  * the engine flags anything our team has not checked (capped at Caution for
  * a severe allergy), and decides a complete Open Food Facts list like a
@@ -59,6 +63,7 @@ import {
   useTopBarHeight,
   type VerdictReason,
 } from '@/components/design-system';
+import { AdminProductActions } from '@/features/admin-review/AdminProductActions';
 import { AskNjamButton } from '@/features/ask-njam/AskNjamHeader';
 import { useAuth, type Member } from '@/features/auth/AuthProvider';
 import { fetchSavedProductIds, saveProduct, unsaveProduct } from '@/features/home/saved-products';
@@ -204,8 +209,18 @@ async function loadExtras(productId: string): Promise<Omit<CatalogueExtras, 'cat
   }
 }
 
-/** A catalogue product: load it, and record the scan against the default profile. */
-async function loadProduct(productId: string, barcode: string | undefined, member: Member, householdId: string) {
+/**
+ * A catalogue product: load it, and record the scan against the default
+ * profile. `record` is false when it loads again after an admin's edit, so
+ * the edit does not add a second scan to the history.
+ */
+async function loadProduct(
+  productId: string,
+  barcode: string | undefined,
+  member: Member,
+  householdId: string,
+  record: boolean,
+) {
   // None of these needs another's answer, so they go out together: the screen
   // waits for one round trip to the database instead of three in a row.
   const [profiles, product, loadedExtras] = await Promise.all([
@@ -229,14 +244,16 @@ async function loadProduct(productId: string, barcode: string | undefined, membe
 
   // Not awaited: saving the scan to your history has no part in the verdict,
   // so the verdict shows while the history is still being written.
-  void recordScan({
-    userId: member.id,
-    profileId: profiles[0].id,
-    productId: product.id,
-    barcode: barcode ?? product.barcode,
-    verdict: verdict.state,
-    reasons: verdict.reasons,
-  }).catch((error) => console.warn('Could not save this scan to your history', error));
+  if (record) {
+    void recordScan({
+      userId: member.id,
+      profileId: profiles[0].id,
+      productId: product.id,
+      barcode: barcode ?? product.barcode,
+      verdict: verdict.state,
+      reasons: verdict.reasons,
+    }).catch((error) => console.warn('Could not save this scan to your history', error));
+  }
 
   const live: Live = {
     kind: 'live',
@@ -349,12 +366,14 @@ export function VerdictScreen() {
   const params = useLocalSearchParams<Params>();
   const [status, setStatus] = useState<Status>({ kind: 'loading' });
   const [attempt, setAttempt] = useState(0);
+  // Counts an admin's saved edits, to load the product again after each one.
+  const [edits, setEdits] = useState(0);
   // React runs effects twice in development; this keeps it to one saved scan.
   const startedFor = useRef<string | null>(null);
 
   useEffect(() => {
     if (!member?.householdId) return;
-    const key = `${params.productId}|${params.label}|${params.scanId}|${attempt}`;
+    const key = `${params.productId}|${params.label}|${params.scanId}|${attempt}|${edits}`;
     if (startedFor.current === key) return;
     startedFor.current = key;
 
@@ -377,7 +396,8 @@ export function VerdictScreen() {
       }
 
       if (params.productId) {
-        return { kind: 'shown', shown: await loadProduct(params.productId, params.barcode, current, householdId) };
+        const shown = await loadProduct(params.productId, params.barcode, current, householdId, edits === 0);
+        return { kind: 'shown', shown };
       }
       throw new Error('Nothing to show');
     }
@@ -389,13 +409,13 @@ export function VerdictScreen() {
         console.warn('Could not show the verdict', error);
         setStatus({ kind: 'failed' });
       });
-  }, [member, params.productId, params.label, params.barcode, params.photo, params.scanId, attempt]);
+  }, [member, params.productId, params.label, params.barcode, params.photo, params.scanId, attempt, edits]);
 
   return (
     // The result fills the whole screen edge to edge, so it skips Screen's
     // gutter and top and bottom room and lays itself out (see Shown).
     status.kind === 'shown' ? (
-      <Shown shown={status.shown} />
+      <Shown shown={status.shown} onEdited={() => setEdits((count) => count + 1)} />
     ) : (
       <Screen scroll={false} topBar={{ onBack: () => router.back() }}>
         <ScrollView contentContainerStyle={styles.content}>
@@ -441,7 +461,7 @@ function Loading() {
  * The loaded screen: the top bar, the verdict tab, and the paper drawer over
  * it. Who the verdict is viewed for, and whether the product is saved, live here.
  */
-function Shown({ shown }: { shown: Live | Past }) {
+function Shown({ shown, onEdited }: { shown: Live | Past; onEdited: () => void }) {
   const { colors, shadows } = useNjamTheme();
   const insets = useSafeAreaInsets();
   // Who the verdict is shown for. Starts on the default profile, which is
@@ -610,6 +630,21 @@ function Shown({ shown }: { shown: Live | Past }) {
                 {tab === 'nutrition' && nutrition}
 
                 {stores}
+
+                {/* Admins only: the component draws nothing for anyone else. */}
+                {extras && subject.barcode && (
+                  <AdminProductActions
+                    product={{
+                      id: extras.productId,
+                      name: subject.name,
+                      brand: subject.brand,
+                      barcode: subject.barcode,
+                      ingredients: subject.ingredients,
+                    }}
+                    onEdited={onEdited}
+                    onDeleted={() => router.back()}
+                  />
+                )}
               </View>
             </View>
           </ScrollView>
