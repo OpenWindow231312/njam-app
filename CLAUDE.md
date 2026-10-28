@@ -170,9 +170,15 @@ This is the heart of the app and the part most likely to be wrong in a way that 
 - **Hybrid by design.** The AI _interprets_: ingredient to category, aliases, E-numbers,
   plain language. Deterministic code _decides_: numeric limits, hard allergen blocks.
 - **On conflict, the rules engine wins.** Always.
-- **An unverified record can be Safe or Not safe, but always says so.** Its verdict
-  carries a "not checked by our team" line. If the profile has a severe allergy, an
-  unverified record is capped at Caution and can never be Safe (decision 26 Oct 2026).
+- **A shopper's record is trusted, for now (decision 28 Oct 2026).** A product a
+  shopper adds from a label photo is decided like a verified one: it can be Safe,
+  even for a severe allergy, and its verdict does not say our team has not checked
+  it. This is `TRUST_SHOPPER_LISTS` in `src/services/verdict/index.ts`. Set to
+  `false`, it brings back the earlier rule (decision 26 Oct 2026): an unverified
+  record says "not checked by our team" and is capped at Caution for a severe
+  allergy. A thin Open Food Facts list stays Caution either way.
+- **A profile with no rules is Safe for every product**, since nothing can go
+  against it.
 - **Zero false Safe verdicts** is a stated project target, measured against a 50-product
   regression suite. A false Caution is a nuisance; a false Safe is a health incident.
   When in doubt, the engine degrades toward Caution, never toward Safe.

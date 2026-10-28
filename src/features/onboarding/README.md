@@ -18,8 +18,8 @@ scan against an empty profile is close to useless, so onboarding earns its place
      as those allergen rules, so the engine checks it with the same aliases.
      Each allergy's level shows straight under the allergy chips, and an info
      button says what each level does. The words match the engine: Avoid and
-     Moderate are checked the same way, and Severe also stops a list our team
-     has not checked from ever coming back Safe.
+     Moderate are checked the same way, and Severe also makes a "may contain"
+     line Not safe, because even a trace counts.
   2. **Anything else you avoid**: ingredients and E-numbers on one screen.
      Suggestions are names the catalogue already knows; anything else can be
      typed (E-numbers are checked against `E` plus three or four digits and an

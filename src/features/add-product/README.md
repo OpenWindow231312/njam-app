@@ -23,9 +23,10 @@ How it runs (from the Scanner):
 Rules it keeps:
 
 - Saved with `verified = false`, and `source` is `ai_label_read`. RLS refuses
-  a verified insert, so its verdict says our team has not checked it (capped
-  at Caution for a severe allergy), and it stays out of the feed until an
-  admin adds it from the review queue.
+  a verified insert, so it stays out of the feed until an admin adds it from
+  the review queue. For now its verdict is decided like a verified one
+  (`TRUST_SHOPPER_LISTS` in the verdict engine), so it can be Safe and does
+  not say our team has not checked it.
   Nothing waits for the admin: the product saves straight away.
 - The label's "may contain" line is saved (`products.may_contain`), so the saved
   product is never less strict than the scan that created it.

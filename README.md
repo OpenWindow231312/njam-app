@@ -314,11 +314,15 @@ it is: with at least three ingredients it is decided like a verified product.
 With fewer, it is always **Caution**, because the missing part may hold your
 allergen, and it is hidden from Home.
 
-A label photo, or a product a shopper added, is unverified. It can still be
-**Safe** or **Not safe**, and its verdict says our team has not checked the
-list. If your profile has a severe allergy, an unverified list is capped at
-**Caution**, because a misread label is most dangerous there. When in doubt,
-the engine moves toward Caution, never toward Safe.
+A label photo, or a product a shopper added, is unverified. For now it is
+decided like a verified product: we assume the AI read the label right, so it
+can be **Safe** even for a severe allergy, and its verdict does not say our
+team has not checked it. An admin still reviews it before it shows on Home.
+This is one switch in the engine (`TRUST_SHOPPER_LISTS`); turned off, an
+unverified list says it is unchecked and is capped at **Caution** for a severe
+allergy. A profile with no rules is **Safe** for every product, because
+nothing on a label can go against it. When in doubt, the engine moves toward
+Caution, never toward Safe.
 
 ## The AI
 
@@ -339,8 +343,9 @@ inside Supabase Edge Functions so the API key never reaches the phone.
 - Every answer is validated before the app sees it. Unknown allergens are
   dropped and E-numbers are normalised. If nothing is usable, the label
   counts as unreadable.
-- Every AI-read record is unverified and its verdict says so. For a severe
-  allergy it is capped at Caution. On a conflict, the rules engine wins.
+- Every AI-read record is saved unverified until an admin reviews it. For
+  now its verdict trusts the read (`TRUST_SHOPPER_LISTS`). On a conflict, the
+  rules engine wins.
 
 Both prompts, the validation rules, and the loading and error states are
 documented in [`docs/AI-PROMPTS.md`](docs/AI-PROMPTS.md).
