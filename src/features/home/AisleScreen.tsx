@@ -6,8 +6,9 @@
  *   aisle   - a category id, or "saved".
  *   verdict - the verdict filter Search had on (optional).
  *   store   - the store id Search had on (optional).
- * The filters start as Search left them, and can be changed here with the
- * filter button. Changing them here does not change Search.
+ * The filters start as Search left them. There is no filter button here
+ * (taken off 28 Oct, the bar was crowded): "Clear filters" is the only way
+ * to change them. Clearing them here does not change Search.
  *
  * Loading, verdicts and saving come from useCatalogue, shared with Home.
  */
@@ -16,10 +17,10 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
-import { EmptyState, IconButton, LoadingMark, SectionHeader, Snackbar } from '@/components/design-system';
+import { EmptyState, LoadingMark, SectionHeader, Snackbar } from '@/components/design-system';
 import { AskNjamButton } from '@/features/ask-njam/AskNjamHeader';
 import { FilteredBy } from '@/features/home/FilteredBy';
-import { FilterSheet, type VerdictFilter } from '@/features/home/FilterSheet';
+import type { VerdictFilter } from '@/features/home/FilterSheet';
 import { ProductGrid } from '@/features/home/ProductGrid';
 import { applyFilters, useCatalogue } from '@/features/home/use-catalogue';
 import { icon, space, typography } from '@/theme/tokens';
@@ -40,7 +41,6 @@ export function AisleScreen() {
 
   const [verdictFilter, setVerdictFilter] = useState<VerdictFilter>(params.verdict ?? 'all');
   const [storeId, setStoreId] = useState<string | null>(params.store ?? null);
-  const [filtering, setFiltering] = useState(false);
 
   const shown = applyFilters(catalogue.checked, saved, { query: '', verdictFilter, storeId, aisle, browsing: true });
   const storeName = loaded?.stores.find((store) => store.id === storeId)?.name;
@@ -57,18 +57,7 @@ export function AisleScreen() {
       topBar={{
         onBack: () => router.back(),
         title: aisleName,
-        // The filter first, then Ask Njam, in the same order as the Verdict screen's bar.
-        trailing: (
-          <>
-            <IconButton
-              variant="filled"
-              icon="tune"
-              accessibilityLabel="Filter products"
-              onPress={() => setFiltering(true)}
-            />
-            <AskNjamButton />
-          </>
-        ),
+        trailing: <AskNjamButton />,
       }}>
 
       <SectionHeader
@@ -109,19 +98,6 @@ export function AisleScreen() {
       )}
 
       <ProductGrid items={shown} saved={saved} onToggleSave={catalogue.toggleSave} />
-
-      {loaded && (
-        <FilterSheet
-          visible={filtering}
-          verdictFilter={verdictFilter}
-          onVerdictFilter={setVerdictFilter}
-          stores={loaded.stores}
-          storeId={storeId}
-          onStore={setStoreId}
-          resultCount={shown.length}
-          onClose={() => setFiltering(false)}
-        />
-      )}
 
       {catalogue.failed && (
         <Snackbar
