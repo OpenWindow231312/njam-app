@@ -16,17 +16,28 @@
  *   hold it      - Edit your question, or Copy it.
  *   edit it      - it goes back into the bar; everything after it fades.
  *                  Saving deletes it and everything after it, then asks again.
+ *   send it      - it shows at once with "Sent · Undo"; Njam is only asked
+ *                  after UNDO_MS, so Undo puts it back in the bar untouched.
  *   Stop         - while Njam answers. Your question stays, with Ask again.
  *   no signal    - it stays, faded, with "Did not go through" and Try again.
  *                  Nothing is sent again until you tap it.
+ *
+ * "+" in the bar opens "Add to your question": Scan a barcode or Photograph
+ * a label (the Scanner on /ask-scan, which brings its result back through
+ * attachment.ts), or Choose a photo of a label. What you added shows in the
+ * bar above your text. A product goes into your question by name, which is
+ * enough for Njam, since it sees the catalogue. A label read gets its verdict
+ * from the verdict engine straight away (LabelReadBlock), and its ingredient
+ * list goes to Njam with your question.
  *
  * What the screen does not do: decide anything. Njam's words come from the
  * ask-njam edge function, which saves the conversation; every verdict chip
  * comes from the verdict engine (AnswerBlocks.tsx).
  */
 import * as Clipboard from 'expo-clipboard';
-import { router } from 'expo-router';
-import { type ComponentRef, useEffect, useMemo, useRef, useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import { router, useFocusEffect } from 'expo-router';
+import { type ComponentRef, Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -40,6 +51,8 @@ import {
   FrostedStrip,
   Icon,
   IconButton,
+  ListGroup,
+  ListRow,
   LoadingMark,
   MenuPopover,
   Snackbar,
@@ -47,18 +60,31 @@ import {
 } from '@/components/design-system';
 import { PressableSurface } from '@/components/design-system/PressableSurface';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { AnswerBlock } from '@/features/ask-njam/AnswerBlocks';
+import { AnswerBlock, LabelReadBlock } from '@/features/ask-njam/AnswerBlocks';
+import { takeAttachment } from '@/features/ask-njam/attachment';
+import { AttachmentPreview, productName, type Attached } from '@/features/ask-njam/AttachmentPreview';
 import { deleteFromQuestion, fetchMessages, type ChatMessage } from '@/features/ask-njam/conversations';
 import { ConversationsMenu } from '@/features/ask-njam/ConversationsMenu';
 import { useGhostText } from '@/features/ask-njam/use-ghost-text';
+import { useSwipeHint } from '@/features/ask-njam/use-swipe-hint';
 import { fetchActiveProfile } from '@/features/profile/active-profile';
-import { AskNjamError, askNjam } from '@/services/ai';
+import { fetchProductById } from '@/features/verdict/catalogue';
+import { AskNjamError, LabelReadError, askNjam, readLabel, type LabelRead } from '@/services/ai';
 import { allergenWord, type ProfileRule } from '@/services/verdict';
-import { icon, layout, opacity, radius, space, typography } from '@/theme/tokens';
+import { icon, layout, motion, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 // Your own messages fold after this many lines; Njam's answers never fold.
 const FOLD_AFTER_LINES = 8;
+
+// How long "Sent · Undo" waits before Njam is asked.
+const UNDO_MS = 3000;
+
+// The ask-njam function refuses a longer message.
+const MAX_QUESTION = 1000;
+
+// The same as the Scanner's photos: small enough to send, sharp enough to read.
+const PHOTO_QUALITY = 0.5;
 
 // A stable empty list, so the answer blocks do not reload on every render.
 const NO_RULES: ProfileRule[] = [];
@@ -78,7 +104,15 @@ const CAN_HELP_WITH = [
  *             question and its answer, so it comes back when you reopen
  *             the conversation.
  */
-type ShownMessage = ChatMessage & { status?: 'failed' | 'stopped'; sentAt?: Date };
+type ShownMessage = ChatMessage & {
+  status?: 'failed' | 'stopped';
+  sentAt?: Date;
+  /** What you typed and what "+" added, so Undo can put both back. */
+  typed?: string;
+  attached?: Attached;
+  /** A label read sent with this question, for its verdict under it. */
+  label?: { read: LabelRead; photoUri: string };
+};
 
 /** "Hi Anika. Ask me about any product or ingredient and I will check it against your 3 rules." */
 function greeting(firstName: string, rules: ProfileRule[] | null): string {
@@ -120,6 +154,23 @@ function answerText(message: ChatMessage): string {
     .join('\n\n');
 }
 
+/**
+ * The question Njam gets: what you typed, with what "+" added.
+ *   product - named in the question; Njam finds it in the catalogue.
+ *   label   - the ingredient list read from the photo, after your question.
+ */
+function questionFor(typed: string, attached: Attached | null): string {
+  if (!attached || attached.kind === 'reading') return typed;
+  if (attached.kind === 'product') {
+    const name = productName(attached.product);
+    return typed ? `About ${name}: ${typed}` : `Can I eat ${name}?`;
+  }
+  const ingredients = attached.read.ingredients.map((item) => item.name).join(', ');
+  const mayContain = attached.read.mayContain.length > 0 ? ` May contain: ${attached.read.mayContain.join(', ')}.` : '';
+  const question = `${typed || 'Can I eat this?'}\n\nIngredients from my label photo: ${ingredients}.${mayContain}`;
+  return question.length <= MAX_QUESTION ? question : `${question.slice(0, MAX_QUESTION - 1)}…`;
+}
+
 /** "09:32", when a message that did not go through was sent. */
 function timeOf(date: Date | undefined): string {
   return date ? date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
@@ -156,6 +207,15 @@ export function AskNjamScreen() {
   // The question being edited: its place in `messages` and its text.
   const [editing, setEditing] = useState<{ index: number; text: string } | null>(null);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  // What "+" added, waiting in the bar, and the sheet that adds it.
+  const [attached, setAttached] = useState<Attached | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  // The question still in its Undo window, and text Undo puts back in the bar.
+  const [undoable, setUndoable] = useState<string | null>(null);
+  const [restore, setRestore] = useState<{ id: number; text: string } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restoreCount = useRef(0);
+  const { showHint, onTake } = useSwipeHint();
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const logo = useRef<ComponentRef<typeof View>>(null);
   // Bumped whenever a different conversation is put on screen. An answer
@@ -171,6 +231,32 @@ export function AskNjamScreen() {
       .then((profile) => setRules(profile?.rules ?? []))
       .catch(() => setFailure({ message: 'We could not load your rules.', retryText: null }));
   }, [member?.householdId]);
+
+  // Back from the Scanner: take what it found and put it in the bar.
+  useFocusEffect(
+    useCallback(() => {
+      const waiting = takeAttachment();
+      if (!waiting) return;
+      if (waiting.kind === 'label') {
+        setAttached(waiting);
+        return;
+      }
+      fetchProductById(waiting.productId)
+        .then((product) => {
+          if (product) setAttached({ kind: 'product', product });
+          else setFailure({ message: 'We could not load that product.', retryText: null });
+        })
+        .catch(() => setFailure({ message: 'We could not load that product.', retryText: null }));
+    }, []),
+  );
+
+  // Leaving the screen drops a question still in its Undo window.
+  useEffect(
+    () => () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    },
+    [],
+  );
 
   // With the keyboard up, the home-indicator strip is hidden behind it, so
   // the composer no longer needs to clear it.
@@ -196,7 +282,11 @@ export function AskNjamScreen() {
     return block && block.type === 'suggestions' ? block.prompts : [];
   }, [busy, loadingConversation, editing, messages, rules]);
 
-  function send(text: string) {
+  /**
+   * Shows your question at once, with "Sent · Undo", and asks Njam once the
+   * Undo window has passed. `extras` carries what Undo would put back.
+   */
+  function send(text: string, extras: Pick<ShownMessage, 'typed' | 'attached' | 'label'> = {}) {
     if (busy) return;
     const asked = shownConversation.current;
     latestRequest.current += 1;
@@ -204,15 +294,27 @@ export function AskNjamScreen() {
     // Shown straight away. The function saves the question only together
     // with its answer, so until then it exists only here.
     const pending: ShownMessage = {
-      id: `pending-${Date.now()}`,
+      id: `pending-${request}-${asked}`,
       role: 'user',
       blocks: [{ type: 'text', text }],
       sentAt: new Date(),
+      ...extras,
     };
     setMessages((current) => [...current, pending]);
     setFailure(null);
     setBusy(true);
+    setUndoable(pending.id);
 
+    undoTimer.current = setTimeout(() => {
+      undoTimer.current = null;
+      setUndoable(null);
+      if (shownConversation.current !== asked || latestRequest.current !== request) return;
+      ask(text, pending.id, asked, request);
+    }, UNDO_MS);
+  }
+
+  /** Sends the question to Njam. Its answer is dropped if you stopped it or moved on. */
+  function ask(text: string, pendingId: string, asked: number, request: number) {
     askNjam(text, conversationId)
       .then((answer) => {
         if (shownConversation.current !== asked) return;
@@ -221,14 +323,14 @@ export function AskNjamScreen() {
         if (latestRequest.current !== request) return;
         setMessages((current) => [
           ...current,
-          { id: `answer-${Date.now()}`, role: 'assistant', blocks: answer.blocks },
+          { id: `answer-${request}-${asked}`, role: 'assistant', blocks: answer.blocks },
         ]);
       })
       .catch((error) => {
         if (shownConversation.current !== asked || latestRequest.current !== request) return;
         // Keep your question on screen, faded, with Try again under it.
         setMessages((current) =>
-          current.map((message) => (message.id === pending.id ? { ...message, status: 'failed' } : message)),
+          current.map((message) => (message.id === pendingId ? { ...message, status: 'failed' } : message)),
         );
         if (error instanceof AskNjamError) setFailure({ message: error.message, retryText: null });
       })
@@ -238,8 +340,89 @@ export function AskNjamScreen() {
       });
   }
 
+  /** Send from the bar: what you typed, with what "+" added. */
+  function sendFromBar(typed: string) {
+    const text = questionFor(typed, attached);
+    if (!text) return;
+    const label = attached?.kind === 'label' ? { read: attached.read, photoUri: attached.photoUri } : undefined;
+    send(text, { typed, attached: attached ?? undefined, label });
+    setAttached(null);
+  }
+
+  /** Undo, inside the window: take the question back and put it in the bar as it was. */
+  function undo(messageId: string) {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = null;
+    latestRequest.current += 1;
+    setUndoable(null);
+    setBusy(false);
+    const message = messages.find((item) => item.id === messageId);
+    setMessages((current) => current.filter((item) => item.id !== messageId));
+    if (!message) return;
+    restoreCount.current += 1;
+    setRestore({ id: restoreCount.current, text: message.typed ?? userText(message) });
+    if (message.attached) setAttached(message.attached);
+  }
+
+  /** "+" > Scan a barcode or Photograph a label: the Scanner, which comes back here. */
+  function openScanner(start: 'barcode' | 'label') {
+    setAddOpen(false);
+    // Wait for the sheet to fade out before the next screen slides in.
+    setTimeout(
+      () => router.push(start === 'label' ? { pathname: '/ask-scan', params: { start: 'label' } } : '/ask-scan'),
+      motion.sheet,
+    );
+  }
+
+  /** "+" > Choose a photo: a label photo you already took, read straight away. */
+  function choosePhoto() {
+    setAddOpen(false);
+    // iOS cannot show the photo picker while the sheet is still closing.
+    setTimeout(async () => {
+      const picked = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        base64: true,
+        quality: PHOTO_QUALITY,
+      });
+      const photo = picked.canceled ? null : picked.assets[0];
+      if (!photo?.base64) return;
+      setAttached({ kind: 'reading', photoUri: photo.uri });
+      try {
+        const read = await readLabel({
+          imageBase64: photo.base64,
+          mimeType: photo.mimeType === 'image/png' ? 'image/png' : 'image/jpeg',
+        });
+        if (!read.readable) {
+          setAttached(null);
+          setFailure({
+            message: read.problem ?? 'We could not read an ingredient list in that photo. Try a sharper one.',
+            retryText: null,
+          });
+          return;
+        }
+        // Only if you have not taken it off while it was being read.
+        setAttached((current) =>
+          current?.kind === 'reading' && current.photoUri === photo.uri
+            ? { kind: 'label', photoUri: photo.uri, read }
+            : current,
+        );
+      } catch (error) {
+        setAttached(null);
+        setFailure({
+          message: error instanceof LabelReadError ? error.message : 'Check your connection and try again.',
+          retryText: null,
+        });
+      }
+    }, motion.sheet);
+  }
+
   /** Stop the answer on its way. Your question stays, marked stopped. */
   function stop() {
+    // Nothing has gone to Njam yet: Stop is the same as Undo.
+    if (undoable) {
+      undo(undoable);
+      return;
+    }
     latestRequest.current += 1;
     setBusy(false);
     setMessages((current) =>
@@ -265,16 +448,17 @@ export function AskNjamScreen() {
       .then(() => {
         setEditing(null);
         setMessages((current) => current.slice(0, index));
-        send(text);
+        send(text, { label: question.label });
       })
       .catch(() => setFailure({ message: 'We could not change that question. Try again.', retryText: null }));
   }
 
   /** Try again on a question that did not go through: it was never saved, so just send it. */
   function tryAgain(index: number) {
+    const { label } = messages[index];
     const text = userText(messages[index]);
     setMessages((current) => current.filter((_, at) => at !== index));
-    send(text);
+    send(text, { label });
   }
 
   function copy(text: string) {
@@ -285,6 +469,9 @@ export function AskNjamScreen() {
 
   function startNew() {
     shownConversation.current += 1;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = null;
+    setUndoable(null);
     setConversationsOpen(false);
     setConversationId(null);
     setMessages([]);
@@ -295,6 +482,9 @@ export function AskNjamScreen() {
 
   function openConversation(id: string) {
     shownConversation.current += 1;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = null;
+    setUndoable(null);
     const opening = shownConversation.current;
     setConversationsOpen(false);
     setConversationId(id);
@@ -340,12 +530,7 @@ export function AskNjamScreen() {
             <View style={styles.back}>
               <IconButton icon="arrow_back" accessibilityLabel="Go back" onPress={() => router.back()} />
             </View>
-            <IconButton
-              icon="add"
-              variant="tonal"
-              accessibilityLabel="Start a new conversation"
-              onPress={startNew}
-            />
+            <IconButton icon="add" variant="tonal" accessibilityLabel="Start a new conversation" onPress={startNew} />
             {/* Laid over the row, so the logo sits in the true middle of the
                 screen whatever the two buttons beside it measure. */}
             <View pointerEvents="box-none" style={styles.titleLayer}>
@@ -398,9 +583,7 @@ export function AskNjamScreen() {
                           accessibilityLabel="Ask again"
                           color={colors.inkMuted}
                           onPress={() => {
-                            const question = messages.findLastIndex(
-                              (item, at) => at < index && item.role === 'user',
-                            );
+                            const question = messages.findLastIndex((item, at) => at < index && item.role === 'user');
                             if (question >= 0) askAgainFrom(question, userText(messages[question]));
                           }}
                         />
@@ -411,44 +594,61 @@ export function AskNjamScreen() {
               }
 
               return (
-                <View key={message.id} style={[styles.yours, fadedByEdit && styles.faded]}>
-                  <ChatBubble
-                    from="user"
-                    text={userText(message)}
-                    foldAfter={FOLD_AFTER_LINES}
-                    faded={message.status === 'failed'}
-                    onLongPress={busy ? undefined : (anchor) => setHeld({ index, anchor })}
-                  />
-                  {message.status === 'failed' && (
-                    <View style={styles.statusRow}>
-                      <Icon name="cloud_off" size="xs" color={colors.inkMuted} />
+                <Fragment key={message.id}>
+                  <View style={[styles.yours, fadedByEdit && styles.faded]}>
+                    <ChatBubble
+                      from="user"
+                      text={userText(message)}
+                      foldAfter={FOLD_AFTER_LINES}
+                      faded={message.status === 'failed'}
+                      onLongPress={busy ? undefined : (anchor) => setHeld({ index, anchor })}
+                    />
+                    {message.status === 'failed' && (
+                      <View style={styles.statusRow}>
+                        <Icon name="cloud_off" size="xs" color={colors.inkMuted} />
+                        <Text style={[typography.caption, { color: colors.inkMuted }]}>
+                          Did not go through · {timeOf(message.sentAt)}
+                        </Text>
+                        <Button label="Try again" variant="text" size="small" onPress={() => tryAgain(index)} />
+                      </View>
+                    )}
+                    {message.status === 'stopped' && (
+                      <View style={styles.statusRow}>
+                        <Text style={[typography.caption, { color: colors.inkMuted }]}>You stopped this answer</Text>
+                        <Button
+                          label="Ask again"
+                          variant="text"
+                          size="small"
+                          onPress={() => askAgainFrom(index, userText(message))}
+                        />
+                      </View>
+                    )}
+                    {undoable === message.id && (
+                      <View style={styles.statusRow}>
+                        <Text style={[typography.caption, { color: colors.inkMuted }]}>Sent</Text>
+                        <Button label="Undo" variant="text" size="small" onPress={() => undo(message.id)} />
+                      </View>
+                    )}
+                    {editing?.index === index && (
                       <Text style={[typography.caption, { color: colors.inkMuted }]}>
-                        Did not go through · {timeOf(message.sentAt)}
+                        Njam will answer again from here
                       </Text>
-                      <Button label="Try again" variant="text" size="small" onPress={() => tryAgain(index)} />
-                    </View>
-                  )}
-                  {message.status === 'stopped' && (
-                    <View style={styles.statusRow}>
-                      <Text style={[typography.caption, { color: colors.inkMuted }]}>You stopped this answer</Text>
-                      <Button
-                        label="Ask again"
-                        variant="text"
-                        size="small"
-                        onPress={() => askAgainFrom(index, userText(message))}
+                    )}
+                  </View>
+                  {message.label && (
+                    <View style={fadedByEdit && styles.faded}>
+                      <LabelReadBlock
+                        read={message.label.read}
+                        photoUri={message.label.photoUri}
+                        rules={rules ?? NO_RULES}
                       />
                     </View>
                   )}
-                  {editing?.index === index && (
-                    <Text style={[typography.caption, { color: colors.inkMuted }]}>
-                      Njam will answer again from here
-                    </Text>
-                  )}
-                </View>
+                </Fragment>
               );
             })}
 
-            {(busy || loadingConversation) && (
+            {((busy && !undoable) || loadingConversation) && (
               <View accessibilityLiveRegion="polite" style={styles.thinking}>
                 <LoadingMark size={icon.sizeMd} color={colors.brandForest} />
                 <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
@@ -491,13 +691,24 @@ export function AskNjamScreen() {
 
             <ChatComposer
               placeholder="Ask about a product or ingredient"
-              onSend={(text) => (editing ? askAgainFrom(editing.index, text) : send(text))}
+              onSend={(text) => (editing ? askAgainFrom(editing.index, text) : sendFromBar(text))}
               busy={busy || loadingConversation}
               onStop={busy ? stop : undefined}
               onChangeText={onChangeText}
               ghost={ghost}
               editing={editing?.text ?? null}
               onCancelEdit={() => setEditing(null)}
+              onAdd={editing ? undefined : () => setAddOpen(true)}
+              attachment={
+                attached && !editing ? (
+                  <AttachmentPreview attached={attached} onRemove={() => setAttached(null)} />
+                ) : undefined
+              }
+              // A photo or product can go on its own; one still being read cannot.
+              allowEmpty={attached !== null && attached.kind !== 'reading' && !editing}
+              restore={restore}
+              swipeHint={showHint}
+              onTakeSuggestion={onTake}
             />
           </View>
         </View>
@@ -535,6 +746,35 @@ export function AskNjamScreen() {
             : []
         }
       />
+
+      <BottomSheet visible={addOpen} title="Add to your question" onClose={() => setAddOpen(false)}>
+        <ListGroup>
+          <ListRow
+            icon="barcode_scanner"
+            iconBadge="strong"
+            title="Scan a barcode"
+            supporting="Njam looks the product up and checks it"
+            trailing="chevron"
+            onPress={() => openScanner('barcode')}
+          />
+          <ListRow
+            icon="photo_camera"
+            iconBadge="strong"
+            title="Photograph a label"
+            supporting="Njam reads the ingredient list from the photo"
+            trailing="chevron"
+            onPress={() => openScanner('label')}
+          />
+          <ListRow
+            icon="photo_library"
+            iconBadge="strong"
+            title="Choose a photo"
+            supporting="A label photo you already took"
+            trailing="chevron"
+            onPress={choosePhoto}
+          />
+        </ListGroup>
+      </BottomSheet>
 
       <BottomSheet visible={helpOpen} title="What Njam can help with" onClose={() => setHelpOpen(false)}>
         <View style={styles.helpList}>
