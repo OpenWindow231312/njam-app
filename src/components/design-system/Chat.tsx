@@ -26,6 +26,9 @@
  * the send button sends. White with the ambient shadow, radius xl (a pill
  * would clip the text once the bar is several lines tall).
  *
+ * "+" (pass `onAdd`) sits on the left of the row, and what it added
+ * (`attachment`) sits above the row, so your text stays in line with "+".
+ *
  * The send button has three jobs:
  *   send  - an arrow, faded until you type.
  *   stop  - while `busy` (Njam is answering), if you pass `onStop`.
@@ -87,8 +90,7 @@ export function ChatBubble({ from, text, children, foldAfter, faded = false, onL
   const linkColor = isUser ? colors.onSelected : colors.selected;
   const folded = foldAfter !== undefined && !expanded;
 
-  const hold = () =>
-    bubble.current?.measureInWindow((x, y, width, height) => onLongPress?.({ x, y, width, height }));
+  const hold = () => bubble.current?.measureInWindow((x, y, width, height) => onLongPress?.({ x, y, width, height }));
 
   return (
     // A Pressable only so it can be held. No `disabled` when there is
@@ -165,6 +167,18 @@ type ChatComposerProps = {
   /** An earlier question being edited. The bar takes its text; send saves it. */
   editing?: string | null;
   onCancelEdit?: () => void;
+  /** Shows "+" on the left of the row. */
+  onAdd?: () => void;
+  /** What "+" added (a product, a label photo), drawn above the row. */
+  attachment?: ReactNode;
+  /** Send with nothing typed, e.g. a photo on its own. */
+  allowEmpty?: boolean;
+  /** Puts text back in the bar, e.g. after Undo. A new `id` puts it back again. */
+  restore?: { id: number; text: string } | null;
+  /** Shows the "Swipe right to take it" hint over the bar while there is a suggestion. */
+  swipeHint?: boolean;
+  /** Called when a suggestion is taken, so the screen can stop showing the hint. */
+  onTakeSuggestion?: () => void;
 };
 
 // The bar grows to this many lines, then the message scrolls inside it.
@@ -192,11 +206,17 @@ export function ChatComposer({
   ghost,
   editing = null,
   onCancelEdit,
+  onAdd,
+  attachment,
+  allowEmpty = false,
+  restore = null,
+  swipeHint = false,
+  onTakeSuggestion,
 }: ChatComposerProps) {
   const { colors, shadows } = useNjamTheme();
   const [message, setMessage] = useState('');
   const [ghostFits, setGhostFits] = useState(true);
-  const canSend = message.trim().length > 0 && !busy;
+  const canSend = (message.trim().length > 0 || allowEmpty) && !busy;
   const showGhost = Boolean(ghost) && ghostFits && message.length > 0;
 
   const change = useCallback(
@@ -215,6 +235,11 @@ export function ChatComposer({
     setShownEditing(editing);
     setMessage(editing ?? '');
   }
+  const [shownRestore, setShownRestore] = useState(restore);
+  if (restore !== shownRestore) {
+    setShownRestore(restore);
+    if (restore) setMessage(restore.text);
+  }
 
   const send = () => {
     if (!canSend) return;
@@ -223,8 +248,10 @@ export function ChatComposer({
   };
 
   const acceptGhost = useCallback(() => {
-    if (ghost) change(message + ghost);
-  }, [change, ghost, message]);
+    if (!ghost) return;
+    change(message + ghost);
+    onTakeSuggestion?.();
+  }, [change, ghost, message, onTakeSuggestion]);
 
   // Made again when the suggestion changes, so it always swipes in the one on screen.
   const swipe = useMemo(
@@ -244,64 +271,82 @@ export function ChatComposer({
   const action = busy && onStop ? 'stop' : editing !== null ? 'save' : 'send';
 
   return (
-    <View style={[styles.composer, { backgroundColor: colors.surfaceRaised }, shadows.ambient]}>
-      {editing !== null && (
-        <View style={[styles.editing, { borderBottomColor: colors.line }]}>
-          <Icon name="edit" size="sm" color={colors.inkMuted} />
-          <Text style={[typography.label, styles.editingLabel, { color: colors.inkMuted }]}>
-            Editing your question
-          </Text>
-          <IconButton icon="close" accessibilityLabel="Stop editing" onPress={() => onCancelEdit?.()} />
+    <View style={styles.stack}>
+      {swipeHint && showGhost && (
+        // Forest with lime words: the one place on the pale ground where a
+        // hint has to stand out from the white bar under it.
+        <View style={[styles.hint, { backgroundColor: colors.selected }]}>
+          <Text style={[typography.label, { color: colors.onSelected }]}>Swipe right to take it</Text>
+          <Icon name="arrow_forward" size="xs" color={colors.onSelected} />
         </View>
       )}
-      <View style={styles.row}>
-        <View
-          {...swipe.panHandlers}
-          style={styles.field}
-          accessibilityActions={showGhost ? [{ name: 'useSuggestion', label: 'Use the suggestion' }] : undefined}
-          onAccessibilityAction={(event) => {
-            if (event.nativeEvent.actionName === 'useSuggestion') acceptGhost();
-          }}>
-          {ghost && message.length > 0 && (
-            // Behind the input, so every tap still lands in the TextInput.
-            <View pointerEvents="none" style={styles.ghostLayer}>
-              <Text
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-                // More than one line means it no longer matches the input.
-                onTextLayout={(event) => setGhostFits(event.nativeEvent.lines.length <= 1)}
-                style={[fieldText, { opacity: ghostFits ? 1 : 0 }]}>
-                <Text style={styles.invisible}>{message}</Text>
-                <Text style={{ color: colors.inkSubtle }}>{ghost}</Text>
-              </Text>
-            </View>
+      <View style={[styles.composer, { backgroundColor: colors.surfaceRaised }, shadows.ambient]}>
+        {editing !== null && (
+          <View style={[styles.editing, { borderBottomColor: colors.line }]}>
+            <Icon name="edit" size="sm" color={colors.inkMuted} />
+            <Text style={[typography.label, styles.editingLabel, { color: colors.inkMuted }]}>
+              Editing your question
+            </Text>
+            <IconButton icon="close" accessibilityLabel="Stop editing" onPress={() => onCancelEdit?.()} />
+          </View>
+        )}
+        {attachment && <View style={styles.attachment}>{attachment}</View>}
+        <View style={styles.row}>
+          {onAdd && <IconButton icon="add" accessibilityLabel="Add a barcode or a label photo" onPress={onAdd} />}
+          <View
+            {...swipe.panHandlers}
+            style={[styles.field, onAdd && styles.fieldAfterAdd]}
+            accessibilityActions={showGhost ? [{ name: 'useSuggestion', label: 'Use the suggestion' }] : undefined}
+            onAccessibilityAction={(event) => {
+              if (event.nativeEvent.actionName === 'useSuggestion') acceptGhost();
+            }}>
+            {ghost && message.length > 0 && (
+              // Behind the input, so every tap still lands in the TextInput.
+              <View pointerEvents="none" style={[styles.ghostLayer, { left: onAdd ? 0 : space.s4 }]}>
+                <Text
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  // More than one line means it no longer matches the input.
+                  onTextLayout={(event) => setGhostFits(event.nativeEvent.lines.length <= 1)}
+                  style={[fieldText, { opacity: ghostFits ? 1 : 0 }]}>
+                  <Text style={styles.invisible}>{message}</Text>
+                  <Text style={{ color: colors.inkSubtle }}>{ghost}</Text>
+                </Text>
+              </View>
+            )}
+            <TextInput
+              value={message}
+              onChangeText={change}
+              multiline
+              placeholder={placeholder}
+              placeholderTextColor={colors.inkSubtle}
+              accessibilityLabel="Message"
+              selectionColor={colors.focusRing}
+              style={[styles.input, fieldText, { color: colors.ink }]}
+            />
+          </View>
+          {action === 'stop' && (
+            <IconButton icon="stop" accessibilityLabel="Stop answering" variant="filled" onPress={() => onStop?.()} />
           )}
-          <TextInput
-            value={message}
-            onChangeText={change}
-            multiline
-            placeholder={placeholder}
-            placeholderTextColor={colors.inkSubtle}
-            accessibilityLabel="Message"
-            selectionColor={colors.focusRing}
-            style={[styles.input, fieldText, { color: colors.ink }]}
-          />
+          {action === 'save' && (
+            <IconButton
+              icon="check"
+              accessibilityLabel="Save and ask again"
+              variant="filled"
+              onPress={send}
+              disabled={!canSend}
+            />
+          )}
+          {action === 'send' && (
+            <IconButton
+              icon="arrow_upward"
+              accessibilityLabel="Send"
+              variant="filled"
+              onPress={send}
+              disabled={!canSend}
+            />
+          )}
         </View>
-        {action === 'stop' && (
-          <IconButton icon="stop" accessibilityLabel="Stop answering" variant="filled" onPress={() => onStop?.()} />
-        )}
-        {action === 'save' && (
-          <IconButton
-            icon="check"
-            accessibilityLabel="Save and ask again"
-            variant="filled"
-            onPress={send}
-            disabled={!canSend}
-          />
-        )}
-        {action === 'send' && (
-          <IconButton icon="arrow_upward" accessibilityLabel="Send" variant="filled" onPress={send} disabled={!canSend} />
-        )}
       </View>
     </View>
   );
@@ -335,9 +380,26 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     gap: space.s1,
   },
+  stack: {
+    gap: space.s2,
+  },
+  hint: {
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s1,
+    paddingVertical: space.s2,
+    paddingLeft: space.s4,
+    paddingRight: space.s3,
+    borderRadius: radius.pill,
+  },
   composer: {
     borderRadius: radius.xl,
     padding: space.s1,
+  },
+  attachment: {
+    paddingTop: space.s2,
+    paddingHorizontal: space.s2,
   },
   editing: {
     flexDirection: 'row',
@@ -359,6 +421,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingLeft: space.s4,
   },
+  // "+" already gives the text room on its left.
+  fieldAfterAdd: {
+    paddingLeft: 0,
+  },
   input: {
     // One line sits in the middle of the 48 send button; more lines grow up.
     paddingTop: space.s3,
@@ -377,7 +443,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: space.s3,
     right: 0,
-    left: space.s4,
+    left: 0,
   },
   // Takes up exactly the room the typed words take, without being seen.
   invisible: {
