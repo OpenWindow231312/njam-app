@@ -90,9 +90,10 @@ without reading every label.
 
 **Also for:**
 
-- People with diet or faith rules: halal, kosher, vegetarian, vegan, no
+- People with diet or faith rules: halaal, kosher, vegetarian, vegan, no
   caffeine.
-- People with health limits: carbs for diabetes, sodium for blood pressure.
+- People with health limits: sugar or carbs for diabetes, sodium for blood
+  pressure.
 
 ## What it does
 
@@ -100,11 +101,20 @@ without reading every label.
 
 - **Sign up or log in** with email and password. A splash screen opens the
   app with the Njam mark taking a bite.
-- **Onboarding in two steps.** Pick your allergies and how severe each one
-  is (Avoid, Moderate or Severe), then any diets, ingredients and E-numbers
-  you avoid. A diet such as gluten-free or dairy-free is saved as the
-  allergens it rules out, so the engine checks it with the same aliases.
-  The last screen shows your profile before you start.
+- **Onboarding in four steps, one question each.**
+  1. **Allergies** (required): tap an allergen, then pick how severe it is
+     (Avoid, Moderate or Severe), or say you have none.
+  2. **Diet and faith**: vegetarian, vegan, halaal or kosher. Each one lists
+     what it rules out, all ticked, and you untick what you are fine with.
+     A diet is saved as the ingredients, E-numbers and allergens it rules
+     out, so the engine checks it with the same aliases.
+  3. **Anything else you avoid**: ingredients and E-numbers.
+  4. **Nutrient limits**: a most per 100 g for sugar, sodium, saturated fat,
+     fat or carbs, or a health preset (Low sugar, Low salt, Low fat, Heart
+     health) that sets a few limits in one tap.
+
+  The last screen shows your rules before you start. Tap one to go back to
+  its step.
 - **Nothing is half saved.** Your new rules are written before the old ones
   are removed, so a failed save never leaves you with fewer allergies.
 
@@ -142,7 +152,8 @@ without reading every label.
 
 - **Home** greets you by name, says whose rules it is checking, and shows
   shelves you scroll sideways: Safe for you, Saved by your household and
-  Recently scanned.
+  Recently scanned. Tap "Checking for" to check for one person in the
+  household, or for everyone at once.
 - **Shop by aisle.** Each aisle has its own page of products, every card
   carrying its verdict mark.
 - **Search** finds products by name or brand across every aisle.
@@ -155,7 +166,9 @@ without reading every label.
 ### Profile and household
 
 - **Rules tab.** Tap a rule to change an allergy's level or remove it. "Add a
-  rule" searches allergies, diets, ingredients and E-numbers.
+  rule" searches allergies, diets, ingredients and E-numbers. "Diets and
+  limits" lists your diets and nutrient limits, and opens the onboarding
+  steps again to change them.
 - **Household tab.** Add people with or without a phone (a child, a
   grandparent) and set their rules for them. Invite someone with an
   eight-character code that lasts seven days. The owner decides who may
@@ -165,7 +178,12 @@ without reading every label.
   and privacy choices, turning scan history off, **Download my data**,
   **Delete my account** and **Log out**.
 - **Ask Njam.** An AI assistant that knows your rules and recent scans:
-  ask why something is not safe, for a safer swap, or for a recipe.
+  ask why something is not safe, for a safer swap, or for a recipe. The
+  **+** in the typing bar adds a scanned barcode or a label photo to your
+  question. A question waits three seconds with **Undo** before it is sent,
+  and **Stop** halts an answer on its way. Hold your message to edit or
+  copy it, and ask again under Njam's latest answer. Past conversations are
+  saved under the Njam logo at the top.
 
 ### For admins
 
@@ -181,6 +199,9 @@ imported from [Open Food Facts](https://openfoodfacts.org) with no AI involved.
 
 High-fidelity designs from [Figma](https://www.figma.com/design/SPM3c4yMgs3bW2BVRIoafz/Njam-App?node-id=1-8).
 Each one is built in the app. Taller screens are shown from the top.
+Onboarding was rebuilt after these designs as four one-question steps (see
+[Set up](#set-up)), so the app's onboarding differs from the Onboarding
+design below.
 
 ### Start
 
@@ -322,7 +343,9 @@ can be **Safe** even for a severe allergy, and its verdict does not say our
 team has not checked it. An admin still reviews it before it shows on Home.
 This is one switch in the engine (`TRUST_SHOPPER_LISTS`); turned off, an
 unverified list says it is unchecked and is capped at **Caution** for a severe
-allergy. A profile with no rules is **Safe** for every product, because
+allergy. A nutrient limit is checked per 100 g (or 100 ml); a product
+over it is **Not safe**, and a label with nutrition per serving only, or
+none, is **Caution**. A profile with no rules is **Safe** for every product, because
 nothing on a label can go against it. When in doubt, the engine moves toward
 Caution, never toward Safe.
 
@@ -518,11 +541,12 @@ where id = (select id from auth.users where email = 'you@example.com');
 
 ## How to use it
 
-1. **Sign up or log in.** New accounts go through onboarding: choose your
-   allergies and how severe each one is, then diets, faith rules,
-   ingredients and E-numbers you avoid.
-2. **Home** shows aisles, saved products and what is safe for you. The Njam
-   mark at the top right opens **Ask Njam**.
+1. **Sign up or log in.** New accounts go through four onboarding steps:
+   your allergies and how severe each one is, any diet or faith rules, other
+   ingredients and E-numbers you avoid, and nutrient limits.
+2. **Home** shows aisles, saved products and what is safe for you. Tap
+   **Checking for** to see Home for one person in the household or for
+   everyone. The **Ask Njam** row under the search bar opens the assistant.
 3. **Search** finds products by name, filtered by verdict, aisle or store.
 4. **Scan** (the centre tab) opens the camera. Fit the barcode in the
    frame and press the round button. If it will not read, type the number.
@@ -533,11 +557,15 @@ where id = (select id from auth.users where email = 'you@example.com');
    nutrition. Below that, you can see who in the household can eat it,
    where to buy it, and safer alternatives.
 6. **History** lists every scan. Tap one to reopen it as it was decided.
-7. **Profile** has three tabs. **Rules** lets you add, edit or remove a
-   rule. **Household** lets you add people, with or without a phone, and
-   invite someone with a code. **Settings** covers your account, and lets
-   you delete your account and data.
-8. **Admin only:** Profile, Settings, **Review queue** lists products added
+7. **Ask Njam** (the pill at the top of Search, History, Verdict and aisle
+   pages, or the row on Home) answers questions about your food. Use **+**
+   to add a barcode or a label photo to your question.
+8. **Profile** has three tabs. **Rules** lets you add, edit or remove a
+   rule, and change your diets and nutrient limits. **Household** lets you
+   add people, with or without a phone, and invite someone with a code.
+   **Settings** covers your account, and lets you delete your account and
+   data.
+9. **Admin only:** Profile, Settings, **Review queue** lists products added
    from label photos. **Add to feed** verifies one, so it shows on Home and
    can become Safe. **Edit** and **Delete** sit on each queue card and under
    every product's verdict. See [Admin controls](#admin-controls).
@@ -576,8 +604,9 @@ where id = (select id from auth.users where email = 'you@example.com');
 npm test
 ```
 
-There are 50 automated tests covering ingredient aliases, alternatives and
-how Open Food Facts records are decided.
+There are 77 automated tests covering ingredient aliases, the rules engine
+(may-contain lines, label read confidence, nutrient limits and diet rules),
+how Open Food Facts records are decided, alternatives and typed barcodes.
 They run with Node's built-in test runner.
 
 [`docs/TESTING.md`](docs/TESTING.md) holds the core flow checklist, the bug
