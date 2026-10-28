@@ -25,6 +25,8 @@ const RULE_GROUPS: { title: string; types: string[] }[] = [
   { title: 'Allergies and diets', types: ['allergen'] },
   { title: 'Ingredients you avoid', types: ['ingredient'] },
   { title: 'E-numbers you avoid', types: ['e_number'] },
+  { title: 'Diets and faith', types: ['diet'] },
+  { title: 'Nutrient limits', types: ['nutrient'] },
 ];
 const GROUPED_TYPES = RULE_GROUPS.flatMap((group) => group.types);
 
@@ -39,6 +41,11 @@ function describeRule(rule: ProfileRule): { title: string; supporting: string } 
   }
   if (rule.type === 'e_number') return { title: rule.target.toUpperCase(), supporting: 'E-number you avoid' };
   if (rule.type === 'ingredient') return { title: rule.target, supporting: 'Ingredient you avoid' };
+  // Saved as "halaal/gelatine", one row per thing the diet rules out.
+  if (rule.type === 'diet') {
+    const diet = rule.target.split('/')[0];
+    return { title: diet.charAt(0).toUpperCase() + diet.slice(1), supporting: 'Diet or faith' };
+  }
   if (rule.threshold !== null) {
     const comparison = rule.operator === 'gte' ? 'at least' : 'at most';
     return { title: rule.target, supporting: `${comparison} ${rule.threshold} ${rule.unit ?? ''}`.trim() };
@@ -52,6 +59,14 @@ function groupRules(rules: ProfileRule[]): { title: string; rules: ProfileRule[]
     title: group.title,
     rules: rules.filter((rule) => group.types.includes(rule.type)),
   }));
+  // A diet has a row for each thing it rules out; list the diet once.
+  for (const group of groups) {
+    group.rules = group.rules.filter(
+      (rule, index) =>
+        rule.type !== 'diet' ||
+        group.rules.findIndex((other) => describeRule(other).title === describeRule(rule).title) === index,
+    );
+  }
   groups.push({ title: 'Other rules', rules: rules.filter((rule) => !GROUPED_TYPES.includes(rule.type)) });
   return groups.filter((group) => group.rules.length > 0);
 }
