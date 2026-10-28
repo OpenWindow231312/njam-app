@@ -1,32 +1,35 @@
 /**
- * Onboarding: set the rules every scan is checked against, in two steps,
- * then a screen that shows what was saved.
+ * Onboarding: set the rules every scan is checked against, one question per
+ * page, then a screen that shows what was saved.
  *
- *   1. Allergies and diets. Required: you either pick some or tap "None of
- *      these". Each allergy gets a level: Avoid, Moderate or Severe.
- *   2. Anything else you avoid: ingredients and E-numbers. Optional.
- *   Ready: your rules as a list, and the way into the app.
+ *   1. Allergies. Required: you either pick some or tap "I have no
+ *      allergies". Tapping an allergen adds it as Severe and opens a sheet
+ *      with the three levels; tapping a level closes it.
+ *   2. Diet and faith. Optional. Tapping one (halaal, vegan) opens a sheet
+ *      listing what it rules out, all ticked, and you untick what you are
+ *      fine with. Saved as ingredient, E-number and allergen rules the
+ *      engine already checks.
+ *   3. Anything else you avoid: ingredients and E-numbers. Optional.
+ *   4. Nutrient limits per 100 g, with health presets. Optional.
+ *   Ready: your rules as chips, and the way into the app.
  *
- * A diet here is a shortcut for the allergens it rules out: dairy-free is
- * "avoid milk", gluten-free is "avoid gluten". It is saved as those allergen
- * rules, which the verdict engine already checks, aliases and all. Diets the
- * engine cannot check yet (vegetarian, halal) are left out on purpose: a rule
- * it cannot check would turn every scan into Caution.
+ * Every chosen thing becomes a forest chip, and tapping it opens the same
+ * sheet again to change or remove it.
  *
  * The same screen edits your rules later from Profile ("edit" mode, no ready
- * screen). Nothing is saved until the end of step 2, so backing out part way
+ * screen). Nothing is saved until the end of step 4, so backing out part way
  * changes nothing.
  */
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
 import {
   Button,
-  IconButton,
+  ListGroup,
+  ListRow,
   LoadingMark,
-  OptionButton,
   RuleChip,
   SectionHeader,
   Snackbar,
@@ -36,30 +39,33 @@ import {
 } from '@/components/design-system';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { warmCatalogue } from '@/features/home/use-catalogue';
+import { DietSheet } from '@/features/onboarding/DietSheet';
+import { LevelSheet } from '@/features/onboarding/LevelSheet';
+import { LimitSheet } from '@/features/onboarding/LimitSheet';
 import {
+  dietItems,
   loadMyRules,
   saveMyRules,
-  toRows,
   type AllergySeverity,
   type MyRules,
 } from '@/features/onboarding/my-rules';
 import {
   ALLERGENS,
-  DIETS,
+  DIET_PRESETS,
   E_NUMBER_PATTERN,
-  SEVERITY_CHOICES,
+  NUTRIENT_OPTIONS,
+  NUTRIENT_PRESETS,
   SUGGESTED_E_NUMBERS,
   SUGGESTED_INGREDIENTS,
 } from '@/features/onboarding/rule-options';
-import { RuleGroups } from '@/features/profile/RuleGroups';
 import { allergenWord } from '@/services/verdict';
-import { icon, space, typography } from '@/theme/tokens';
+import { icon, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 type Mode = 'first-run' | 'edit';
-type Step = 1 | 2 | 'ready';
+type Step = 1 | 2 | 3 | 4 | 'ready';
 
-const TOTAL_STEPS = 2;
+const TOTAL_STEPS = 4;
 
 function capitalise(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -80,13 +86,29 @@ function withChosen(suggestions: string[], chosen: string[]): string[] {
   return [...suggestions, ...chosen.filter((item) => !suggestions.includes(item))];
 }
 
-/** A diet is on when every allergen it rules out is already on your list. */
-function dietIsOn(diet: (typeof DIETS)[number], allergies: MyRules['allergies']): boolean {
-  return diet.allergens.every((slug) => slug in allergies);
+/** "milk", "milk and peanuts", "milk, peanuts and soy". */
+function listWords(words: string[]): string {
+  if (words.length <= 1) return words.join('');
+  return `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
+}
+
+/** "Halaal, 5 rules": a diet's chip once it is on your list. */
+function dietChipLabel(label: string, count: number): string {
+  return `${label}, ${count} ${count === 1 ? 'rule' : 'rules'}`;
+}
+
+/** "Max 5 g". */
+function limitWords(limit: number, unit: string): string {
+  return `Max ${limit} ${unit}`;
+}
+
+/** A preset is on when every limit it sets is set to exactly its amount. */
+function presetIsOn(preset: (typeof NUTRIENT_PRESETS)[number], limits: MyRules['limits']): boolean {
+  return Object.entries(preset.limits).every(([target, amount]) => limits[target] === amount);
 }
 
 export function OnboardingScreen({ mode }: { mode: Mode }) {
-  const { colors } = useNjamTheme();
+  const { colors, shadows } = useNjamTheme();
   const { member, finishOnboarding } = useAuth();
 
   const [rules, setRules] = useState<MyRules | null>(null);
@@ -97,7 +119,10 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const [showLevels, setShowLevels] = useState(false);
+  // Which sheet is open, by what it is about: an allergen slug, a diet key or a nutrient.
+  const [levelFor, setLevelFor] = useState<string | null>(null);
+  const [dietFor, setDietFor] = useState<string | null>(null);
+  const [limitFor, setLimitFor] = useState<string | null>(null);
 
   // While you set your rules, the catalogue downloads in the background, so
   // Home has its products ready when you get there. Edit mode comes from
@@ -139,38 +164,71 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
   }
 
   const chosenAllergens = Object.keys(rules.allergies);
+  const severeWords = chosenAllergens.filter((slug) => rules.allergies[slug] === 'severe').map(allergenWord);
+  const cardStyle = [styles.card, { backgroundColor: colors.surfaceRaised }, shadows.ambient];
 
-  function toggleAllergen(slug: string) {
+  /** Tapping an allergen adds it as Severe, the safer guess, and asks its level. */
+  function tapAllergen(slug: string) {
     setRules((current) => {
-      if (!current) return current;
-      const allergies = { ...current.allergies };
-      if (slug in allergies) delete allergies[slug];
-      // A new allergy starts as severe: the safer guess until you say otherwise.
-      else allergies[slug] = 'severe';
-      return { ...current, allergies };
+      if (!current || slug in current.allergies) return current;
+      return { ...current, allergies: { ...current.allergies, [slug]: 'severe' } };
     });
-  }
-
-  /**
-   * Turning a diet on adds the allergens it rules out, as "Avoid", and keeps
-   * the level of any you had already picked. Turning it off removes them, and
-   * their chips above switch off too, so the change is always visible.
-   */
-  function toggleDiet(diet: (typeof DIETS)[number]) {
-    setRules((current) => {
-      if (!current) return current;
-      const allergies = { ...current.allergies };
-      if (dietIsOn(diet, allergies)) {
-        for (const slug of diet.allergens) delete allergies[slug];
-      } else {
-        for (const slug of diet.allergens) if (!(slug in allergies)) allergies[slug] = null;
-      }
-      return { ...current, allergies };
-    });
+    setLevelFor(slug);
   }
 
   function setSeverity(slug: string, severity: AllergySeverity) {
     setRules((current) => current && { ...current, allergies: { ...current.allergies, [slug]: severity } });
+    setLevelFor(null);
+  }
+
+  function removeAllergen(slug: string) {
+    setRules((current) => {
+      if (!current) return current;
+      const allergies = { ...current.allergies };
+      delete allergies[slug];
+      return { ...current, allergies };
+    });
+    setLevelFor(null);
+  }
+
+  function saveDiet(key: string, ticked: string[]) {
+    setRules((current) => current && { ...current, diets: { ...current.diets, [key]: ticked } });
+    setDietFor(null);
+  }
+
+  function removeDiet(key: string) {
+    setRules((current) => {
+      if (!current) return current;
+      const diets = { ...current.diets };
+      delete diets[key];
+      return { ...current, diets };
+    });
+    setDietFor(null);
+  }
+
+  function setLimit(target: string, limit: number | null) {
+    setRules((current) => {
+      if (!current) return current;
+      const limits = { ...current.limits };
+      if (limit === null) delete limits[target];
+      else limits[target] = limit;
+      return { ...current, limits };
+    });
+    setLimitFor(null);
+  }
+
+  /** A preset sets its limits, or takes them away again if it is already on. */
+  function togglePreset(preset: (typeof NUTRIENT_PRESETS)[number]) {
+    setRules((current) => {
+      if (!current) return current;
+      const limits = { ...current.limits };
+      const on = presetIsOn(preset, limits);
+      for (const [target, amount] of Object.entries(preset.limits)) {
+        if (on) delete limits[target];
+        else limits[target] = amount;
+      }
+      return { ...current, limits };
+    });
   }
 
   function toggleIngredient(name: string) {
@@ -201,8 +259,8 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
 
   function goBack() {
     // From the ready screen your rules are already saved; saving again replaces them.
-    if (step === 'ready') setStep(2);
-    else if (step === 2) setStep(1);
+    if (step === 'ready') setStep(4);
+    else if (step > 1) setStep((step - 1) as Step);
     else router.back();
   }
 
@@ -236,6 +294,43 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
   // There is nothing behind the first step of first-run to go back to.
   const showBack = step !== 1 || mode === 'edit';
 
+  function footer() {
+    if (step === 'ready') {
+      return (
+        <>
+          <Button label="Go to Home" loading={busy} loadingLabel="Opening Njam" onPress={goHome} size="large" fullWidth />
+          {/* Your rules are saved, so changing them now replaces them. */}
+          <Button label="Change my rules" variant="text" onPress={() => setStep(1)} fullWidth />
+        </>
+      );
+    }
+    if (step === 1) {
+      return (
+        <>
+          <Button
+            label="Next: diet and faith"
+            onPress={() => setStep(2)}
+            disabled={chosenAllergens.length === 0}
+            size="large"
+            fullWidth
+          />
+          {chosenAllergens.length === 0 && (
+            <Button label="I have no allergies" variant="text" onPress={() => setStep(2)} fullWidth />
+          )}
+        </>
+      );
+    }
+    if (step === 2) return <Button label="Next: things you avoid" onPress={() => setStep(3)} size="large" fullWidth />;
+    if (step === 3) return <Button label="Next: nutrient limits" onPress={() => setStep(4)} size="large" fullWidth />;
+    return (
+      <Button label="Save my rules" loading={busy} loadingLabel="Saving your rules" onPress={save} size="large" fullWidth />
+    );
+  }
+
+  const openDiet = DIET_PRESETS.find((diet) => diet.key === dietFor) ?? null;
+  const openNutrient = NUTRIENT_OPTIONS.find((option) => option.target === limitFor) ?? null;
+  const chosenDiets = DIET_PRESETS.filter((diet) => diet.key in rules.diets);
+
   return (
     <Screen
       topBar={
@@ -243,128 +338,87 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
           ? { onBack: goBack }
           : { onBack: showBack ? goBack : undefined, middle: <StepProgress step={step} total={TOTAL_STEPS} /> }
       }
-      footer={
-        step === 'ready' ? (
-          <>
-            <Button
-              label="Go to Home"
-              loading={busy}
-              loadingLabel="Opening Njam"
-              onPress={goHome}
-              size="large"
-              fullWidth
-            />
-            {/* Your rules are saved, so changing them now replaces them. */}
-            <Button label="Change my rules" variant="text" onPress={() => setStep(1)} fullWidth />
-          </>
-        ) : undefined
-      }>
-
+      footer={footer()}>
       {step === 1 && (
         <>
           <SectionHeader
-            headline="What can you not eat?"
-            deck="Tap everything that applies. A product that contains it comes back Not safe."
+            headline="Tap what you react to"
+            deck="Tap each one. We ask how serious it is next."
             step={1}
             totalSteps={TOTAL_STEPS}
-            tag="Allergies and diets"
+            tag="Allergies"
           />
-
-          <View style={styles.block}>
-            <Text style={[typography.overline, { color: colors.inkMuted }]}>Allergies</Text>
-            <View style={styles.chips}>
-              {ALLERGENS.map((slug) => (
-                <RuleChip
-                  key={slug}
-                  label={capitalise(allergenWord(slug))}
-                  selected={slug in rules.allergies}
-                  severity={slug in rules.allergies ? chipSeverity(rules.allergies[slug]) : undefined}
-                  onToggle={() => toggleAllergen(slug)}
-                />
-              ))}
-            </View>
+          <View style={styles.chips}>
+            {ALLERGENS.map((slug) => (
+              <RuleChip
+                key={slug}
+                label={capitalise(allergenWord(slug))}
+                selected={slug in rules.allergies}
+                severity={slug in rules.allergies ? chipSeverity(rules.allergies[slug]) : undefined}
+                onToggle={() => tapAllergen(slug)}
+              />
+            ))}
           </View>
-
-          {/* Straight under the chips, so a tick shows its level choice where
-              you are looking. At the bottom of the page it was easy to miss. */}
           {chosenAllergens.length > 0 && (
-            <View style={styles.block}>
-              <View style={styles.headingRow}>
-                <View style={styles.heading}>
-                  <SectionHeader variant="simple" headline="How strict is each one?" />
-                </View>
-                <IconButton
-                  icon="info"
-                  accessibilityLabel={showLevels ? 'Hide what each level means' : 'Show what each level means'}
-                  selected={showLevels}
-                  onPress={() => setShowLevels((shown) => !shown)}
-                />
-              </View>
-              <Text style={[typography.body, { color: colors.inkMuted }]}>
-                Every level blocks the allergen. The level tells your household how careful to be.
+            <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
+              Tap a chosen one to change its level or remove it.
+            </Text>
+          )}
+          {severeWords.length > 0 && (
+            <View style={cardStyle}>
+              <Text style={[typography.title, { color: colors.ink }]}>What Severe changes</Text>
+              <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
+                You marked {listWords(severeWords)} as severe, so a product whose label says it may contain them is
+                Not safe for you, because even a trace counts.
               </Text>
-              {showLevels && (
-                <View style={styles.levels}>
-                  {SEVERITY_CHOICES.map((choice) => (
-                    <View key={choice.label}>
-                      <Text style={[typography.title, { color: colors.ink }]}>{choice.label}</Text>
-                      <Text style={[typography.body, { color: colors.inkMuted }]}>{choice.meaning}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-              {chosenAllergens.map((slug) => (
-                <View key={slug} style={styles.severityRow}>
-                  <Text style={[typography.title, { color: colors.ink }]}>{capitalise(allergenWord(slug))}</Text>
-                  <View accessibilityRole="radiogroup" style={styles.options}>
-                    {SEVERITY_CHOICES.map((choice) => (
-                      <OptionButton
-                        key={choice.label}
-                        label={choice.label}
-                        selected={rules.allergies[slug] === choice.value}
-                        onPress={() => setSeverity(slug, choice.value)}
-                      />
-                    ))}
-                  </View>
-                </View>
-              ))}
             </View>
           )}
-
-          <View style={styles.block}>
-            <Text style={[typography.overline, { color: colors.inkMuted }]}>Diets</Text>
-            <View style={styles.chips}>
-              {DIETS.map((diet) => (
-                <RuleChip
-                  key={diet.label}
-                  label={diet.label}
-                  selected={dietIsOn(diet, rules.allergies)}
-                  onToggle={() => toggleDiet(diet)}
-                />
-              ))}
-            </View>
-            <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
-              A diet marks what it rules out, so dairy-free adds milk to your list.
-            </Text>
-          </View>
-
-          <Button
-            label={chosenAllergens.length > 0 ? 'Next: anything else you avoid' : 'None of these'}
-            onPress={() => setStep(2)}
-            size="large"
-            fullWidth
-          />
         </>
       )}
 
       {step === 2 && (
         <>
           <SectionHeader
-            headline="Is there anything else you avoid?"
-            deck="Pick from the lists or type your own. We flag any product whose label lists it."
+            headline="Do you follow a diet or faith?"
+            deck="Optional. Tap one to see what it rules out."
             step={2}
             totalSteps={TOTAL_STEPS}
-            tag="Ingredients and additives"
+            tag="Diet and faith"
+          />
+          <View style={styles.chips}>
+            {DIET_PRESETS.map((diet) => (
+              <RuleChip
+                key={diet.key}
+                label={diet.key in rules.diets ? dietChipLabel(diet.label, rules.diets[diet.key].length) : diet.label}
+                selected={diet.key in rules.diets}
+                onToggle={() => setDietFor(diet.key)}
+              />
+            ))}
+          </View>
+          {chosenDiets.map((diet) => (
+            <View key={diet.key} style={cardStyle}>
+              <Text style={[typography.title, { color: colors.ink }]}>{diet.label} rules out</Text>
+              <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
+                {capitalise(listWords(dietItems(rules, diet.key).map((item) => item.label.toLowerCase())))}.
+              </Text>
+            </View>
+          ))}
+          {chosenDiets.length > 0 && (
+            <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
+              We check the ingredient list, not a certificate. Tap a diet above to change what it covers.
+            </Text>
+          )}
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <SectionHeader
+            headline="Anything else you avoid?"
+            deck="Optional. Pick from the lists or type your own. We flag any product whose label lists it."
+            step={3}
+            totalSteps={TOTAL_STEPS}
+            tag="Things you avoid"
           />
 
           <View style={styles.block}>
@@ -383,7 +437,7 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
               label="Add an ingredient"
               value={typedIngredient}
               onChangeText={setTypedIngredient}
-              placeholder="Gelatine"
+              placeholder="Palm kernel oil"
               helper="Spell it the way a label would."
               trailingIcon="add"
               trailingLabel="Add this ingredient"
@@ -424,34 +478,130 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
               onTrailingPress={addTypedENumber}
             />
           </View>
-
-          <Button
-            label="Save my rules"
-            loading={busy}
-            loadingLabel="Saving your rules"
-            onPress={save}
-            size="large"
-            fullWidth
-          />
         </>
       )}
 
-      {/* One View with no gap of its own: the SectionHeader already leaves
-          space under itself, and Screen's gap on top of that left a hole
-          between the deck and your rules (as on Home). */}
-      {step === 'ready' && (
-        <View>
+      {step === 4 && (
+        <>
           <SectionHeader
-            headline="Your profile is ready"
+            headline="Watching any nutrients?"
+            deck="Optional. Set a limit per 100 g and we flag anything over it."
+            step={4}
+            totalSteps={TOTAL_STEPS}
+            tag="Nutrient limits"
+          />
+          <View style={styles.block}>
+            <Text style={[typography.overline, { color: colors.inkMuted }]}>Start from a preset</Text>
+            <View style={styles.chips}>
+              {NUTRIENT_PRESETS.map((preset) => (
+                <RuleChip
+                  key={preset.label}
+                  label={preset.label}
+                  selected={presetIsOn(preset, rules.limits)}
+                  onToggle={() => togglePreset(preset)}
+                />
+              ))}
+            </View>
+          </View>
+          <View style={styles.block}>
+            <Text style={[typography.overline, { color: colors.inkMuted }]}>Or set your own</Text>
+            <ListGroup>
+              {NUTRIENT_OPTIONS.map((option) => (
+                <ListRow
+                  key={option.target}
+                  title={option.label}
+                  supporting={option.hint}
+                  value={
+                    rules.limits[option.target] !== undefined
+                      ? limitWords(rules.limits[option.target], option.unit)
+                      : 'Not set'
+                  }
+                  trailing="chevron"
+                  onPress={() => setLimitFor(option.target)}
+                />
+              ))}
+            </ListGroup>
+            <Text style={[typography.bodyS, { color: colors.inkMuted }]}>
+              Presets are a starting point, not medical advice.
+            </Text>
+          </View>
+        </>
+      )}
+
+      {step === 'ready' && (
+        <>
+          <SectionHeader
+            headline="Your rules are ready"
             deck={
-              toRows(rules).length > 0
-                ? 'Every scan now checks these rules. You can change any of them on Profile.'
+              chosenAllergens.length + chosenDiets.length + rules.ingredients.length + rules.eNumbers.length > 0 ||
+              Object.keys(rules.limits).length > 0
+                ? 'Every scan is checked against these. Change them any time on Profile.'
                 : 'You have no rules yet, so a scan has nothing to check. You can add rules on Profile.'
             }
+            tag="All set"
           />
-          <RuleGroups rules={toRows(rules)} />
-        </View>
+          <ReadyGroup title="Allergies">
+            {chosenAllergens.map((slug) => (
+              <RuleChip
+                key={slug}
+                label={capitalise(allergenWord(slug))}
+                selected
+                severity={chipSeverity(rules.allergies[slug])}
+                onToggle={() => setStep(1)}
+              />
+            ))}
+          </ReadyGroup>
+          <ReadyGroup title="Diet and faith">
+            {chosenDiets.map((diet) => (
+              <RuleChip
+                key={diet.key}
+                label={dietChipLabel(diet.label, rules.diets[diet.key].length)}
+                selected
+                onToggle={() => setStep(2)}
+              />
+            ))}
+          </ReadyGroup>
+          <ReadyGroup title="Things you avoid">
+            {[...rules.ingredients.map(capitalise), ...rules.eNumbers].map((label) => (
+              <RuleChip key={label} label={label} selected onToggle={() => setStep(3)} />
+            ))}
+          </ReadyGroup>
+          <ReadyGroup title="Nutrient limits">
+            {NUTRIENT_OPTIONS.filter((option) => rules.limits[option.target] !== undefined).map((option) => (
+              <RuleChip
+                key={option.target}
+                label={`${option.label}, ${limitWords(rules.limits[option.target], option.unit).toLowerCase()}`}
+                selected
+                onToggle={() => setStep(4)}
+              />
+            ))}
+          </ReadyGroup>
+        </>
       )}
+
+      <LevelSheet
+        allergen={levelFor ? allergenWord(levelFor) : null}
+        severity={levelFor ? (rules.allergies[levelFor] ?? null) : null}
+        onChoose={(severity) => levelFor && setSeverity(levelFor, severity)}
+        onRemove={() => levelFor && removeAllergen(levelFor)}
+        onClose={() => setLevelFor(null)}
+      />
+      <DietSheet
+        key={`diet-${dietFor}`}
+        diet={openDiet}
+        ticked={dietFor ? (rules.diets[dietFor] ?? null) : null}
+        onSave={(ticked) => dietFor && saveDiet(dietFor, ticked)}
+        onRemove={() => dietFor && removeDiet(dietFor)}
+        onClose={() => setDietFor(null)}
+      />
+      <LimitSheet
+        key={`limit-${limitFor}`}
+        nutrient={openNutrient}
+        limit={limitFor ? rules.limits[limitFor] : undefined}
+        onSave={(limit) => limitFor && setLimit(limitFor, limit)}
+        onRemove={() => limitFor && setLimit(limitFor, null)}
+        onClose={() => setLimitFor(null)}
+      />
 
       {failure && (
         <Snackbar
@@ -463,6 +613,20 @@ export function OnboardingScreen({ mode }: { mode: Mode }) {
         />
       )}
     </Screen>
+  );
+}
+
+/** One group on the ready screen: its name over its chips. Left out when it has none. Tapping a chip goes back to its step. */
+function ReadyGroup({ title, children }: { title: string; children: ReactNode[] }) {
+  const { colors } = useNjamTheme();
+  if (children.length === 0) return null;
+  return (
+    <View style={styles.block}>
+      <Text accessibilityRole="header" style={[typography.overline, { color: colors.inkMuted }]}>
+        {title}
+      </Text>
+      <View style={styles.chips}>{children}</View>
+    </View>
   );
 }
 
@@ -481,22 +645,9 @@ const styles = StyleSheet.create({
   block: {
     gap: space.s3,
   },
-  headingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.s2,
-  },
-  heading: {
-    flex: 1,
-  },
-  levels: {
-    gap: space.s3,
-  },
-  severityRow: {
-    gap: space.s2,
-  },
-  options: {
-    flexDirection: 'row',
-    gap: space.s2,
+  card: {
+    gap: space.s1,
+    padding: space.s4,
+    borderRadius: radius.lg,
   },
 });

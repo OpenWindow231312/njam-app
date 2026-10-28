@@ -35,8 +35,12 @@ The rules:
   or `sodium`, with `lte` (a limit) or `gte` (a minimum). A limit in g is
   checked against sodium in mg. No nutrition table, a table that leaves the
   nutrient out, or a unit that cannot be compared (kcal against kJ) is Caution.
-  Only the Verdict screen loads nutrition facts today, so Home and Ask Njam
-  still show a nutrient rule as Caution.
+  Limits are per 100 g (or 100 ml), so a label that gives nutrition per
+  serving only is Caution too. Home and Ask Njam load the nutrition table with
+  the catalogue, so they check limits the same way as the Verdict screen.
+- **A `diet` rule is skipped.** A diet (halaal, vegan) is saved as the
+  ingredient, E-number and allergen rules it stands for, which are checked one
+  by one. The `diet` rows only record what was ticked.
 - **Degrade toward Caution, never toward Safe.** A false Caution is a nuisance; a
   false Safe is a health incident. Zero false Safe verdicts is the project target.
 - **Follow the alias chain** (`ingredients.canonical_id`) before checking a rule,

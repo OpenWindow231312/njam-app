@@ -164,7 +164,8 @@ describe('a diet rule', () => {
     assert.equal(verdict.state, 'unsafe');
   });
 
-  test('alone, it does not count as having rules', () => {
-    assert.equal(decideVerdict(product(), [halaal]).state, 'caution');
+  test('alone, it counts as having no rules', () => {
+    assert.equal(decideVerdict(product(), [halaal]).state, 'safe');
+    assert.equal(decideVerdict(product(), [halaal]).checks.length, 0);
   });
 });

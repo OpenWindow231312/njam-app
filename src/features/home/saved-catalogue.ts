@@ -11,14 +11,15 @@
  * Android's AsyncStorage cannot read back one value much bigger than 2 MB,
  * and the catalogue is bigger than that, so it is saved in parts of
  * PRODUCTS_PER_PART products, one key each, plus a key saying how many parts
- * there are. Change "v1" if CatalogueProduct changes shape, so an old copy
+ * there are. Change "v2" if CatalogueProduct changes shape, so an old copy
  * is never read as the new one.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { CatalogueProduct } from '@/features/verdict/catalogue';
 
-const STORAGE_KEY = 'njam.catalogue.v1';
+// v2 (28 Oct 2026): products carry their nutrition table.
+const STORAGE_KEY = 'njam.catalogue.v2';
 const PART_COUNT_KEY = `${STORAGE_KEY}.parts`;
 
 /** About 250 kB each, well under Android's limit. */

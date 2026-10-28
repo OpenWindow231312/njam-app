@@ -65,6 +65,7 @@ function useCatalogueVerdict(productId: string, rules: ProfileRule[]): Checked {
             fromOpenFoodFacts: product.source === 'open_food_facts',
             ingredients: product.ingredients,
             mayContain: product.mayContain,
+            nutrition: product.nutrition,
           },
           rules,
         );
