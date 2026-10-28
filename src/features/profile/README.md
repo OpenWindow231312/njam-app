@@ -21,9 +21,9 @@ your name and role, then three tabs on a SegmentedControl.
   asks "Remove gelatin?" in the same sheet before it saves; it is the primary
   button when it is the only action (ingredients, E-numbers) and a text button
   under Save on an allergy. Saving uses
-  `saveMyRules`, the same save as onboarding. Nutrient limits and health
-  presets show as "Coming soon": the engine cannot check them yet, and a rule
-  it cannot check would turn every scan into Caution. The same tab edits the
+  `saveMyRules`, the same save as onboarding. "Diets and limits" lists your
+  diets and nutrient limits; on your own profile, tapping either opens the
+  onboarding steps again (`edit-rules`) to change them. The same tab edits the
   rules of someone without a phone (`app/person-rules.tsx`).
 - **Household**: see `src/features/household`.
 - **Settings** (`SettingsTab`): scanning, notifications, privacy and display,
