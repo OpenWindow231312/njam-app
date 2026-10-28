@@ -26,6 +26,7 @@ export { DropdownChip } from './DropdownChip';
 export { EmptyState } from './EmptyState';
 export { EVERYONE, HouseholdBar, type HouseholdMember } from './HouseholdBar';
 export { MemberVerdict } from './MemberVerdict';
+export { MenuPopover, type MenuAnchor, type MenuItem } from './MenuPopover';
 export { AiAvatar, NjamMark } from './NjamMark';
 export { PhotoStepCard } from './PhotoStepCard';
 export { CategoryBubble } from './CategoryBubble';

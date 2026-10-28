@@ -47,6 +47,8 @@ ICONS = sorted({
     'grid_view', 'local_drink', 'soup_kitchen', 'tapas',
     # The Frozen food and Baby food aisles (28 Oct 2026).
     'ac_unit', 'child_care',
+    # The Ask Njam chat: Stop, Copy, Ask again, Undo and Choose a photo (28 Oct 2026).
+    'content_copy', 'photo_library', 'refresh', 'stop', 'undo',
 })
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

@@ -18,7 +18,7 @@ Built so far (v1.5, 30 Sep 2026, from the "Njam UI v1.4" canvas):
 | Stores | `StoreLogo` (a shop's square logo filling a round badge, storefront icon until one is uploaded) |
 | Scanner | `ScanFrame` (close, type the barcode, torch, brackets, hint, scan line), `ShutterButton` (ready, busy), `CameraMessage` (the one message card on the camera) |
 | Structure | `SectionHeader` (full, simple, shelf), `ListGroup` + `ListRow`, `StepProgress`, `TabBar`, `TopBar` (27 Oct 2026: pinned, solid, back button always in one place; a line and a small title appear once you scroll), `FrostedStrip` (v1.9: the frosted fade behind the status bar and the TabBar) |
-| Feedback | `Snackbar`, `EmptyState`, `ConfirmDialog`, `BottomSheet`, `LoadingMark` |
+| Feedback | `Snackbar`, `EmptyState`, `ConfirmDialog`, `BottomSheet`, `MenuPopover`, `LoadingMark` |
 | AI | `NjamMark`, `AiAvatar`, `ChatBubble`, `ChatComposer` (with optional ghost text) |
 
 `ProductGridCard` (13 Oct 2026, Home; option E on 26 Oct 2026) is the one
@@ -41,9 +41,19 @@ canvas did not draw yet.
 
 `ChatComposer` (12 Oct 2026, Ask Njam) can show ghost text: pass `ghost` and
 `onChangeText`, and the likely rest of the message is drawn after what was typed
-in `inkSubtle`, with a "Use the suggestion" button beside send. It is a Text
-overlay behind a transparent TextInput, and hides itself when the two would
-not fit on one line. Without those props the composer behaves as before.
+in `inkSubtle`. Swipe right on the bar to take it. It is a Text overlay behind
+a transparent TextInput, and hides itself when the two would not fit on one line.
+
+Since 28 Oct 2026 the composer works like Claude's: one row that grows to six
+lines and then scrolls, radius xl, send on the bottom line. Pass `onStop` and
+send turns into Stop while `busy`; pass `editing` and it shows "Editing your
+question" with a tick to save. `ChatBubble` is radius xl all round, can fold
+after `foldAfter` lines behind "Show all", can be `faded`, and reports where it
+is when held (`onLongPress`).
+
+`MenuPopover` (28 Oct 2026) is a small pop-up menu under what you tapped or
+held: white, radius lg, `shadow.menu`, 48-tall rows of icon and label. No
+scrim; a tap outside closes it.
 
 Every one of them is on the preview screen (`src/app/explore.tsx`).
 
