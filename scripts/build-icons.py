@@ -45,6 +45,8 @@ ICONS = sorted({
     # The aisle bubbles on Home and Search (13 Oct 2026).
     'bakery_dining', 'breakfast_dining', 'category', 'cookie', 'dinner_dining', 'egg', 'grain',
     'grid_view', 'local_drink', 'soup_kitchen', 'tapas',
+    # The Frozen food and Baby food aisles (28 Oct 2026).
+    'ac_unit', 'child_care',
 })
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

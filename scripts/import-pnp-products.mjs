@@ -4,8 +4,9 @@
  *
  *   node scripts/import-pnp-products.mjs <existing-barcodes.txt> <out-dir>
  *
- * existing-barcodes.txt holds one "barcode,source" per line: the catalogue
- * as it is now, so a product we already have is never added twice.
+ * existing-barcodes.txt holds one "barcode,source" or "barcode,source,image_url"
+ * per line: the catalogue as it is now, so a product we already have is never
+ * added twice, and a pack shot swapped in by an earlier run is not redone.
  *
  * It writes to <out-dir>:
  *   products.json      what was read and mapped, for checking by hand
@@ -39,25 +40,29 @@ const PHOTO_BASE = 'https://tvbicevfvcvnkgcutrhv.supabase.co/storage/v1/object/p
 
 /** Pick n Pay product codes, by our aisle (categories.slug). */
 const NEW_PRODUCTS = {
+  'tins-jars': [
+    372642, 247089, // vegetables: Koo creamstyle sweetcorn, Koo mixed vegetables
+    209277, 106751, // beans: Rhodes butter beans, Koo chakalaka
+    128151, // Koo peach halves
+    180832, // Lucky Star tuna in oil
+  ],
+  pantry: [
+    1021943, 425204, // soup: Knorr, Royco
+    139407, 438900, // stock: Ina Paarman chicken powder, beef concentrate
+    755708, 872560, // gluten-free pasta: San Remo, Barilla
+  ],
   'sauces-spreads': [
-    103448, 249286, 204792, 138415, // margarine: Stork, Rama, Flora, Blossom
-    1029901, 1033991, 164395, 704699, // jam: All Gold, Rhodes
-    230401, 174911, 238311, // Marmite, Bovril, Nutella
-    152678, 174480, 921871, // mayonnaise: Nola, Crosse & Blackwell, Hellmann's
-    458531, 644929, // tomato sauce: All Gold, Wellington's
+    250981, 195808, 147222, // spices: Robertsons chicken and barbecue, Rajah curry
+    154907, 106689, 960798, 866053, // sauces: Nando's, Steers BBQ, Kikkoman, Mrs Ball's sweet chilli
   ],
+  bakery: [601558, 601557], // gluten-free bread: Fresh Earth
   'dairy-eggs': [
-    1016105, 891243, 940978, 487067, // butter: Clover, PnP, Parmalat, Lurpak
-    596620, 206801, 541732, 786428, // cheese: Lancewood, Parmalat, Clover
-    108282, // Lancewood cream cheese
-    118676, 107829, // eggs: PnP, Humpty Dumpty
-    943004, // Clover double cream yoghurt
+    901002, 877401, // dairy-free cheese: Earth & Co, Fairview
+    939043, 884038, // dairy-free soya yoghurt, lactose-free yoghurt
   ],
-  bakery: [129009, 251231, 398210, 398223, 254517, 249519], // Albany, Sasko, Blue Ribbon
-  'biscuits-rusks': [539126, 539090, 259586, 552313], // crackers
-  cereals: [636145, 100507], // corn flakes: Kellogg's, Bokomo
-  pantry: [370498, 139189, 156565, 917690, 105038], // spaghetti, coffee, rooibos
-  drinks: [233115, 968489], // Clover Krush, Rhodes juice
+  drinks: [982203, 679915], // almond milk: ButtaNutt, Almond Breeze
+  frozen: [533360, 634526, 476961, 701421, 145443], // McCain veg and chips, I&J fish fingers, ice cream, pizza
+  baby: [216079, 235123, 683337, 965960, 910657], // Purity jars and pouch, Cerelac, Hey Baby puffs
 };
 
 /**
@@ -69,14 +74,45 @@ const WRONG_NUTRITION = {
   '6001299031076': 'Clover butter: 3.4 g saturated fat of 81 g fat, and 10 g fibre',
 };
 
+/**
+ * Ingredient lists typed wrongly on the page, corrected by reading them:
+ * a missing comma, a list written as a sentence, a bracket left open.
+ */
+const LABEL_FIXES = {
+  // "Lemon Puree (4%) Vegetable Oil": the comma after (4%) is missing.
+  '6003770000168':
+    "Water, Vinegar, Onion Puree (11%), Salt, Lemon Puree (4%), Vegetable Oil (Sunflower Seed), Spices (Cayenne Pepper, African Bird's Eye Chilli, Paprika), Serrano Chilli, Garlic Puree (1%), Stabilisers (Xanthan Gum, Propylene Glycol Alginate), Ascorbic Acid, Rosemary Extract",
+  // McCain Garden Mix is written as one sentence joined by "&" and "and".
+  '6009650905158': 'Carrot Roundels, Cut Green Beans, Cauliflower Cuts, Broccoli Cuts, Marrow Roundels',
+  // Cerelac: "Probiotic 106 CFU/g ... culture)" closes a bracket it never opened.
+  '6009188007959':
+    'Wheat Flour (gluten), Skimmed Milk Powder (30%), Brown Sugar, Vegetable Oil (Palm Fruit, Rapeseed, Coconut, Sunflower Seed, Ascorbyl Palmitate), Flavouring, Calcium Carbonate, Sodium Phosphate, Vitamins (C, E, Niacin, Pantothenic Acid, B1, A, B2, B6, Folic Acid, D3, B12), Probiotic (Bifidobacterium lactis culture), Ferrous Fumarate, Zinc Sulphate',
+};
+
+/**
+ * Barcodes where Pick n Pay's photo shows a different product from our
+ * record, so the barcode match cannot be trusted. Their photo is kept.
+ */
+const WRONG_PHOTOS = {
+  '6007359002727': 'ours is Clover Ma Milk Alternative, Pick n Pay shows Good Hope soy milk',
+  '6009510802542': 'ours is Doritos Sweet Chilli Pepper, Pick n Pay shows Simba Sweet Chilli And Pepper',
+  '6009617221734': 'ours is plain chunky cottage cheese, Pick n Pay shows the chives one',
+};
+
+/** Brands Pick n Pay files under a range name ("ITAL" for Dr Oetker Ital Pizza). */
+const BRAND_FIXES = {
+  '6001428000317': 'Dr Oetker',
+};
+
 /** Searches whose results are matched against barcodes we already have. */
 const PHOTO_SEARCHES = [
-  'peanut butter', 'milk', 'long life milk', 'bread', 'butter', 'margarine', 'jam', 'cheese',
-  'yoghurt', 'eggs', 'crackers', 'biscuits', 'rusks', 'cereal', 'oats', 'muesli', 'corn flakes',
-  'fruit juice', 'cold drink', 'iced tea', 'water', 'tea', 'coffee', 'rice', 'pasta', 'maize meal',
-  'flour', 'sugar', 'cooking oil', 'tomato sauce', 'mayonnaise', 'chutney', 'baked beans',
-  'pilchards', 'tuna', 'chips', 'chocolate', 'sweets', 'popcorn', 'nuts', 'honey', 'spread',
-  'custard', 'cream', 'noodles', 'soup', 'stock', 'spices', 'rice cakes', 'peanuts',
+  'sweetcorn', 'beans', 'chakalaka', 'tinned fruit', 'tinned vegetables', 'chickpeas',
+  'tomato paste', 'curry powder', 'spice', 'herbs', 'salt', 'soy sauce', 'peri peri',
+  'barbecue sauce', 'sweet chilli sauce', 'mustard', 'relish', 'gluten free', 'dairy free',
+  'lactose free', 'almond milk', 'oat milk', 'soya milk', 'frozen vegetables', 'frozen chips',
+  'fish fingers', 'ice cream', 'pizza', 'baby food', 'baby cereal', 'baby snacks',
+  'energy drink', 'sparkling water', 'beer', 'wine', 'crisps', 'chocolate bar', 'sweets',
+  'biltong', 'protein bar', 'wraps', 'muffins', 'granola', 'pasta', 'noodles', 'cream cheese',
 ];
 
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -162,13 +198,14 @@ const TRAILING_E_NUMBER = /\s+\(?e\s?(\d{3,4}[a-z]{0,3})\)?$/i;
 /** Amounts and notes that are not ingredients: "56%", "Minimum 35%", "Irradiated". */
 const NOT_AN_INGREDIENT = [
   /^(min(imum)?\.?\s*)?[\d.,]+\s*%(\s*min(imum)?\.?)?$/,
-  /^(irradiated|non-iodated|genetically modified|protein source|vegetable origin|non-animal( origin)?)$/,
+  /^(irradiated|radiated|radurised|non-[il]odated|genetically modified|protein source|vegetable origin|non-animal( origin)?)$/,
+  /^(in variable proportions?|sustainably grown|unhydrogenated)$/,
   /^(made )?(from )?reconstituted (from )?concentrates?( with water)?$/,
 ];
 
 function cleanName(raw) {
   return raw
-    .replace(/[*_]/g, '')
+    .replace(/[*_†‡]/g, '')
     .replace(/[’‘]/g, "'")
     .replace(/\b(contains|as an additive)\b/gi, '')
     .replace(/\s+/g, ' ')
@@ -227,7 +264,7 @@ const ALLERGEN_WORDS = [
   { slug: 'egg', pattern: /\begg/i },
   { slug: 'fish', pattern: /\bfish/i },
   { slug: 'crustacean-mollusc', pattern: /crustacean|shellfish|mollus/i },
-  { slug: 'peanut', pattern: /peanut/i },
+  { slug: 'peanut', pattern: /peanut|groundnut/i },
   { slug: 'soy', pattern: /\bsoy/i },
   { slug: 'tree-nut', pattern: /tree ?nut|hazelnut|almond|cashew|macadamia|pecan|walnut|pistachio/i },
   { slug: 'gluten', pattern: /gluten|wheat|barley|\brye\b|\boats?\b/i },
@@ -249,11 +286,27 @@ function slugsIn(text) {
  * everything before is contained.
  */
 function allergensFrom(text) {
-  const line = text ?? '';
+  // "Free from peanuts, milk, gluten" and "Shell fish free" name what is
+  // not there, so those parts are dropped before reading the rest.
+  const line = (text ?? '')
+    .split(/[.;]/)
+    .filter((part) => !/\bfree\b/i.test(part))
+    .join('. ');
   const traceAt = line.search(/may contain|traces?|facility|factory/i);
   const contained = traceAt === -1 ? line : line.slice(0, traceAt);
   const traces = traceAt === -1 ? '' : line.slice(traceAt);
   return { contains: slugsIn(contained), mayContain: slugsIn(traces) };
+}
+
+/**
+ * Allergens named in the ingredient list itself. Some packs list "Egg
+ * Powder" but leave egg off the allergen line, and our ingredient rows for
+ * names like "egg powder" or "casein" carry no allergen, so without this the
+ * engine could miss it. Plant milks ("Soya Milk", "Almond Milk") are not
+ * cow's milk; their soy or nut is still caught by its own word.
+ */
+function allergensInList(label) {
+  return slugsIn(label.replace(/\b(soya?|almond|oat|rice|coconut|cashew|nut|plant[- ]based)\s+milk\b/gi, ''));
 }
 
 // ---------------------------------------------------------------------------
@@ -346,11 +399,17 @@ function mapProduct(product, aisle) {
   if (!barcode || !/^\d{8,14}$/.test(barcode)) return { skipped: 'no barcode' };
   if (!fields.Ingredients) return { skipped: 'no ingredient list' };
 
-  // "Citric Acid (E330)Colourant": a comma the label left out.
-  const label = fields.Ingredients.replace(/\.$/, '').replace(/\)(?=[A-Za-z])/g, '), ');
+  const label = (LABEL_FIXES[barcode] ?? fields.Ingredients)
+    // A footnote after the list: "... Marjoram. †Sustainably grown."
+    .replace(/\.\s*[*†‡][^,]*$/, '')
+    .replace(/\.$/, '')
+    // "Citric Acid (E330)Colourant": a comma the label left out.
+    .replace(/\)(?=[A-Za-z])/g, '), ');
   const listed = splitTopLevel(label).flatMap(ingredientsFrom);
   const allergenLine = [fields.Allergens, fields['Allergen Warnings']].filter(Boolean).join('. ');
-  const { contains, mayContain } = allergensFrom(allergenLine);
+  const fromLine = allergensFrom(allergenLine);
+  const contains = [...new Set([...fromLine.contains, ...allergensInList(label)])];
+  const mayContain = fromLine.mayContain;
   const declared = contains.map((slug) => ({ name: `${DECLARED_NAME[slug]} (declared allergen)`, allergen: slug, eNumber: null }));
   const pack = packFrom(product.name.trim());
 
@@ -362,7 +421,7 @@ function mapProduct(product, aisle) {
     args: {
       p_barcode: barcode,
       p_name: pack.name,
-      p_brand: brandFrom(product.brand, pack.name),
+      p_brand: BRAND_FIXES[barcode] ?? brandFrom(product.brand, pack.name),
       p_image_url: `${PHOTO_BASE}${barcode}.jpg`,
       p_serving_size: pack.size,
       p_serving_unit: pack.unit,
@@ -408,14 +467,19 @@ async function savePhoto(url, path) {
 async function main() {
   const [existingPath, outDir] = process.argv.slice(2);
   if (!existingPath || !outDir) throw new Error('Usage: node scripts/import-pnp-products.mjs <existing-barcodes.txt> <out-dir>');
-  const existing = new Map(
-    (await readFile(existingPath, 'utf8')).split('\n').filter(Boolean).map((line) => line.trim().split(',')),
-  );
+  const rows = (await readFile(existingPath, 'utf8')).split('\n').filter(Boolean).map((line) => line.trim().split(','));
+  const existing = new Map(rows.map(([barcode, source]) => [barcode, source]));
+  // An optional third column is the product's image_url: one already in our
+  // bucket was swapped by an earlier run and is left alone.
+  const hasOurPhoto = new Set(rows.filter(([, , imageUrl]) => imageUrl?.startsWith(PHOTO_BASE)).map(([barcode]) => barcode));
   await mkdir(join(outDir, 'photos'), { recursive: true });
 
   // Only photos from Open Food Facts or the seed are replaced; a person's own
   // scan photo stays.
-  const replaceable = new Set(['open_food_facts', 'seed']);
+  const replaceableSources = new Set(['open_food_facts', 'seed']);
+  const replaceable = {
+    has: (barcode) => replaceableSources.has(existing.get(barcode)) && !hasOurPhoto.has(barcode) && !WRONG_PHOTOS[barcode],
+  };
   const photoFor = new Map();
 
   // 1. New products.
@@ -430,7 +494,7 @@ async function main() {
         skipped.push({ code, name: product.name, reason: mapped.skipped });
       } else if (existing.has(mapped.barcode)) {
         skipped.push({ code, name: product.name, reason: 'already in the catalogue, photo swapped' });
-        if (replaceable.has(existing.get(mapped.barcode)) && mapped.photo) {
+        if (replaceable.has(mapped.barcode) && mapped.photo) {
           photoFor.set(mapped.barcode, { url: mapped.photo, name: product.name });
         }
       } else {
@@ -447,7 +511,7 @@ async function main() {
     for (const product of result.products ?? []) {
       for (const image of product.images ?? []) {
         const match = image.url?.match(/-(\d{8,14})-Straight_on-/);
-        if (!match || !replaceable.has(existing.get(match[1]))) continue;
+        if (!match || !replaceable.has(match[1])) continue;
         // The search gives the 400px "product" size; the page uses 515px "zoom".
         if (!photoFor.has(match[1]) || image.format === 'zoom') photoFor.set(match[1], { url: image.url, name: product.name });
       }
