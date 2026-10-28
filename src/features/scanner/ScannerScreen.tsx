@@ -37,6 +37,11 @@
  *      product is added to the catalogue (unverified) and its Verdict opens.
  *      The next person who scans it finds it straight away.
  *
+ *   5. In Njam, but with no photo of the pack. Njam asks for the front of
+ *      the pack (checked, as in step 4) before the verdict opens, and saves
+ *      it on the product, so everyone after you sees it. There is no skip:
+ *      the photo is how you know the verdict is for the pack in your hand.
+ *
  * The product name is read from the front photo while you photograph the
  * ingredient list, so the second photo does not wait on the first.
  *
@@ -69,7 +74,7 @@ import {
   Snackbar,
   TextField,
 } from '@/components/design-system';
-import { ProductExistsError, addProduct } from '@/features/add-product/add-product';
+import { ProductExistsError, addProduct, addProductPhoto } from '@/features/add-product/add-product';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { BarcodeReadout } from '@/features/scanner/BarcodeReadout';
 import { FoundProduct } from '@/features/scanner/FoundProduct';
@@ -110,6 +115,8 @@ type Found = {
   /** null when the product was saved but we could not fetch its name back. */
   name: string | null;
   detail: string;
+  /** False when nobody has photographed the front of the pack yet. */
+  hasPhoto: boolean;
 };
 
 type Mode =
@@ -119,12 +126,19 @@ type Mode =
   | { kind: 'found'; barcode: string; photo: Taken | null; name: string; detail: string }
   // Not in Njam: the front of the pack. `read` is the ingredient list, once
   // we have it (the front is retaken if its name would not read).
-  | { kind: 'front'; barcode: string; read: LabelRead | null; problem: string | null }
-  | { kind: 'check-front'; barcode: string; read: LabelRead | null; front: Taken }
+  //
+  // `existing` is set when the product is already in Njam and only needs its
+  // photo (step 5): then there is no ingredient list to read afterwards.
+  | { kind: 'front'; barcode: string; read: LabelRead | null; problem: string | null; existing: Existing | null }
+  | { kind: 'check-front'; barcode: string; read: LabelRead | null; front: Taken; existing: Existing | null }
   // The ingredient list. No barcode means a label-only verdict, not saved.
   | { kind: 'label'; barcode: string | null; problem: string | null }
   | { kind: 'reading-label'; barcode: string | null; label: Taken }
-  | { kind: 'adding'; barcode: string; read: LabelRead; photo: Taken };
+  | { kind: 'adding'; barcode: string; read: LabelRead; photo: Taken }
+  | { kind: 'saving-photo'; barcode: string; photo: Taken };
+
+/** A product already in Njam that has no photo yet. */
+type Existing = { productId: string; name: string | null };
 
 /** The line in the hint pill under the brackets. */
 function hintFor(mode: Mode): string | undefined {
@@ -143,6 +157,8 @@ function hintFor(mode: Mode): string | undefined {
       return 'Reading the ingredients';
     case 'adding':
       return 'Adding the product to Njam';
+    case 'saving-photo':
+      return 'Adding the photo to Njam';
     case 'found':
     case 'check-front':
       // The product card or the message card says it; the hint would repeat it.
@@ -168,6 +184,15 @@ function messageFor(mode: Mode) {
         />
       ) : null;
     case 'front':
+      if (mode.existing) {
+        return (
+          <CameraMessage
+            icon="photo_camera"
+            title={mode.existing.name ? `${mode.existing.name} has no photo yet` : 'This product has no photo yet'}
+            body="Take a photo of the front packaging to see its verdict. Everyone who scans it after you will see it too."
+          />
+        );
+      }
       return mode.problem ? (
         <CameraMessage icon="info" title="We could not read the product name" body={mode.problem} />
       ) : (
@@ -220,6 +245,7 @@ function frozenPhoto(mode: Mode): { photo: Taken; checking: boolean } | null {
   switch (mode.kind) {
     case 'reading-barcode':
     case 'adding':
+    case 'saving-photo':
       return { photo: mode.photo, checking: false };
     case 'looking-up':
     case 'found':
@@ -261,7 +287,14 @@ function targetFor(mode: Mode): 'barcode' | 'label' | 'none' {
  */
 async function findProduct(barcode: string): Promise<Found | null> {
   const product = await fetchProductByBarcode(barcode);
-  if (product) return { productId: product.id, name: product.name, detail: productDetail(product) };
+  if (product) {
+    return {
+      productId: product.id,
+      name: product.name,
+      detail: productDetail(product),
+      hasPhoto: product.imageUrl !== null,
+    };
+  }
 
   let importedId: string | null = null;
   try {
@@ -271,9 +304,15 @@ async function findProduct(barcode: string): Promise<Found | null> {
   }
   if (!importedId) return null;
 
-  // Fetched again only for its name; the verdict opens either way.
+  // Fetched again for its name and photo; the verdict opens either way. If
+  // the fetch fails we cannot tell whether it has a photo, so we do not ask.
   const imported = await fetchProductById(importedId).catch(() => null);
-  return { productId: importedId, name: imported?.name ?? null, detail: imported ? productDetail(imported) : '' };
+  return {
+    productId: importedId,
+    name: imported?.name ?? null,
+    detail: imported ? productDetail(imported) : '',
+    hasPhoto: imported ? imported.imageUrl !== null : true,
+  };
 }
 
 /**
@@ -438,14 +477,20 @@ export function ScannerScreen() {
 
   /**
    * After a lookup. Found: show its name for a moment, then open its
-   * verdict. Not found: ask for the front of the pack to add it.
+   * verdict. Found with no photo: ask for the front of the pack first. Not
+   * found: ask for the front of the pack to add it.
    */
   function showResult(barcode: string, photo: Taken | null, found: Found | null) {
     if (!found) {
-      setMode({ kind: 'front', barcode, read: null, problem: null });
+      setMode({ kind: 'front', barcode, read: null, problem: null, existing: null });
       return;
     }
     hapticSuccess();
+    if (!found.hasPhoto) {
+      const existing = { productId: found.productId, name: found.name };
+      setMode({ kind: 'front', barcode, read: null, problem: null, existing });
+      return;
+    }
     if (!found.name) {
       openVerdict(found.productId, barcode);
       return;
@@ -503,10 +548,10 @@ export function ScannerScreen() {
   /** The shutter on the front of the pack: freeze it, then check it. */
   async function photographFront() {
     if (mode.kind !== 'front') return;
-    const { barcode, read } = mode;
+    const { barcode, read, existing } = mode;
     setNotice(null);
     const front = await takePhoto();
-    if (front) setMode({ kind: 'check-front', barcode, read, front });
+    if (front) setMode({ kind: 'check-front', barcode, read, front, existing });
     // A notice, not a problem: the problem's Retry would start a fresh scan.
     else setNotice(CAMERA_FAILED);
   }
@@ -516,7 +561,11 @@ export function ScannerScreen() {
    * now, so it is ready by the time the ingredient list is read. Then the
    * ingredient list, unless we already have it.
    */
-  function acceptFront(barcode: string, read: LabelRead | null, front: Taken) {
+  function acceptFront(barcode: string, read: LabelRead | null, front: Taken, existing: Existing | null) {
+    if (existing) {
+      savePhoto(barcode, front, existing);
+      return;
+    }
     frontPhoto.current = front;
     frontName.current = readFront({ imageBase64: front.base64, mimeType: 'image/jpeg' }).catch((error) => {
       console.warn('Could not read the front of the pack', error);
@@ -524,6 +573,31 @@ export function ScannerScreen() {
     });
     if (read && labelPhoto.current) addNewProduct(barcode, read, front);
     else setMode({ kind: 'label', barcode, problem: null });
+  }
+
+  /**
+   * "Use this photo" on a product that is in Njam but had no photo: save it
+   * on the product, then open its verdict. If saving fails, the photo comes
+   * back to check, so one tap on "Use this photo" tries again.
+   */
+  async function savePhoto(barcode: string, front: Taken, existing: Existing) {
+    if (!member) return;
+    setNotice(null);
+    setMode({ kind: 'saving-photo', barcode, photo: front });
+    try {
+      await addProductPhoto({
+        userId: member.id,
+        productId: existing.productId,
+        barcode,
+        photoBase64: front.base64,
+      });
+      hapticSuccess();
+      openVerdict(existing.productId, barcode);
+    } catch (error) {
+      console.warn('Could not add the photo', error);
+      setNotice('We could not add your photo. Check your connection and try again.');
+      setMode({ kind: 'check-front', barcode, read: null, front, existing });
+    }
   }
 
   /** The shutter on the ingredient list: freeze it and read it straight away. */
@@ -592,6 +666,7 @@ export function ScannerScreen() {
         barcode,
         read,
         problem: `${name?.problem ?? 'The name was not clear in the photo.'} Fit the name inside the frame and try again.`,
+        existing: null,
       });
       return;
     }
@@ -618,7 +693,7 @@ export function ScannerScreen() {
       }
       console.warn('Could not add the product', error);
       setNotice(error instanceof LabelReadError ? error.message : 'We could not add this product. Try again.');
-      setMode({ kind: 'check-front', barcode, read, front });
+      setMode({ kind: 'check-front', barcode, read, front, existing: null });
     }
   }
 
@@ -693,7 +768,9 @@ export function ScannerScreen() {
                   label="Retake"
                   variant="outlined"
                   fullWidth
-                  onPress={() => setMode({ kind: 'front', barcode: mode.barcode, read: mode.read, problem: null })}
+                  onPress={() =>
+                    setMode({ kind: 'front', barcode: mode.barcode, read: mode.read, problem: null, existing: mode.existing })
+                  }
                 />
               </View>
               <View style={styles.choiceButton}>
@@ -701,7 +778,7 @@ export function ScannerScreen() {
                   label="Use this photo"
                   icon="check"
                   fullWidth
-                  onPress={() => acceptFront(mode.barcode, mode.read, mode.front)}
+                  onPress={() => acceptFront(mode.barcode, mode.read, mode.front, mode.existing)}
                 />
               </View>
             </View>

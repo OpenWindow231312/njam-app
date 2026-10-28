@@ -79,3 +79,23 @@ export async function addProduct(input: {
   }
   return data as string;
 }
+
+/**
+ * Adds the front-of-pack photo to a product that has none. The photo goes to
+ * your folder in Storage, then add_product_photo (a database function) puts
+ * it on the product, but only while it still has no photo: if someone else
+ * got there first, theirs stays and this one is simply not used.
+ */
+export async function addProductPhoto(input: {
+  userId: string;
+  productId: string;
+  barcode: string;
+  photoBase64: string;
+}): Promise<void> {
+  const imageUrl = await uploadPhoto(`${input.userId}/${input.barcode}-${Date.now()}-front.jpg`, input.photoBase64);
+  const { error } = await supabase.rpc('add_product_photo', {
+    p_product_id: input.productId,
+    p_image_url: imageUrl,
+  });
+  if (error) throw error;
+}
