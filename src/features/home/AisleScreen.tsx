@@ -58,6 +58,9 @@ export function AisleScreen() {
         onBack: () => router.back(),
         title: aisleName,
         trailing: <AskNjamButton />,
+        // No fade under the bar: over the product photos it looked like a
+        // see-through band, not a fade.
+        fade: false,
       }}>
 
       <SectionHeader

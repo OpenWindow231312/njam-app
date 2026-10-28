@@ -45,6 +45,8 @@ type ScreenProps = {
     hideUntilScrolled?: boolean;
     middle?: ReactNode;
     trailing?: ReactNode;
+    /** false for no fade under the bar. */
+    fade?: boolean;
   };
   /** Buttons pinned to the bottom of the screen, under the scrolling content. */
   footer?: ReactNode;
