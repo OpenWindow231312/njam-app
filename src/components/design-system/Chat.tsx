@@ -15,34 +15,44 @@
  * fold. `faded` draws the bubble at opacity.disabled, for a message that did
  * not go through.
  *
- * ChatComposer: the white pill pinned to the bottom of the chat, with the
- * message field and a round forest send button. Send is disabled while the
- * field is empty, and while `busy` (Njam is still answering).
+ * ChatComposer: the typing bar pinned to the bottom of the chat, working as
+ * Claude's does (approved 28 Oct 2026). One row: your message, then the
+ * round forest send button on the right. As you type, the bar grows up one
+ * line at a time and send stays on the bottom line. At MAX_LINES it stops
+ * growing and the message scrolls inside it. Return adds a new line; only
+ * the send button sends. White with the ambient shadow, radius xl (a pill
+ * would clip the text once the bar is several lines tall).
+ *
+ * The send button has three jobs:
+ *   send  - an arrow, faded until you type.
+ *   stop  - while `busy` (Njam is answering), if you pass `onStop`.
+ *   save  - a tick while `editing` an earlier question, which also shows
+ *           "Editing your question" and a cross (`onCancelEdit`) on top.
  *
  * Ghost text (optional): pass `ghost`, the likely rest of the message, and
- * it is drawn straight after what was typed, in inkSubtle. A small "Use the
- * suggestion" button appears beside send; tapping it adds the ghost to the
- * message. The composer does not fetch ghost text itself: the screen does,
- * from what it hears through `onChangeText`.
+ * it is drawn straight after what was typed, in inkSubtle. Swipe right on
+ * the bar to take it; a screen reader gets the same as an action. The
+ * composer does not fetch ghost text itself: the screen does, from what it
+ * hears through `onChangeText`.
  *
  * How the ghost is drawn: React Native has no "placeholder after the
  * cursor", so a Text sits BEHIND the TextInput, which has no background of
  * its own. That Text holds the typed words in a transparent colour, then
- * the ghost in inkSubtle. Because both are one line of the same font and
- * size, the invisible copy pushes the ghost to exactly where the typed text
- * ends. If the two together would not fit on one line (the input would
- * scroll and the copies would drift apart), the ghost is hidden.
+ * the ghost in inkSubtle. Because both use the same font, size and line
+ * height, the invisible copy pushes the ghost to exactly where the typed
+ * text ends. If the two together would not fit on one line (the copies
+ * could wrap differently), the ghost is hidden.
  *
  * The assistant answers use the person's rules, and anything the AI read
  * from a label says so in words. No sparkle, no wand: the AI is shown by the
  * Njam mark (AiAvatar).
  */
-import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { PanResponder, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Icon } from '@/components/design-system/Icon';
 import { IconButton } from '@/components/design-system/IconButton';
-import { layout, opacity, radius, space, typography } from '@/theme/tokens';
+import { border, layout, opacity, radius, space, typography } from '@/theme/tokens';
 import { useNjamTheme } from '@/theme/use-njam-theme';
 
 /* ------------------------------------------------------------------ */
@@ -123,21 +133,47 @@ export function ChatBubble({ from, text, children, foldAfter, faded = false }: C
 
 type ChatComposerProps = {
   onSend: (message: string) => void;
-  /** An example question, e.g. "Ask about a product or ingredient". */
+  /** An example question, e.g. "Ask about any food". */
   placeholder: string;
-  /** True while an answer is on its way: send is disabled, typing is not. */
+  /** True while an answer is on its way: send turns into Stop, typing still works. */
   busy?: boolean;
+  /** Stops the answer on its way. Without it, send is only disabled while busy. */
+  onStop?: () => void;
   /** Called with the message as it changes, e.g. to fetch ghost text. */
   onChangeText?: (message: string) => void;
   /** Ghost text: the likely rest of the message, shown after it in inkSubtle. */
   ghost?: string | null;
+  /** An earlier question being edited. The bar takes its text; send saves it. */
+  editing?: string | null;
+  onCancelEdit?: () => void;
 };
 
-// Font and size only; a lineHeight pushes TextInput text off-centre on iOS.
-// The ghost overlay uses the same two values, so it lines up with the input.
-const fieldText = { fontFamily: typography.body.fontFamily, fontSize: typography.body.fontSize };
+// The bar grows to this many lines, then the message scrolls inside it.
+const MAX_LINES = 6;
+// How far a finger moves sideways before it counts as a swipe, and how far
+// it must go to take the ghost text.
+const SWIPE_START = 8;
+const SWIPE_TAKE = 48;
 
-export function ChatComposer({ onSend, placeholder, busy = false, onChangeText, ghost }: ChatComposerProps) {
+// The input and the ghost overlay share these, so the ghost lines up with
+// what was typed. A multiline input is laid out from the top, so the line
+// height no longer pushes the text off-centre as it did on one line.
+const fieldText = {
+  fontFamily: typography.body.fontFamily,
+  fontSize: typography.body.fontSize,
+  lineHeight: typography.body.lineHeight,
+};
+
+export function ChatComposer({
+  onSend,
+  placeholder,
+  busy = false,
+  onStop,
+  onChangeText,
+  ghost,
+  editing = null,
+  onCancelEdit,
+}: ChatComposerProps) {
   const { colors, shadows } = useNjamTheme();
   const [message, setMessage] = useState('');
   const [ghostFits, setGhostFits] = useState(true);
@@ -149,6 +185,11 @@ export function ChatComposer({ onSend, placeholder, busy = false, onChangeText, 
     onChangeText?.(next);
   };
 
+  // Editing puts the earlier question in the bar; cancelling empties it.
+  useEffect(() => {
+    setMessage(editing ?? '');
+  }, [editing]);
+
   const send = () => {
     if (!canSend) return;
     onSend(message.trim());
@@ -159,50 +200,85 @@ export function ChatComposer({ onSend, placeholder, busy = false, onChangeText, 
     if (ghost) change(message + ghost);
   };
 
+  // The latest values, for the swipe handler, which is made only once.
+  const latest = useRef({ showGhost, acceptGhost });
+  latest.current = { showGhost, acceptGhost };
+  const swipe = useRef(
+    PanResponder.create({
+      // Taps and vertical scrolling stay with the input; only a clear
+      // sideways drag over a suggestion becomes a swipe.
+      onMoveShouldSetPanResponderCapture: (_event, gesture) =>
+        latest.current.showGhost &&
+        gesture.dx > SWIPE_START &&
+        Math.abs(gesture.dx) > Math.abs(gesture.dy),
+      onPanResponderRelease: (_event, gesture) => {
+        if (gesture.dx > SWIPE_TAKE) latest.current.acceptGhost();
+      },
+    }),
+  ).current;
+
+  const action = busy && onStop ? 'stop' : editing !== null ? 'save' : 'send';
+
   return (
     <View style={[styles.composer, { backgroundColor: colors.surfaceRaised }, shadows.ambient]}>
-      <View style={styles.field}>
-        {ghost && message.length > 0 && (
-          // Behind the input, so every tap still lands in the TextInput.
-          <View pointerEvents="none" style={styles.ghostLayer}>
-            <Text
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              // More than one line means it no longer matches the input.
-              onTextLayout={(event) => setGhostFits(event.nativeEvent.lines.length <= 1)}
-              style={[fieldText, { opacity: ghostFits ? 1 : 0 }]}>
-              <Text style={styles.invisible}>{message}</Text>
-              <Text style={{ color: colors.inkSubtle }}>{ghost}</Text>
-            </Text>
-          </View>
-        )}
-        <TextInput
-          value={message}
-          onChangeText={change}
-          onSubmitEditing={send}
-          returnKeyType="send"
-          placeholder={placeholder}
-          placeholderTextColor={colors.inkSubtle}
-          accessibilityLabel="Message"
-          selectionColor={colors.focusRing}
-          style={[styles.input, fieldText, { color: colors.ink }]}
-        />
-      </View>
-      {showGhost && (
-        <IconButton
-          icon="check"
-          accessibilityLabel={`Use the suggestion: ${message}${ghost}`}
-          color={colors.inkMuted}
-          onPress={acceptGhost}
-        />
+      {editing !== null && (
+        <View style={[styles.editing, { borderBottomColor: colors.line }]}>
+          <Icon name="edit" size="sm" color={colors.inkMuted} />
+          <Text style={[typography.label, styles.editingLabel, { color: colors.inkMuted }]}>
+            Editing your question
+          </Text>
+          <IconButton icon="close" accessibilityLabel="Stop editing" onPress={() => onCancelEdit?.()} />
+        </View>
       )}
-      <IconButton
-        icon="arrow_upward"
-        accessibilityLabel="Send"
-        variant="filled"
-        onPress={send}
-        disabled={!canSend}
-      />
+      <View style={styles.row}>
+        <View
+          {...swipe.panHandlers}
+          style={styles.field}
+          accessibilityActions={showGhost ? [{ name: 'useSuggestion', label: 'Use the suggestion' }] : undefined}
+          onAccessibilityAction={(event) => {
+            if (event.nativeEvent.actionName === 'useSuggestion') acceptGhost();
+          }}>
+          {ghost && message.length > 0 && (
+            // Behind the input, so every tap still lands in the TextInput.
+            <View pointerEvents="none" style={styles.ghostLayer}>
+              <Text
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                // More than one line means it no longer matches the input.
+                onTextLayout={(event) => setGhostFits(event.nativeEvent.lines.length <= 1)}
+                style={[fieldText, { opacity: ghostFits ? 1 : 0 }]}>
+                <Text style={styles.invisible}>{message}</Text>
+                <Text style={{ color: colors.inkSubtle }}>{ghost}</Text>
+              </Text>
+            </View>
+          )}
+          <TextInput
+            value={message}
+            onChangeText={change}
+            multiline
+            placeholder={placeholder}
+            placeholderTextColor={colors.inkSubtle}
+            accessibilityLabel="Message"
+            selectionColor={colors.focusRing}
+            style={[styles.input, fieldText, { color: colors.ink }]}
+          />
+        </View>
+        {action === 'stop' && (
+          <IconButton icon="stop" accessibilityLabel="Stop answering" variant="filled" onPress={() => onStop?.()} />
+        )}
+        {action === 'save' && (
+          <IconButton
+            icon="check"
+            accessibilityLabel="Save and ask again"
+            variant="filled"
+            onPress={send}
+            disabled={!canSend}
+          />
+        )}
+        {action === 'send' && (
+          <IconButton icon="arrow_upward" accessibilityLabel="Send" variant="filled" onPress={send} disabled={!canSend} />
+        )}
+      </View>
     </View>
   );
 }
@@ -236,36 +312,48 @@ const styles = StyleSheet.create({
     gap: space.s1,
   },
   composer: {
-    height: layout.buttonHeightLarge,
+    borderRadius: radius.xl,
+    padding: space.s1,
+  },
+  editing: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.s2,
-    paddingLeft: space.s5,
-    paddingRight: space.s1,
-    borderRadius: radius.pill,
+    paddingLeft: space.s3,
+    borderBottomWidth: border.hairline,
+  },
+  editingLabel: {
+    flex: 1,
+  },
+  // Send sits on the bottom line, beside the last line you typed.
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: space.s2,
   },
   field: {
     flex: 1,
-    alignSelf: 'stretch',
-    justifyContent: 'center',
+    paddingLeft: space.s4,
   },
   input: {
-    flex: 1,
-    paddingVertical: 0,
+    // One line sits in the middle of the 48 send button; more lines grow up.
+    paddingTop: space.s3,
+    paddingBottom: space.s3,
+    maxHeight: MAX_LINES * typography.body.lineHeight + 2 * space.s3,
     // Android gives a TextInput side padding of its own. Zero it, so the
     // typed text starts exactly where the ghost overlay's copy starts.
     paddingHorizontal: 0,
+    // Android centres a multiline input's text; start it at the top as iOS does.
+    textAlignVertical: 'top',
     // The browser draws its own box round a focused input on the web preview;
     // the field's own outline already shows focus.
     outlineWidth: 0,
   },
   ghostLayer: {
     position: 'absolute',
-    top: 0,
+    top: space.s3,
     right: 0,
-    bottom: 0,
-    left: 0,
-    justifyContent: 'center',
+    left: space.s4,
   },
   // Takes up exactly the room the typed words take, without being seen.
   invisible: {
