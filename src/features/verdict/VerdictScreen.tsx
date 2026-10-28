@@ -516,7 +516,9 @@ function Shown({ shown }: { shown: Live | Past }) {
   const nutrition = (
     <NutritionCard nutrition={shown.kind === 'past' ? shown.nutrition : (extras?.nutrition ?? null)} startOpen />
   );
-  const stores = extras ? <AvailableAt stores={extras.stores} edgeInset={space.s6} /> : null;
+  // No stores known yet: leave "Available at" out rather than say we do not know.
+  const stores =
+    extras && extras.stores.length > 0 ? <AvailableAt stores={extras.stores} edgeInset={space.s6} /> : null;
   const ingredients =
     subject.ingredients.length > 0 ? (
       <IngredientsCard

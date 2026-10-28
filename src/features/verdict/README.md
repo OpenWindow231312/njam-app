@@ -41,5 +41,6 @@ the default profile. A past scan from History has no switch.
 A catalogue product also shows a save button on its photo (the same
 `saved_products` as Home), a Nutrition card from `nutrition_facts`, and
 "Available at" from `stores` and `product_stores`; each store opens its
-website in the in-app browser. A label read or a past scan has no product
+website in the in-app browser. When no store is known yet, "Available at" is
+left out. A label read or a past scan has no product
 id, so none of these extras show for it.

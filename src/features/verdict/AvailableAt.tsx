@@ -2,7 +2,7 @@
  * AvailableAt: the stores that sell the product, logo over name, in a row
  * that scrolls sideways. A store opens the product, or the store, on its
  * website in the in-app browser. "Other" has no website, so it is not
- * tappable.
+ * tappable. The Verdict screen leaves this out when no store is known.
  *
  * The row runs to both edges of the drawer, so a long list visibly carries
  * on past the edge, while the first logo still lines up with the text above.
@@ -31,46 +31,42 @@ export function AvailableAt({ stores, edgeInset }: AvailableAtProps) {
         Available at
       </Text>
 
-      {stores.length === 0 ? (
-        <Text style={[typography.body, { color: colors.inkMuted }]}>We do not know which stores sell this product yet.</Text>
-      ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ marginHorizontal: -edgeInset }}
-          contentContainerStyle={{ paddingHorizontal: edgeInset }}>
-          {stores.map((store) => {
-            const words = (
-              <>
-                <StoreLogo logoUrl={store.logoUrl} size={layout.storeLogoLarge} />
-                <Text numberOfLines={1} style={[typography.caption, styles.name, { color: colors.ink }]}>
-                  {store.name}
-                </Text>
-              </>
-            );
-            const link = store.link;
-            return link ? (
-              <PressableSurface
-                key={store.id}
-                onPress={() => openBrowserAsync(link)}
-                accessibilityRole="link"
-                accessibilityLabel={`${store.name}, open the website`}
-                radius={radius.lg}
-                style={styles.store}>
-                {words}
-              </PressableSurface>
-            ) : (
-              <View
-                key={store.id}
-                accessible
-                accessibilityLabel={`${store.name}, sold somewhere not on our list`}
-                style={styles.store}>
-                {words}
-              </View>
-            );
-          })}
-        </ScrollView>
-      )}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ marginHorizontal: -edgeInset }}
+        contentContainerStyle={{ paddingHorizontal: edgeInset }}>
+        {stores.map((store) => {
+          const words = (
+            <>
+              <StoreLogo logoUrl={store.logoUrl} size={layout.storeLogoLarge} />
+              <Text numberOfLines={1} style={[typography.caption, styles.name, { color: colors.ink }]}>
+                {store.name}
+              </Text>
+            </>
+          );
+          const link = store.link;
+          return link ? (
+            <PressableSurface
+              key={store.id}
+              onPress={() => openBrowserAsync(link)}
+              accessibilityRole="link"
+              accessibilityLabel={`${store.name}, open the website`}
+              radius={radius.lg}
+              style={styles.store}>
+              {words}
+            </PressableSurface>
+          ) : (
+            <View
+              key={store.id}
+              accessible
+              accessibilityLabel={`${store.name}, sold somewhere not on our list`}
+              style={styles.store}>
+              {words}
+            </View>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }
