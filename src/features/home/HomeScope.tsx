@@ -2,11 +2,11 @@
  * HomeScope: the pill under Home's headline, saying whose rules every
  * verdict on Home is for: "Checking for Anika".
  *
- * Tapping "Checking for" drops a tick list open underneath it: everyone in
- * the household, one tick box each, and "Everyone" at the top to tick them
- * all. Home then checks every product for all the ticked people at once.
- * At least one person always stays ticked, because a verdict for nobody
- * means nothing.
+ * Tapping "Checking for" drops a list open underneath it: "Everyone" at the
+ * top, then each person in the household. Tapping a row picks it and closes
+ * the list, so checking for one other person (Nico alone, say) is one tap.
+ * It used to be free tick boxes, but you could never untick the last person,
+ * so picking someone else alone took two taps nobody found (28 Oct).
  *
  * The list opens in place, pushing the page down, rather than floating over
  * it: the design system keeps real elevation for sheets, modals and the
@@ -35,12 +35,17 @@ type HomeScopeProps = {
   onChange: (selectedIds: string[]) => void;
 };
 
+/** "Anika de Beer" becomes "Anika": the pill is short, and a first name is friendlier. */
+function firstName(profile: ActiveProfile): string {
+  return profile.name.trim().split(/\s+/)[0];
+}
+
 /** "Anika", "Anika and Thabo", "3 people" or "everyone". */
 export function scopeName(profiles: ActiveProfile[], selectedIds: string[]): string {
   const chosen = profiles.filter((profile) => selectedIds.includes(profile.id));
   if (chosen.length > 1 && chosen.length === profiles.length) return 'everyone';
-  if (chosen.length === 1) return chosen[0].name;
-  if (chosen.length === 2) return `${chosen[0].name} and ${chosen[1].name}`;
+  if (chosen.length === 1) return firstName(chosen[0]);
+  if (chosen.length === 2) return `${firstName(chosen[0])} and ${firstName(chosen[1])}`;
   return `${chosen.length} people`;
 }
 
@@ -55,19 +60,10 @@ export function HomeScope({ profiles, selectedIds, onChange }: HomeScopeProps) {
   const rules = `${ruleCount} ${ruleCount === 1 ? 'rule' : 'rules'}`;
   const everyoneTicked = selectedIds.length === profiles.length;
 
-  function toggle(profileId: string, ticked: boolean) {
-    if (ticked) {
-      onChange([...selectedIds, profileId]);
-      return;
-    }
-    const left = selectedIds.filter((id) => id !== profileId);
-    // Never untick the last person.
-    if (left.length > 0) onChange(left);
-  }
-
-  // Unticking Everyone goes back to the household's default profile alone.
-  function toggleEveryone(ticked: boolean) {
-    onChange(ticked ? profiles.map((profile) => profile.id) : [profiles[0].id]);
+  /** Picks one choice and closes the list. Tapping the current choice just closes it. */
+  function choose(ids: string[]) {
+    onChange(ids);
+    setOpen(false);
   }
 
   return (
@@ -96,21 +92,21 @@ export function HomeScope({ profiles, selectedIds, onChange }: HomeScopeProps) {
       {open && (
         <ListGroup>
           {profiles.length > 1 && (
-            <Checkbox label="Everyone in your household" checked={everyoneTicked} onChange={toggleEveryone} />
+            <Checkbox
+              label="Everyone in your household"
+              checked={everyoneTicked}
+              onChange={() => choose(profiles.map((profile) => profile.id))}
+            />
           )}
-          {profiles.map((profile) => {
-            const ticked = selectedIds.includes(profile.id);
-            return (
-              <Checkbox
-                key={profile.id}
-                label={profile.name}
-                checked={ticked}
-                // The only ticked person cannot be unticked.
-                disabled={ticked && selectedIds.length === 1}
-                onChange={(next) => toggle(profile.id, next)}
-              />
-            );
-          })}
+          {profiles.map((profile) => (
+            <Checkbox
+              key={profile.id}
+              label={profile.name}
+              // Only ticked when this person alone is being checked for.
+              checked={selectedIds.length === 1 && selectedIds[0] === profile.id}
+              onChange={() => choose([profile.id])}
+            />
+          ))}
         </ListGroup>
       )}
     </View>
