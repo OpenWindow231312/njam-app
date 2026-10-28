@@ -17,7 +17,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Screen } from '@/components/Screen';
 import { EmptyState, SectionHeader, Snackbar } from '@/components/design-system';
-import { AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
+import { AskNjamButton, AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
 import { ScanCard } from '@/features/home/ScanCard';
 import { fetchRecentScans, type ScanRecord } from '@/features/verdict/scans';
 import { space } from '@/theme/tokens';
@@ -38,7 +38,10 @@ export function HistoryScreen() {
   useFocusEffect(load);
 
   return (
-    <Screen withTabBar topBar={{ title: 'Your scans', hideUntilScrolled: true }}>
+    // Ask Njam is in the bar too, so once the header's pill has scrolled
+    // away it is still in reach. The bar is hidden at rest, so the pill never
+    // shows twice.
+    <Screen withTabBar topBar={{ title: 'Your scans', hideUntilScrolled: true, trailing: <AskNjamButton /> }}>
       <View>
         <AskNjamHeader>
           <SectionHeader headline="Your scans" deck="Everything your household scanned, newest first." />
