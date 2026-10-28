@@ -18,6 +18,8 @@
  *      reasons say our team has not checked the list. The one exception: if
  *      the profile has a severe allergy, an unverified list is capped at
  *      Caution, because a misread label there could send someone to hospital.
+ *      For now this is switched off (TRUST_SHOPPER_LISTS): a list a shopper
+ *      added is decided like a verified one, and nothing says it is unchecked.
  *   4. Open Food Facts records are decided by how complete they are (see
  *      isCompleteList). A complete one was typed in from the real label, so
  *      it is decided like a verified one. A thin one is always Caution,
@@ -413,6 +415,15 @@ function checkRule(rule: ProfileRule, product: VerdictProduct): RuleOutcome {
   };
 }
 
+/**
+ * For now, a list a shopper added from a label photo is trusted like one our
+ * team verified: we assume the AI read it right. So it is not capped at
+ * Caution, a hard-to-read photo is not a Caution reason, and the verdict does
+ * not say our team has not checked it. Set to false to bring all of that back.
+ * Open Food Facts lists are not affected: a thin one is still Caution.
+ */
+export const TRUST_SHOPPER_LISTS = true;
+
 /** Fewer real ingredients than this, and an Open Food Facts list looks cut short. */
 export const MIN_COMPLETE_INGREDIENTS = 3;
 
@@ -461,14 +472,16 @@ export function decideVerdict(product: VerdictProduct, rules: ProfileRule[]): Ve
   // An Open Food Facts list (never a photo read) is trusted when complete.
   // A thin one cannot be Safe for anyone.
   const fromOpenFoodFacts = product.fromOpenFoodFacts === true && !product.readFromLabel;
-  const trusted = product.verified || (fromOpenFoodFacts && isCompleteList(product.ingredients));
+  const trusted =
+    product.verified || (fromOpenFoodFacts ? isCompleteList(product.ingredients) : TRUST_SHOPPER_LISTS);
   if (fromOpenFoodFacts && !trusted) {
     unchecked.push({ icon: 'info', text: 'The ingredient list from Open Food Facts looks incomplete.' });
   }
 
   // A label the reader was not sure of may have a word wrong or missing, so
   // it cannot be Safe. A rule it plainly breaks still makes it Not safe.
-  if (product.readFromLabel && (product.readConfidence === 'low' || product.readConfidence === 'medium')) {
+  const unsureRead = product.readConfidence === 'low' || product.readConfidence === 'medium';
+  if (product.readFromLabel && unsureRead && !TRUST_SHOPPER_LISTS) {
     unchecked.push({
       icon: 'info',
       text: 'The label photo was hard to read, so we may have missed or misread an ingredient.',

@@ -69,21 +69,22 @@ describe('Open Food Facts records', () => {
     assert.equal(verdict.state, 'unsafe');
   });
 
-  test('an unverified record not from Open Food Facts stays capped', () => {
+  // A shopper's list is trusted for now (TRUST_SHOPPER_LISTS), so it is not capped.
+  test('an unverified record not from Open Food Facts is Safe', () => {
     const product: VerdictProduct = {
       verified: false,
       readFromLabel: false,
       ingredients: [ingredient('maize'), ingredient('sunflower oil'), ingredient('salt')],
       mayContain: [],
     };
-    assert.equal(decideVerdict(product, [peanutAllergy]).state, 'caution');
+    assert.equal(decideVerdict(product, [peanutAllergy]).state, 'safe');
   });
 
-  test('a photo read stays capped even when it says Open Food Facts', () => {
+  test('a photo read is trusted like any shopper list, even when it says Open Food Facts', () => {
     const product: VerdictProduct = {
       ...fromOpenFoodFacts([ingredient('maize'), ingredient('sunflower oil'), ingredient('salt')]),
       readFromLabel: true,
     };
-    assert.equal(decideVerdict(product, [peanutAllergy]).state, 'caution');
+    assert.equal(decideVerdict(product, [peanutAllergy]).state, 'safe');
   });
 });

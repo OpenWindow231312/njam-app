@@ -50,6 +50,6 @@ export const SEVERITY_CHOICES: { value: AllergySeverity; label: string; meaning:
   {
     value: 'severe',
     label: 'Severe',
-    meaning: 'Even a trace is dangerous. A product our team has not checked can never be Safe for you.'
+    meaning: 'Even a trace is dangerous, so a product that may contain it is Not safe for you.'
   },
 ];

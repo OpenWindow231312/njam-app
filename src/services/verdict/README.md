@@ -15,6 +15,12 @@ The rules:
   our team has not checked the list. The exception: if the profile has a severe
   allergy, an unverified record is capped at Caution, because a misread label is
   most dangerous there.
+- **For now, a list a shopper added is trusted** (`TRUST_SHOPPER_LISTS` in
+  `index.ts`). We assume the AI read the label right, so the two rules above
+  and below about unverified records and unsure reads are switched off: a
+  shopper's product is decided like a verified one and says nothing about our
+  team. A profile with no rules is Safe for every product. Set the switch to
+  `false` to bring the caps back.
 - **Open Food Facts records are decided by how complete they are.** A complete
   one (at least three real ingredients, `isCompleteList`) was typed in from the
   real label, so it is decided like a verified one. A thin one is always
