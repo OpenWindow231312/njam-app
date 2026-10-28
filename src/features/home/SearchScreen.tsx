@@ -28,7 +28,7 @@ import {
   TextField,
 } from '@/components/design-system';
 import { PressableSurface } from '@/components/design-system/PressableSurface';
-import { AskNjamButton, AskNjamHeader } from '@/features/ask-njam/AskNjamHeader';
+import { AskNjamButton } from '@/features/ask-njam/AskNjamHeader';
 import { FilteredBy } from '@/features/home/FilteredBy';
 import { FilterSheet, type VerdictFilter } from '@/features/home/FilterSheet';
 import { ProductGrid } from '@/features/home/ProductGrid';
@@ -61,16 +61,13 @@ export function SearchScreen() {
   }
 
   return (
-    // Like Your scans: once the headline scrolls away, it comes back small in the bar.
-    // Ask Njam is in the bar too, as on History, so it stays in reach once
-    // the header's pill has scrolled away.
-    <Screen withTabBar topBar={{ title: 'Find a product', hideUntilScrolled: true, trailing: <AskNjamButton /> }}>
+    // Like Your scans: a solid bar that is always there, with Ask Njam on the
+    // right. Once the headline scrolls away, it comes back small in the bar.
+    <Screen withTabBar topBar={{ title: 'Find a product', trailing: <AskNjamButton />, fade: false }}>
       {/* One View with no gap of its own, so the search bar sits right under
           the headline: only the SectionHeader's own space.s7 between them. */}
       <View>
-        <AskNjamHeader>
-          <SectionHeader headline="Find a product" />
-        </AskNjamHeader>
+        <SectionHeader headline="Find a product" />
 
         <View style={styles.searchRow}>
           <View style={styles.flex}>
