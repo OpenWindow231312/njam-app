@@ -62,9 +62,8 @@ describe('a "may contain" line', () => {
   });
 });
 
-// For now we assume the reader got it right (TRUST_SHOPPER_LISTS), so how
-// sure it was does not change the verdict.
 describe('how sure the label reader was', () => {
+  const hardToRead = 'The label photo was hard to read, so we may have missed or misread an ingredient.';
   const avoidCaffeine: ProfileRule = { type: 'ingredient', target: 'caffeine', operator: 'excludes', threshold: null, unit: null, severity: null };
   const labelRead = (readConfidence: VerdictProduct['readConfidence'], names = ['rooibos tea']) =>
     product({ verified: false, readFromLabel: true, readConfidence, ingredients: names.map(ingredient) });
@@ -74,8 +73,10 @@ describe('how sure the label reader was', () => {
   });
 
   for (const confidence of ['medium', 'low'] as const) {
-    test(`a ${confidence} confidence read can be Safe too`, () => {
-      assert.equal(decideVerdict(labelRead(confidence), [avoidCaffeine]).state, 'safe');
+    test(`a ${confidence} confidence read is capped at Caution and says why`, () => {
+      const verdict = decideVerdict(labelRead(confidence), [avoidCaffeine]);
+      assert.equal(verdict.state, 'caution');
+      assert.ok(verdict.reasons.some((reason) => reason.text === hardToRead));
     });
   }
 
@@ -136,43 +137,34 @@ describe('nutrient limits', () => {
     assert.equal(decideVerdict(withFacts({ sugar_g: 1 }), [limit('caffeine', 'lte', 50, 'mg')]).state, 'caution');
   });
 
+  test('a label given per serving only stays Caution, because limits are per 100 g', () => {
+    const perServing = product({ nutrition: { basis: 'serving', values: { sugar_g: 2 } } });
+    const verdict = decideVerdict(perServing, [sugarUpTo10g]);
+    assert.equal(verdict.state, 'caution');
+    assert.match(verdict.reasons[0].text, /per serving only/);
+  });
+
   test('a unit that cannot be compared stays Caution', () => {
     assert.equal(decideVerdict(withFacts({ energy_kj: 900 }), [limit('energy', 'lte', 200, 'kcal')]).state, 'caution');
   });
 });
 
-describe('a profile with no rules', () => {
-  test('is Safe, because nothing can go against it', () => {
-    const verdict = decideVerdict(product(), []);
+describe('a diet rule', () => {
+  const halaal: ProfileRule = { type: 'diet', target: 'halaal', operator: 'requires', threshold: null, unit: null, severity: null };
+  const noGelatine: ProfileRule = { type: 'ingredient', target: 'gelatine', operator: 'excludes', threshold: null, unit: null, severity: null };
+
+  test('is only a name, so on its own it changes nothing', () => {
+    const verdict = decideVerdict(product(), [halaal, noGelatine]);
     assert.equal(verdict.state, 'safe');
-    assert.equal(verdict.reasons[0].text, 'You have no rules set yet, so nothing on this product goes against them.');
+    assert.equal(verdict.checks.length, 1);
   });
 
-  test('is Safe for an unverified product, with no note that it was not checked', () => {
-    const verdict = decideVerdict(product({ verified: false, readFromLabel: true, readConfidence: 'low' }), []);
-    assert.equal(verdict.state, 'safe');
-    assert.equal(verdict.reasons.length, 1);
-  });
-
-  test('is Safe for a product with no ingredient list', () => {
-    assert.equal(decideVerdict(product({ verified: false, ingredients: [] }), []).state, 'safe');
-  });
-});
-
-describe('a product a shopper just added from a label photo', () => {
-  const milkAllergy: ProfileRule = { type: 'allergen', target: 'milk', operator: 'excludes', threshold: null, unit: null, severity: 'severe' };
-  const added = (names: string[]) =>
-    product({ verified: false, readFromLabel: true, readConfidence: 'medium', ingredients: names.map(ingredient) });
-
-  test('is Safe for a severe milk allergy when it has no milk', () => {
-    const verdict = decideVerdict(added(['wheat flour', 'sunflower oil', 'salt']), [milkAllergy]);
-    assert.equal(verdict.state, 'safe');
-    assert.equal(verdict.reasons.length, 1);
-  });
-
-  test('is Not safe for a severe milk allergy when it has milk', () => {
-    const withMilk = { ...ingredient('milk powder'), allergen: 'milk' };
-    const verdict = decideVerdict(product({ verified: false, readFromLabel: true, ingredients: [withMilk] }), [milkAllergy]);
+  test('still lets the rules saved with it break a product', () => {
+    const verdict = decideVerdict(product({ ingredients: [ingredient('sugar'), ingredient('gelatine')] }), [halaal, noGelatine]);
     assert.equal(verdict.state, 'unsafe');
+  });
+
+  test('alone, it does not count as having rules', () => {
+    assert.equal(decideVerdict(product(), [halaal]).state, 'caution');
   });
 });

@@ -53,3 +53,168 @@ export const SEVERITY_CHOICES: { value: AllergySeverity; label: string; meaning:
     meaning: 'Even a trace is dangerous, so a product that may contain it is Not safe for you.'
   },
 ];
+
+/**
+ * One thing a diet or faith rules out, as the rules the engine checks:
+ * ingredient names (matched as whole words, so "pork" finds "pork fat"),
+ * E-numbers, and allergens. An allergen added by a diet is saved as "Avoid",
+ * and never lowers a level you set yourself.
+ */
+export type DietItem = {
+  key: string;
+  label: string;
+  ingredients: string[];
+  eNumbers: string[];
+  allergens: string[];
+};
+
+export type DietPreset = {
+  /** Saved as the target of the diet's rows: "halaal". */
+  key: string;
+  label: string;
+  items: DietItem[];
+  /** What the ingredient list cannot tell you, said plainly in the sheet. */
+  limits: string;
+};
+
+const ITEMS = {
+  pork: { key: 'pork', label: 'Pork, bacon, ham and lard', ingredients: ['pork', 'bacon', 'ham', 'lard'], eNumbers: [], allergens: [] },
+  meat: {
+    key: 'meat',
+    label: 'Meat and poultry',
+    ingredients: ['beef', 'pork', 'bacon', 'ham', 'chicken', 'lamb', 'mutton', 'veal', 'turkey', 'meat'],
+    eNumbers: [],
+    allergens: [],
+  },
+  fish: { key: 'fish', label: 'Fish and shellfish', ingredients: ['anchovy', 'tuna'], eNumbers: [], allergens: ['fish', 'crustacean-mollusc'] },
+  shellfish: { key: 'shellfish', label: 'Shellfish', ingredients: [], eNumbers: [], allergens: ['crustacean-mollusc'] },
+  gelatine: { key: 'gelatine', label: 'Gelatine (E441)', ingredients: ['gelatine', 'gelatin'], eNumbers: ['E441'], allergens: [] },
+  animalFat: { key: 'animal-fat', label: 'Lard, tallow and suet', ingredients: ['lard', 'tallow', 'suet', 'dripping'], eNumbers: [], allergens: [] },
+  rennet: { key: 'rennet', label: 'Rennet', ingredients: ['rennet'], eNumbers: [], allergens: [] },
+  alcohol: {
+    key: 'alcohol',
+    label: 'Alcohol',
+    ingredients: ['alcohol', 'ethanol', 'rum', 'brandy', 'sherry', 'liqueur'],
+    eNumbers: [],
+    allergens: [],
+  },
+  carmine: { key: 'carmine', label: 'Carmine, a red colour from insects (E120)', ingredients: ['carmine', 'cochineal'], eNumbers: ['E120'], allergens: [] },
+  cysteine: { key: 'l-cysteine', label: 'L-cysteine, often from feathers (E920)', ingredients: ['l-cysteine'], eNumbers: ['E920'], allergens: [] },
+  milk: { key: 'milk', label: 'Milk', ingredients: [], eNumbers: [], allergens: ['milk'] },
+  egg: { key: 'egg', label: 'Eggs', ingredients: [], eNumbers: [], allergens: ['egg'] },
+  honey: { key: 'honey', label: 'Honey', ingredients: ['honey'], eNumbers: [], allergens: [] },
+} satisfies Record<string, DietItem>;
+
+/**
+ * Diets and faiths, offered as shortcuts. The engine cannot check a diet as
+ * such (that needs every ingredient tagged with where it comes from), so each
+ * one is the list of things it rules out, and you untick what you are fine with.
+ */
+export const DIET_PRESETS: DietPreset[] = [
+  {
+    key: 'vegetarian',
+    label: 'Vegetarian',
+    items: [ITEMS.meat, ITEMS.fish, ITEMS.gelatine, ITEMS.animalFat, ITEMS.rennet],
+    limits: 'We read the ingredient list. A vague word like "flavouring" can still hide an animal ingredient.',
+  },
+  {
+    key: 'vegan',
+    label: 'Vegan',
+    items: [ITEMS.meat, ITEMS.fish, ITEMS.milk, ITEMS.egg, ITEMS.honey, ITEMS.gelatine, ITEMS.animalFat, ITEMS.carmine],
+    limits: 'We read the ingredient list. A vague word like "flavouring" can still hide an animal ingredient.',
+  },
+  {
+    key: 'halaal',
+    label: 'Halaal',
+    items: [ITEMS.pork, ITEMS.gelatine, ITEMS.alcohol, ITEMS.carmine, ITEMS.cysteine],
+    limits: 'We read the ingredient list. We cannot tell how meat was slaughtered, so look for a halaal mark too.',
+  },
+  {
+    key: 'kosher',
+    label: 'Kosher',
+    items: [ITEMS.pork, ITEMS.shellfish, ITEMS.gelatine, ITEMS.carmine],
+    limits: 'We read the ingredient list. We cannot check certification or meat and milk eaten together, so look for a kosher mark too.',
+  },
+];
+
+/**
+ * A nutrient you can set a limit on, per 100 g. `target` is the word the
+ * engine reads, `low` is where the slider starts and the first quick pick.
+ */
+export type NutrientOption = {
+  target: string;
+  label: string;
+  unit: 'g' | 'mg';
+  max: number;
+  step: number;
+  /** Quick picks under the slider, with what each one means. */
+  picks: { value: number; meaning: string }[];
+  hint?: string;
+};
+
+export const NUTRIENT_OPTIONS: NutrientOption[] = [
+  {
+    target: 'sugar',
+    label: 'Sugar',
+    unit: 'g',
+    max: 50,
+    step: 0.5,
+    picks: [
+      { value: 5, meaning: 'low' },
+      { value: 22.5, meaning: 'high' },
+    ],
+  },
+  {
+    target: 'sodium',
+    label: 'Sodium',
+    unit: 'mg',
+    max: 2000,
+    step: 10,
+    picks: [
+      { value: 120, meaning: 'low' },
+      { value: 600, meaning: 'high' },
+    ],
+    hint: 'Labels list salt as sodium.',
+  },
+  {
+    target: 'saturated fat',
+    label: 'Saturated fat',
+    unit: 'g',
+    max: 20,
+    step: 0.5,
+    picks: [
+      { value: 1.5, meaning: 'low' },
+      { value: 5, meaning: 'high' },
+    ],
+  },
+  {
+    target: 'fat',
+    label: 'Fat',
+    unit: 'g',
+    max: 50,
+    step: 0.5,
+    picks: [
+      { value: 3, meaning: 'low' },
+      { value: 17.5, meaning: 'high' },
+    ],
+  },
+  {
+    target: 'carbs',
+    label: 'Carbs',
+    unit: 'g',
+    max: 100,
+    step: 1,
+    picks: [
+      { value: 10, meaning: 'low' },
+      { value: 30, meaning: 'moderate' },
+    ],
+  },
+];
+
+/** Health presets: a few limits set in one tap. Every one is a starting point, not medical advice. */
+export const NUTRIENT_PRESETS: { label: string; limits: Record<string, number> }[] = [
+  { label: 'Low sugar', limits: { sugar: 5 } },
+  { label: 'Low salt', limits: { sodium: 120 } },
+  { label: 'Low fat', limits: { fat: 3 } },
+  { label: 'Heart health', limits: { 'saturated fat': 1.5, sodium: 120 } },
+];
