@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="docs/readme/cover.png" width="100%" alt="Njam. Scan it. Know it. Eat it. Beside it, pills reading Allergies, Halal, E-numbers and Carbs on forest green." />
+<img src="docs/readme/cover.png" width="100%" alt="Njam. Know if you can njam it. Allergy and diet checks for every label. Beside it, the back of a pack of buttermilk rusks with its barcode, and a Not safe verdict: contains buttermilk powder, which you marked severe." />
 
-**Scan a barcode. Know if it fits your diet.**
+**Know if you can njam it. Allergy and diet checks for every label.**
 
 An AI-driven grocery scanner for South Africa. You set your dietary rules once,
 point the camera at a barcode, and get one of three answers in under three
