@@ -48,7 +48,7 @@ application, Open Window, October 2026.
 
 ## Videos
 
-**[Watch the 8 minute demonstration](https://drive.google.com/drive/folders/1l5Q-4LrgJt0hW8XRNWa4UbPCqaArrx2T?usp=drive_link)**
+**[Watch the 6 minute demonstration](https://drive.google.com/file/d/1cCLND2C-kBLSN2mHlbZfTuFQx3CGKM2X/view?usp=sharing)**
 
 **[Watch the 20 minute presentation](https://drive.google.com/drive/folders/1JfNHZ1GzSCl_w3I8XKfTLEj9AMP4Xlzb?usp=sharing)**
 
