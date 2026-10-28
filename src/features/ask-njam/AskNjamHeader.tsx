@@ -16,14 +16,16 @@
  * nothing.) Tonal keeps it quiet beside the headline, so it never competes
  * with a screen's lime primary button.
  *
- * A small Button is drawn 36 tall; Button extends its tap area to 48.
+ * It is drawn chipHeightLarge (44) tall, not a small Button's 36, so it is
+ * the same height as the "For ..." DropdownChip beside it on Verdict, and
+ * the same everywhere else it appears. Button extends its tap area to 48.
  */
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AiAvatar, Button } from '@/components/design-system';
-import { icon, space } from '@/theme/tokens';
+import { icon, layout, space } from '@/theme/tokens';
 
 export function AskNjamHeader({ children }: { children: ReactNode }) {
   return (
@@ -42,6 +44,7 @@ export function AskNjamButton() {
     <Button
       variant="tonal"
       size="small"
+      height={layout.chipHeightLarge}
       leading={<AiAvatar size={icon.sizeMd} />}
       label="Ask Njam"
       onPress={() => router.push('/ask')}

@@ -15,6 +15,8 @@
  *
  * Sizes: default (48), small (36 drawn, 48 to tap) and large (56), the
  * full-width primary at the foot of a screen: "Save my allergies".
+ * `height` draws a small button taller, so it lines up with a chip beside it:
+ * Ask Njam beside the "For ..." DropdownChip in a top bar.
  *
  * Labels are verb phrases that name the action. Never "Continue".
  * Coloured buttons never carry a shadow. Only the white outlined button has
@@ -47,6 +49,8 @@ type ButtonProps = {
   loadingLabel?: string;
   disabled?: boolean;
   fullWidth?: boolean;
+  /** Drawn height of a small button, to match a chip beside it. Leave out for the size's own height. */
+  height?: number;
 };
 
 export function Button({
@@ -60,6 +64,7 @@ export function Button({
   loadingLabel,
   disabled = false,
   fullWidth = false,
+  height,
 }: ButtonProps) {
   const { colors, shadows } = useNjamTheme();
   const isSmall = size === 'small';
@@ -81,7 +86,8 @@ export function Button({
 
   // A small button is drawn 36 tall but must still be 48 to tap. hitSlop
   // extends the tappable area above and below without changing the layout.
-  const extraHit = isSmall ? (layout.touchTargetMin - layout.buttonHeightSmall) / 2 : 0;
+  const smallHeight = height ?? layout.buttonHeightSmall;
+  const extraHit = isSmall ? Math.max(0, (layout.touchTargetMin - smallHeight) / 2) : 0;
 
   return (
     <PressableSurface
@@ -96,7 +102,7 @@ export function Button({
         styles.base,
         {
           minHeight: isSmall
-            ? layout.buttonHeightSmall
+            ? smallHeight
             : isLarge
               ? layout.buttonHeightLarge
               : layout.touchTargetMin,
