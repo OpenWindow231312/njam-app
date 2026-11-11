@@ -10,8 +10,9 @@
 // React Native's is incomplete, so this polyfill has to load first.
 import 'react-native-url-polyfill/auto';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+
+import { secureSessionStorage } from '@/lib/secure-session-storage';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -26,8 +27,9 @@ if (!supabaseUrl || !supabasePublishableKey) {
 
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
-    // Keep the session on the device so a person is not signed out every launch.
-    storage: AsyncStorage,
+    // Keep the session on the device so a person is not signed out every
+    // launch, encrypted in the phone's keychain (see secure-session-storage.ts).
+    storage: secureSessionStorage,
     persistSession: true,
     autoRefreshToken: true,
     // This is only meaningful on the web, where Supabase reads the token out of
