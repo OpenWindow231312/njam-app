@@ -30,9 +30,11 @@ SplashScreen.preventAutoHideAsync();
  * they finish it. Changing rules later uses a separate route, edit-rules.
  */
 function RootNavigator() {
-  const { session, onboarded, loading } = useAuth();
+  const { session, onboarded, loading, resettingPassword } = useAuth();
   const { colors } = useNjamTheme();
-  const signedIn = session !== null;
+  // While a forgotten password is reset, the person is briefly signed in
+  // before the new password is saved. Stay on the Auth screen until it is.
+  const signedIn = session !== null && !resettingPassword;
 
   // Render nothing until we know whether someone is signed in, so the Auth
   // screen never flashes for a person who already is. The splash overlay

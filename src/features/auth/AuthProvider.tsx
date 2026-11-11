@@ -26,6 +26,9 @@ export type Member = {
 
 type SignUpResult = 'signed-in' | 'check-email';
 
+/** Supabase's minimum, unless the project raises it. Used by every password field. */
+export const MIN_PASSWORD_LENGTH = 6;
+
 type AuthContextValue = {
   session: Session | null;
   member: Member | null;
@@ -33,9 +36,19 @@ type AuthContextValue = {
   onboarded: boolean;
   /** True until the saved session has been read from the phone. */
   loading: boolean;
+  /**
+   * True while a forgotten password is being reset. Checking the emailed code
+   * signs the person in before the new password is saved, so the root layout
+   * keeps the Auth screen up until both are done (see resetPassword).
+   */
+  resettingPassword: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<SignUpResult>;
   signOut: () => Promise<void>;
+  /** Emails a reset code to this address, if it has an account. */
+  sendPasswordReset: (email: string) => Promise<void>;
+  /** Checks the emailed code, then sets the new password. Signs the person in. */
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
   /** Marks onboarding as done, so the app opens on the tabs from now on. */
   finishOnboarding: () => Promise<void>;
   /** Reads your row again, after something on the server changed your household or role. */
@@ -117,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   useEffect(() => {
     // Supabase reports the saved session first (INITIAL_SESSION), then every
@@ -165,6 +179,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   }
 
+  // Forgot password works with a code typed into the app, not a link in the
+  // email. A link has to open the app, and in Expo Go the app's address
+  // changes with the laptop's network (exp://192.168.x.x:8081), so a link
+  // saved in Supabase would break. A code works the same on every phone.
+  // The "Reset password" email template in Supabase must include
+  // {{ .Token }} for the code to appear in the email.
+  async function sendPasswordReset(email: string) {
+    // Supabase answers the same whether or not the email has an account, so
+    // this cannot be used to find out who has signed up.
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+    if (error) throw error;
+  }
+
+  async function resetPassword(email: string, code: string, newPassword: string) {
+    setResettingPassword(true);
+    try {
+      // A correct code signs the person in, the same as a password would.
+      const verified = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: code.trim(),
+        type: 'recovery',
+      });
+      if (verified.error) throw verified.error;
+
+      const updated = await supabase.auth.updateUser({ password: newPassword });
+      if (updated.error) {
+        // The code is used up but the password did not change. Sign out
+        // again, so nobody is left signed in without knowing their password.
+        await supabase.auth.signOut();
+        throw updated.error;
+      }
+    } finally {
+      setResettingPassword(false);
+    }
+  }
+
   async function finishOnboarding() {
     // Kept in the auth user's metadata rather than a new column, so no
     // migration is needed. It only decides which screen opens first; it
@@ -187,7 +237,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, member, onboarded, loading, signIn, signUp, signOut, finishOnboarding, reloadMember }}>
+      value={{
+        session,
+        member,
+        onboarded,
+        loading,
+        resettingPassword,
+        signIn,
+        signUp,
+        signOut,
+        sendPasswordReset,
+        resetPassword,
+        finishOnboarding,
+        reloadMember,
+      }}>
       {children}
     </AuthContext.Provider>
   );
